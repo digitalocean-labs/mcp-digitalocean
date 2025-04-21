@@ -1,0 +1,6 @@
+ignoreGeneratedHeader = false
+severity = "warning"
+formatter = "stylish"
+
+[rule.exported]
+    Exclude=["**/*.go"]
