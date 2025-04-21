@@ -87,7 +87,7 @@ Tools provide actionable capabilities for managing DigitalOcean resources. These
 
 3. Build the project:
    ```bash
-   go build ./...
+   make build-bin
    ```
 
 ---
@@ -101,7 +101,7 @@ Tools provide actionable capabilities for managing DigitalOcean resources. These
 
 2. Run the MCP server:
    ```bash
-   go run cmd/mcp.go
+   ./bin/mcp-digitalocean
    ```
 
 3. Use the tools and resources to interact with your DigitalOcean infrastructure.

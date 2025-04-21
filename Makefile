@@ -5,7 +5,7 @@ build:
 
 
 build-bin:
-	go build -o bin/mcp-digitalocean ./cmd/mcp.go 
+	go build -o bin/mcp-digitalocean ./cmd/mcp-digitalocean/main.go 
 
 lint:
 	revive ./...
