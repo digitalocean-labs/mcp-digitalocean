@@ -9,7 +9,6 @@ import (
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
-
 )
 
 // BillingMCPResource represents a handler for MCP Billing resources
@@ -43,7 +42,7 @@ func (b *BillingMCPResource) HandleGetResource(ctx context.Context, request mcp.
 	}
 
 	// Check if the last parameter is a valid number
-	perpage, err := strconv.Atoi(lastParam); 
+	perpage, err := strconv.Atoi(lastParam)
 	if err != nil {
 		return nil, fmt.Errorf("invalid billing URI: %s", request.Params.URI)
 	}
@@ -72,7 +71,7 @@ func (b *BillingMCPResource) HandleGetResource(ctx context.Context, request mcp.
 }
 
 // ResourceTemplates returns the resource templates for the Billing MCP resource
-func (b *BillingMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]MCPResourceHandler{
+func (b *BillingMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]MCPResourceHandler {
 	return map[mcp.ResourceTemplate]MCPResourceHandler{
 		b.GetResourceTemplate(): b.HandleGetResource,
 	}

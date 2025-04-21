@@ -26,14 +26,14 @@ jobs:
           go install github.com/mgechev/revive@latest
           go install honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Lint - golint
-        run: revive ./...
+      - name: Lint
+        run: make lint
 
-      - name: Lint - staticcheck
-        run: GOOS=linux staticcheck ./...
+      - name: Check Code Formatting
+        run: make format-check
 
       - name: Build
-        run: go build ./...
+        run: make build
 
       - name: Test
-        run: go test ./...
+        run: make test
