@@ -1,0 +1,39 @@
+---
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.1"
+
+      - name: Install Linters
+        run: |
+          go install github.com/mgechev/revive@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Lint - golint
+        run: revive ./...
+
+      - name: Lint - staticcheck
+        run: GOOS=linux staticcheck ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...
