@@ -23,20 +23,43 @@ func NewFirewallTool(client *godo.Client) *FirewallTool {
 
 // CreateFirewall creates a new firewall
 func (f *FirewallTool) CreateFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name := req.Params.Arguments["Name"].(string)
-	inboundProtocol := req.Params.Arguments["InboundProtocol"].(string)
-	inboundPortRange := req.Params.Arguments["InboundPortRange"].(string)
-	inboundSource := req.Params.Arguments["InboundSource"].(string)
-	outboundProtocol := req.Params.Arguments["OutboundProtocol"].(string)
-	outboundPortRange := req.Params.Arguments["OutboundPortRange"].(string)
-	outboundDestination := req.Params.Arguments["OutboundDestination"].(string)
-	dropletIDs := req.Params.Arguments["DropletIDs"].([]float64)
-	tags := req.Params.Arguments["Tags"].([]string)
-
-	dIDs := make([]int, len(dropletIDs))
-	for i, v := range dropletIDs {
-		dIDs[i] = int(v)
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
 	}
+
+	inboundProtocol, err := req.RequireString("InboundProtocol")
+	if err != nil {
+		return nil, err
+	}
+
+	inboundPortRange, err := req.RequireString("InboundPortRange")
+	if err != nil {
+		return nil, err
+	}
+
+	inboundSource, err := req.RequireString("InboundSource")
+	if err != nil {
+		return nil, err
+	}
+
+	outboundProtocol, err := req.RequireString("OutboundProtocol")
+	if err != nil {
+		return nil, err
+	}
+
+	outboundPortRange, err := req.RequireString("OutboundPortRange")
+	if err != nil {
+		return nil, err
+	}
+
+	outboundDestination, err := req.RequireString("OutboundDestination")
+	if err != nil {
+		return nil, err
+	}
+
+	dIDs := req.GetIntSlice("DropletIDs", []int{})
+	tags := req.GetStringSlice("Tags", []string{})
 
 	inboundRule := godo.InboundRule{
 		Protocol:  inboundProtocol,
@@ -73,8 +96,11 @@ func (f *FirewallTool) CreateFirewall(ctx context.Context, req mcp.CallToolReque
 
 // DeleteFirewall deletes a firewall
 func (f *FirewallTool) DeleteFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	firewallID := req.Params.Arguments["ID"].(string)
-	_, err := f.client.Firewalls.Delete(ctx, firewallID)
+	firewallID, err := req.RequireString("ID")
+	if err != nil {
+		return nil, err
+	}
+	_, err = f.client.Firewalls.Delete(ctx, firewallID)
 	if err != nil {
 		return nil, err
 	}

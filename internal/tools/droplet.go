@@ -23,17 +23,35 @@ func NewDropletTool(client *godo.Client) *DropletTool {
 
 // Create Droplet creates a new droplet
 func (d *DropletTool) CreateDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletName := req.Params.Arguments["Name"].(string)
-	size := req.Params.Arguments["Size"].(string)
-	imageID := req.Params.Arguments["ImageID"].(float64)
-	region := req.Params.Arguments["Region"].(string)
-	backup, _ := req.Params.Arguments["Backup"].(bool)         // Defaults to false
-	monitoring, _ := req.Params.Arguments["Monitoring"].(bool) // Defaults to false
+	dropletName, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+	
+	size, err := req.RequireString("Size")
+	if err != nil {
+		return nil, err
+	}
+	
+	imageIDFloat, err := req.RequireFloat("ImageID")
+	if err != nil {
+		return nil, err
+	}
+	imageID := int(imageIDFloat)
+	
+	region, err := req.RequireString("Region")
+	if err != nil {
+		return nil, err
+	}
+	
+	backup := req.GetBool("Backup", false)
+	monitoring := req.GetBool("Monitoring", false)
+	
 	// Create the droplet
 	dropletCreateRequest := &godo.DropletCreateRequest{
 		Name:       dropletName,
 		Size:       size,
-		Image:      godo.DropletCreateImage{ID: int(imageID)},
+		Image:      godo.DropletCreateImage{ID: imageID},
 		Region:     region,
 		Backups:    backup,
 		Monitoring: monitoring,
@@ -51,8 +69,13 @@ func (d *DropletTool) CreateDroplet(ctx context.Context, req mcp.CallToolRequest
 
 // DeleteDroplet deletes a droplet
 func (d *DropletTool) DeleteDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	_, err := d.client.Droplets.Delete(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	_, err = d.client.Droplets.Delete(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +84,13 @@ func (d *DropletTool) DeleteDroplet(ctx context.Context, req mcp.CallToolRequest
 
 // PowerCycleDroplet power cycles a droplet
 func (d *DropletTool) PowerCycleDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.PowerCycle(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.PowerCycle(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +105,13 @@ func (d *DropletTool) PowerCycleDroplet(ctx context.Context, req mcp.CallToolReq
 
 // PowerOnDroplet powers on a droplet
 func (d *DropletTool) PowerOnDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.PowerOn(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.PowerOn(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +126,13 @@ func (d *DropletTool) PowerOnDroplet(ctx context.Context, req mcp.CallToolReques
 
 // PowerOffDroplet powers off a droplet
 func (d *DropletTool) PowerOffDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.PowerOff(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.PowerOff(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +147,13 @@ func (d *DropletTool) PowerOffDroplet(ctx context.Context, req mcp.CallToolReque
 
 // ShutdownDroplet shuts down a droplet
 func (d *DropletTool) ShutdownDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.Shutdown(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.Shutdown(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +168,19 @@ func (d *DropletTool) ShutdownDroplet(ctx context.Context, req mcp.CallToolReque
 
 // RestoreDroplet restores a droplet to a backup image
 func (d *DropletTool) RestoreDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	imageID := req.Params.Arguments["ImageID"].(float64)
-	action, _, err := d.client.DropletActions.Restore(ctx, int(dropletID), int(imageID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	imageIDFloat, err := req.RequireFloat("ImageID")
+	if err != nil {
+		return nil, err
+	}
+	imageID := int(imageIDFloat)
+	
+	action, _, err := d.client.DropletActions.Restore(ctx, dropletID, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,10 +195,20 @@ func (d *DropletTool) RestoreDroplet(ctx context.Context, req mcp.CallToolReques
 
 // ResizeDroplet resizes a droplet
 func (d *DropletTool) ResizeDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	size := req.Params.Arguments["Size"].(string)
-	resizeDisk, _ := req.Params.Arguments["ResizeDisk"].(bool) // Defaults to false
-	action, _, err := d.client.DropletActions.Resize(ctx, int(dropletID), size, resizeDisk)
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	size, err := req.RequireString("Size")
+	if err != nil {
+		return nil, err
+	}
+	
+	resizeDisk := req.GetBool("ResizeDisk", false)
+	
+	action, _, err := d.client.DropletActions.Resize(ctx, dropletID, size, resizeDisk)
 	if err != nil {
 		return nil, err
 	}
@@ -160,9 +223,19 @@ func (d *DropletTool) ResizeDroplet(ctx context.Context, req mcp.CallToolRequest
 
 // RebuildDroplet rebuilds a droplet using a provided image
 func (d *DropletTool) RebuildDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	imageID := req.Params.Arguments["ImageID"].(float64)
-	action, _, err := d.client.DropletActions.RebuildByImageID(ctx, int(dropletID), int(imageID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	imageIDFloat, err := req.RequireFloat("ImageID") 
+	if err != nil {
+		return nil, err
+	}
+	imageID := int(imageIDFloat)
+	
+	action, _, err := d.client.DropletActions.RebuildByImageID(ctx, dropletID, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,9 +250,18 @@ func (d *DropletTool) RebuildDroplet(ctx context.Context, req mcp.CallToolReques
 
 // RenameDroplet renames a droplet
 func (d *DropletTool) RenameDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	name := req.Params.Arguments["Name"].(string)
-	action, _, err := d.client.DropletActions.Rename(ctx, int(dropletID), name)
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+	
+	action, _, err := d.client.DropletActions.Rename(ctx, dropletID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -194,9 +276,19 @@ func (d *DropletTool) RenameDroplet(ctx context.Context, req mcp.CallToolRequest
 
 // ChangeKernel changes a droplet's kernel
 func (d *DropletTool) ChangeKernel(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	kernelID := req.Params.Arguments["KernelID"].(float64)
-	action, _, err := d.client.DropletActions.ChangeKernel(ctx, int(dropletID), int(kernelID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	kernelIDFloat, err := req.RequireFloat("KernelID")
+	if err != nil {
+		return nil, err
+	}
+	kernelID := int(kernelIDFloat)
+	
+	action, _, err := d.client.DropletActions.ChangeKernel(ctx, dropletID, kernelID)
 	if err != nil {
 		return nil, err
 	}
@@ -211,8 +303,13 @@ func (d *DropletTool) ChangeKernel(ctx context.Context, req mcp.CallToolRequest)
 
 // EnableIPv6 enables IPv6 on a droplet
 func (d *DropletTool) EnableIPv6(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.EnableIPv6(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.EnableIPv6(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +324,13 @@ func (d *DropletTool) EnableIPv6(ctx context.Context, req mcp.CallToolRequest) (
 
 // EnableBackups enables backups on a droplet
 func (d *DropletTool) EnableBackups(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.EnableBackups(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.EnableBackups(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -243,8 +345,13 @@ func (d *DropletTool) EnableBackups(ctx context.Context, req mcp.CallToolRequest
 
 // DisableBackups disables backups on a droplet
 func (d *DropletTool) DisableBackups(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.DisableBackups(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.DisableBackups(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -259,9 +366,18 @@ func (d *DropletTool) DisableBackups(ctx context.Context, req mcp.CallToolReques
 
 // SnapshotDroplet creates a snapshot of a droplet
 func (d *DropletTool) SnapshotDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	name := req.Params.Arguments["Name"].(string)
-	action, _, err := d.client.DropletActions.Snapshot(ctx, int(dropletID), name)
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+	
+	action, _, err := d.client.DropletActions.Snapshot(ctx, dropletID, name)
 	if err != nil {
 		return nil, err
 	}
@@ -276,8 +392,13 @@ func (d *DropletTool) SnapshotDroplet(ctx context.Context, req mcp.CallToolReque
 
 // GetDropletNeighbors gets a droplet's neighbors
 func (d *DropletTool) GetDropletNeighbors(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	neighbors, _, err := d.client.Droplets.Neighbors(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	neighbors, _, err := d.client.Droplets.Neighbors(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -292,8 +413,13 @@ func (d *DropletTool) GetDropletNeighbors(ctx context.Context, req mcp.CallToolR
 
 // EnablePrivateNetworking enables private networking on a droplet
 func (d *DropletTool) EnablePrivateNetworking(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.EnablePrivateNetworking(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.EnablePrivateNetworking(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +434,11 @@ func (d *DropletTool) EnablePrivateNetworking(ctx context.Context, req mcp.CallT
 
 // GetDropletKernels gets available kernels for a droplet
 func (d *DropletTool) GetDropletKernels(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
 
 	// Use list options to get all kernels
 	opt := &godo.ListOptions{
@@ -316,7 +446,7 @@ func (d *DropletTool) GetDropletKernels(ctx context.Context, req mcp.CallToolReq
 		PerPage: 100,
 	}
 
-	kernels, _, err := d.client.Droplets.Kernels(ctx, int(dropletID), opt)
+	kernels, _, err := d.client.Droplets.Kernels(ctx, dropletID, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -331,8 +461,13 @@ func (d *DropletTool) GetDropletKernels(ctx context.Context, req mcp.CallToolReq
 
 // RebootDroplet reboots a droplet
 func (d *DropletTool) RebootDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.Reboot(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.Reboot(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -347,8 +482,13 @@ func (d *DropletTool) RebootDroplet(ctx context.Context, req mcp.CallToolRequest
 
 // PasswordResetDroplet resets the password for a droplet
 func (d *DropletTool) PasswordResetDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	action, _, err := d.client.DropletActions.PasswordReset(ctx, int(dropletID))
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	action, _, err := d.client.DropletActions.PasswordReset(ctx, dropletID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,9 +503,18 @@ func (d *DropletTool) PasswordResetDroplet(ctx context.Context, req mcp.CallTool
 
 // RebuildByImageSlugDroplet rebuilds a droplet using an image slug
 func (d *DropletTool) RebuildByImageSlugDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletID := req.Params.Arguments["ID"].(float64)
-	imageSlug := req.Params.Arguments["ImageSlug"].(string)
-	action, _, err := d.client.DropletActions.RebuildByImageSlug(ctx, int(dropletID), imageSlug)
+	dropletIDFloat, err := req.RequireFloat("ID")
+	if err != nil {
+		return nil, err
+	}
+	dropletID := int(dropletIDFloat)
+	
+	imageSlug, err := req.RequireString("ImageSlug")
+	if err != nil {
+		return nil, err
+	}
+	
+	action, _, err := d.client.DropletActions.RebuildByImageSlug(ctx, dropletID, imageSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +529,11 @@ func (d *DropletTool) RebuildByImageSlugDroplet(ctx context.Context, req mcp.Cal
 
 // PowerCycleByTag power cycles droplets by tag
 func (d *DropletTool) PowerCycleByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.PowerCycleByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -396,7 +549,11 @@ func (d *DropletTool) PowerCycleByTag(ctx context.Context, req mcp.CallToolReque
 
 // PowerOnByTag powers on droplets by tag
 func (d *DropletTool) PowerOnByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.PowerOnByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -412,7 +569,11 @@ func (d *DropletTool) PowerOnByTag(ctx context.Context, req mcp.CallToolRequest)
 
 // PowerOffByTag powers off droplets by tag
 func (d *DropletTool) PowerOffByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.PowerOffByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -428,7 +589,11 @@ func (d *DropletTool) PowerOffByTag(ctx context.Context, req mcp.CallToolRequest
 
 // ShutdownByTag shuts down droplets by tag
 func (d *DropletTool) ShutdownByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.ShutdownByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -444,7 +609,11 @@ func (d *DropletTool) ShutdownByTag(ctx context.Context, req mcp.CallToolRequest
 
 // EnableBackupsByTag enables backups on droplets by tag
 func (d *DropletTool) EnableBackupsByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.EnableBackupsByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -460,7 +629,11 @@ func (d *DropletTool) EnableBackupsByTag(ctx context.Context, req mcp.CallToolRe
 
 // DisableBackupsByTag disables backups on droplets by tag
 func (d *DropletTool) DisableBackupsByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.DisableBackupsByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -476,8 +649,16 @@ func (d *DropletTool) DisableBackupsByTag(ctx context.Context, req mcp.CallToolR
 
 // SnapshotByTag takes a snapshot of droplets by tag
 func (d *DropletTool) SnapshotByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
-	name := req.Params.Arguments["Name"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.SnapshotByTag(ctx, tag, name)
 	if err != nil {
 		return nil, err
@@ -493,7 +674,11 @@ func (d *DropletTool) SnapshotByTag(ctx context.Context, req mcp.CallToolRequest
 
 // EnableIPv6ByTag enables IPv6 on droplets by tag
 func (d *DropletTool) EnableIPv6ByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.EnableIPv6ByTag(ctx, tag)
 	if err != nil {
 		return nil, err
@@ -509,7 +694,11 @@ func (d *DropletTool) EnableIPv6ByTag(ctx context.Context, req mcp.CallToolReque
 
 // EnablePrivateNetworkingByTag enables private networking on droplets by tag
 func (d *DropletTool) EnablePrivateNetworkingByTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tag := req.Params.Arguments["Tag"].(string)
+	tag, err := req.RequireString("Tag")
+	if err != nil {
+		return nil, err
+	}
+	
 	actions, _, err := d.client.DropletActions.EnablePrivateNetworkingByTag(ctx, tag)
 	if err != nil {
 		return nil, err

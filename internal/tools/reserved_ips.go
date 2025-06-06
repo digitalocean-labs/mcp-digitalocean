@@ -24,11 +24,17 @@ func NewReservedIPTool(client *godo.Client) *ReservedIPTool {
 
 // ReserveIP reserves a new IPv4 or IPv6
 func (t *ReservedIPTool) ReserveIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	region := req.Params.Arguments["Region"].(string)
-	ipType := req.Params.Arguments["Type"].(string) // "ipv4" or "ipv6"
+	region, err := req.RequireString("Region")
+	if err != nil {
+		return nil, err
+	}
+
+	ipType, err := req.RequireString("Type") // "ipv4" or "ipv6"
+	if err != nil {
+		return nil, err
+	}
 
 	var reservedIP any
-	var err error
 
 	switch ipType {
 	case "ipv4":
@@ -53,10 +59,16 @@ func (t *ReservedIPTool) ReserveIP(ctx context.Context, req mcp.CallToolRequest)
 
 // ReleaseIP releases a reserved IPv4 or IPv6
 func (t *ReservedIPTool) ReleaseIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	ip := req.Params.Arguments["IP"].(string)
-	ipType := req.Params.Arguments["Type"].(string) // "ipv4" or "ipv6"
+	ip, err := req.RequireString("IP")
+	if err != nil {
+		return nil, err
+	}
 
-	var err error
+	ipType, err := req.RequireString("Type") // "ipv4" or "ipv6"
+	if err != nil {
+		return nil, err
+	}
+
 	switch ipType {
 	case "ipv4":
 		_, err = t.client.ReservedIPs.Delete(ctx, ip)
@@ -75,12 +87,22 @@ func (t *ReservedIPTool) ReleaseIP(ctx context.Context, req mcp.CallToolRequest)
 
 // AssignIP assigns a reserved IP to a droplet
 func (t *ReservedIPTool) AssignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	ip := req.Params.Arguments["IP"].(string)
-	dropletID := int(req.Params.Arguments["DropletID"].(float64))
-	ipType := req.Params.Arguments["Type"].(string) // "ipv4" or "ipv6"
+	ip, err := req.RequireString("IP")
+	if err != nil {
+		return nil, err
+	}
+
+	dropletID, err := req.RequireInt("DropletID")
+	if err != nil {
+		return nil, err
+	}
+
+	ipType, err := req.RequireString("Type") // "ipv4" or "ipv6"
+	if err != nil {
+		return nil, err
+	}
 
 	var action *godo.Action
-	var err error
 
 	switch ipType {
 	case "ipv4":
@@ -105,11 +127,17 @@ func (t *ReservedIPTool) AssignIP(ctx context.Context, req mcp.CallToolRequest) 
 
 // UnassignIP unassigns a reserved IP from a droplet
 func (t *ReservedIPTool) UnassignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	ip := req.Params.Arguments["IP"].(string)
-	ipType := req.Params.Arguments["Type"].(string) // "ipv4" or "ipv6"
+	ip, err := req.RequireString("IP")
+	if err != nil {
+		return nil, err
+	}
+
+	ipType, err := req.RequireString("Type") // "ipv4" or "ipv6"
+	if err != nil {
+		return nil, err
+	}
 
 	var action *godo.Action
-	var err error
 
 	switch ipType {
 	case "ipv4":

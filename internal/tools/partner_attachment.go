@@ -20,9 +20,21 @@ func NewPartnerAttachmentTool(client *godo.Client) *PartnerAttachmentTool {
 }
 
 func (p *PartnerAttachmentTool) CreatePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name := req.Params.Arguments["Name"].(string)
-	region := req.Params.Arguments["Region"].(string)
-	bandwidth := int(req.Params.Arguments["Bandwidth"].(float64))
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+
+	region, err := req.RequireString("Region")
+	if err != nil {
+		return nil, err
+	}
+
+	bandwidthFloat, err := req.RequireFloat("Bandwidth")
+	if err != nil {
+		return nil, err
+	}
+	bandwidth := int(bandwidthFloat)
 
 	createRequest := &godo.PartnerAttachmentCreateRequest{
 		Name:                      name,
@@ -44,8 +56,11 @@ func (p *PartnerAttachmentTool) CreatePartnerAttachment(ctx context.Context, req
 }
 
 func (p *PartnerAttachmentTool) DeletePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id := req.Params.Arguments["ID"].(string)
-	_, err := p.client.PartnerAttachment.Delete(ctx, id)
+	id, err := req.RequireString("ID")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.client.PartnerAttachment.Delete(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +68,10 @@ func (p *PartnerAttachmentTool) DeletePartnerAttachment(ctx context.Context, req
 }
 
 func (p *PartnerAttachmentTool) GetServiceKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id := req.Params.Arguments["ID"].(string)
+	id, err := req.RequireString("ID")
+	if err != nil {
+		return nil, err
+	}
 	serviceKey, _, err := p.client.PartnerAttachment.GetServiceKey(ctx, id)
 	if err != nil {
 		return nil, err
@@ -68,7 +86,10 @@ func (p *PartnerAttachmentTool) GetServiceKey(ctx context.Context, req mcp.CallT
 }
 
 func (p *PartnerAttachmentTool) GetBGPConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id := req.Params.Arguments["ID"].(string)
+	id, err := req.RequireString("ID")
+	if err != nil {
+		return nil, err
+	}
 	bgpAuthKey, _, err := p.client.PartnerAttachment.GetBGPAuthKey(ctx, id)
 	if err != nil {
 		return nil, err
@@ -83,9 +104,20 @@ func (p *PartnerAttachmentTool) GetBGPConfig(ctx context.Context, req mcp.CallTo
 }
 
 func (p *PartnerAttachmentTool) UpdatePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id := req.Params.Arguments["ID"].(string)
-	name := req.Params.Arguments["Name"].(string)
-	vpcIDs := req.Params.Arguments["VPCIDs"].([]string)
+	id, err := req.RequireString("ID")
+	if err != nil {
+		return nil, err
+	}
+
+	name, err := req.RequireString("Name")
+	if err != nil {
+		return nil, err
+	}
+
+	vpcIDs, err := req.RequireStringSlice("VPCIDs")
+	if err != nil {
+		return nil, err
+	}
 
 	updateRequest := &godo.PartnerAttachmentUpdateRequest{
 		Name:   name,
