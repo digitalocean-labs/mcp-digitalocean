@@ -3,7 +3,7 @@ module mcp-digitalocean
 go 1.24.1
 
 require (
-	github.com/digitalocean/godo v1.150.0
+	github.com/digitalocean/godo v1.151.0
 	github.com/mark3labs/mcp-go v0.22.0
 )
 
