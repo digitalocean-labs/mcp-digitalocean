@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -28,8 +29,8 @@ func main() {
 	serviceFlag := flag.String("services", "", "Comma-separated list of services to activate (e.g., apps,networking,droplets)")
 	tokenFlag := flag.String("digitalocean-api-token", "", "DigitalOcean API token")
 	stdio := flag.Bool("stdio", false, "Run server in stdio mode")
-	httpAddr := flag.String("http", "127.0.0.1:8080", "HTTP bind address (ignored if --unix is set)")
-	unixSock := flag.String("unix", "", "Path to UNIX socket (if set, takes precedence over --http)")
+	httpAddr := flag.String("http", "", "HTTP bind address (ignored if --unix is set). Example: 127.0.0.1:8080")
+	unixSock := flag.String("unix", "", "Path to UNIX socket (if set, takes precedence over --http). Example: /tmp/mcp-digitalocean.sock")
 	baseUrl := flag.String("base-url", "http://127.0.0.1:8080", "Base URL for the server (optional)")
 	flag.Parse()
 
@@ -50,8 +51,8 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 	token := *tokenFlag
 
-	// Default to stdio if no flags are given
-	if len(os.Args) == 1 {
+	// Default to stdio not http or unix
+	if *httpAddr == "" && *unixSock == "" {
 		*stdio = true
 	}
 
@@ -72,6 +73,16 @@ func main() {
 	if err != nil {
 		logger.Error("Failed to create DigitalOcean client: " + err.Error())
 		os.Exit(1)
+	}
+
+	// Set client.BaseURL from DIGITALOCEAN_BASE_URL if present
+	if baseURL := os.Getenv("DIGITALOCEAN_BASE_URL"); baseURL != "" {
+		parsedURL, err := url.Parse(baseURL)
+		if err != nil {
+			logger.Error("Invalid DO_BASE_URL", "error", err)
+			os.Exit(1)
+		}
+		client.BaseURL = parsedURL
 	}
 
 	s := server.NewMCPServer(mcpName, mcpVersion)
