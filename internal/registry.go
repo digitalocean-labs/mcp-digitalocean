@@ -18,6 +18,7 @@ func RegisterTools(s *server.MCPServer, c *godo.Client) {
 	s.AddTools(tools.NewReservedIPTool(c).Tools()...)
 	s.AddTools(tools.NewPartnerAttachmentTool(c).Tools()...)
 	s.AddTools(tools.NewVPCTool(c).Tools()...)
+	s.AddTools(tools.NewDatabaseTool(c).Tools()...)
 }
 
 func RegisterResources(s *server.MCPServer, c *godo.Client) {
