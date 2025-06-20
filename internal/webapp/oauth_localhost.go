@@ -1,4 +1,4 @@
-package webapp
+package main
 
 import (
 	"crypto/rand"
@@ -20,10 +20,10 @@ const keyringService = "mcp-digitalocean-oauth-callback-go"
 
 // --- Environment Variables ---
 var (
-	thisEndpoint                  = getEnv("THIS_ENDPOINT", "http://localhost:8080")
-	upstreamAPIURL                = getEnv("UPSTREAM_API_URL", "https://api.digitalocean.com")
-	digitalOceanOAuthClientID     = getEnv("DIGITALOCEAN_OAUTH_CLIENT_ID", "61f2be08367bf0b0cd6142f66838f48d5729da42f33f300919b4a3f8a6152904")
-	digitalOceanOAuthClientSecret = getEnvOrDie("DIGITALOCEAN_OAUTH_CLIENT_SECRET")
+	thisEndpoint              = getEnv("THIS_ENDPOINT", "http://localhost:8080")
+	upstreamAPIURL            = getEnv("UPSTREAM_API_URL", "https://api.digitalocean.com")
+	digitalOceanOAuthClientID = getEnv("DIGITALOCEAN_OAUTH_CLIENT_ID", "61f2be08367bf0b0cd6142f66838f48d5729da42f33f300919b4a3f8a6152904")
+	// The client secret is not used in the OAuth Implicit Grant Flow.
 )
 
 // --- Helper Functions ---
@@ -36,18 +36,9 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// getEnvOrDie gets an environment variable or terminates the program if it's not set.
-func getEnvOrDie(key string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	log.Fatalf("Error: Environment variable %s not set.", key)
-	return ""
-}
-
 // --- Core OAuth Logic ---
 
-// createAuthorizeURL generates the DigitalOcean OAuth authorization URL.
+// createAuthorizeURL generates the DigitalOcean OAuth authorization URL for the Implicit Grant Flow.
 func createAuthorizeURL() (string, error) {
 	stateBytes := make([]byte, 32)
 	if _, err := rand.Read(stateBytes); err != nil {
@@ -57,7 +48,8 @@ func createAuthorizeURL() (string, error) {
 
 	baseURL := "https://cloud.digitalocean.com/v1/oauth/authorize"
 	params := url.Values{}
-	params.Add("response_type", "code")
+	// Use "token" for the response_type to request the access token directly.
+	params.Add("response_type", "token")
 	params.Add("client_id", digitalOceanOAuthClientID)
 	params.Add("scope", "read write")
 	params.Add("state", state)
@@ -66,48 +58,7 @@ func createAuthorizeURL() (string, error) {
 	return fmt.Sprintf("%s?%s", baseURL, params.Encode()), nil
 }
 
-// exchangeCodeForToken makes a request to DigitalOcean to get an access token.
-func exchangeCodeForToken(code string) (string, error) {
-	tokenURL := "https://cloud.digitalocean.com/v1/oauth/token"
-	params := url.Values{}
-	params.Add("grant_type", "authorization_code")
-	params.Add("code", code)
-	params.Add("client_id", digitalOceanOAuthClientID)
-	params.Add("client_secret", digitalOceanOAuthClientSecret)
-	params.Add("redirect_uri", thisEndpoint+"/v1/auth/digitalocean/callback")
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s?%s", tokenURL, params.Encode()), nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create token request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to perform token request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read token response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("token request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var tokenResponse struct {
-		AccessToken string `json:"access_token"`
-	}
-	if err := json.Unmarshal(body, &tokenResponse); err != nil {
-		return "", fmt.Errorf("failed to parse token response: %w", err)
-	}
-
-	return tokenResponse.AccessToken, nil
-}
-
-// getTeamUUID retrieves the team UUID from the DigitalOcean account endpoint.
+// getTeamUUID retrieves the team UUID from the DigitalOcean account endpoint using a token.
 func getTeamUUID(token string) (string, error) {
 	req, err := http.NewRequest("GET", upstreamAPIURL+"/v2/account", nil)
 	if err != nil {
@@ -149,10 +100,9 @@ func getTeamUUID(token string) (string, error) {
 	return accountResponse.Account.Team.UUID, nil
 }
 
-// --- Secret Storage (MODIFIED) ---
+// --- Secret Storage ---
 
 // saveTokenToKeyring securely stores the token in the system's native keychain.
-// The team's UUID is used as the 'user' or key for the secret.
 func saveTokenToKeyring(teamUUID, token string) error {
 	err := keyring.Set(keyringService, teamUUID, token)
 	if err != nil {
@@ -163,7 +113,6 @@ func saveTokenToKeyring(teamUUID, token string) error {
 }
 
 // getTokenFromKeyring retrieves a token from the keyring for a given team UUID.
-// This function is not used in the callback flow but is included for completeness.
 func getTokenFromKeyring(teamUUID string) (string, error) {
 	secret, err := keyring.Get(keyringService, teamUUID)
 	if err != nil {
@@ -174,29 +123,55 @@ func getTokenFromKeyring(teamUUID string) (string, error) {
 
 // --- Handlers ---
 
-// callbackHandler handles the OAuth2 callback from DigitalOcean.
+// callbackHandler handles the OAuth2 callback.
+// It uses a two-step process for the implicit grant flow.
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
+	// Step 2: Check if the access_token is now in the query parameters
+	// after being redirected by our own JavaScript.
+	token := r.URL.Query().Get("access_token")
 
-	// If no code is present, redirect to the authorization URL.
-	if code == "" {
-		authURL, err := createAuthorizeURL()
-		if err != nil {
-			http.Error(w, "Failed to create authorization URL", http.StatusInternalServerError)
-			log.Printf("Error creating authorize URL: %v", err)
-			return
-		}
-		http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
-		return
+	// If the token is NOT in the query string, this is the first hit from DigitalOcean.
+	// The token is in the URL fragment ('#'), which the server cannot see.
+	if token == "" {
+		// Step 1: Serve an HTML page with JavaScript.
+		// This script will read the token from the fragment and reload the page,
+		// moving the token into the query string ('?') for the server to read.
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authorizing...</title>
+    <script>
+        // Create a URL object from the current window location.
+        const url = new URL(window.location.href);
+        // The token is in the hash part of the URL (e.g., #access_token=...).
+        // Create a URLSearchParams object from the hash, skipping the leading '#'.
+        const searchParams = new URLSearchParams(url.hash.slice(1));
+
+        // If the access_token exists in the params from the hash, process it.
+        if (searchParams.has("access_token")) {
+            // Set the URL's search string (query part) to the params from the hash.
+            url.search = searchParams.toString();
+            // Clear the hash from the URL.
+            url.hash = "";
+            // Replace the current URL in the browser's history with the new one.
+            // This reloads the page, and the server can now read the token.
+            window.location.replace(url.toString());
+        } else {
+            // If no token is found, an error likely occurred during authorization.
+            document.body.innerHTML = "<h1>Error</h1><p>Authentication failed. No access token found in the URL.</p>";
+        }
+    </script>
+</head>
+<body>
+    <p>Please wait, processing authentication...</p>
+</body>
+</html>`)
+		return // Stop further processing for this request.
 	}
 
-	// Exchange authorization code for an access token.
-	token, err := exchangeCodeForToken(code)
-	if err != nil {
-		http.Error(w, "Failed to exchange code for token", http.StatusInternalServerError)
-		log.Printf("Error exchanging code for token: %v", err)
-		return
-	}
+	// --- If we reach here, the token was successfully extracted and is in the query ---
 
 	// Get account info to find the team UUID.
 	teamUUID, err := getTeamUUID(token)
@@ -206,7 +181,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// MODIFIED: Save the token to the system keyring instead of a file.
+	// Save the token to the system keyring.
 	if err := saveTokenToKeyring(teamUUID, token); err != nil {
 		http.Error(w, "Failed to save token to system keyring", http.StatusInternalServerError)
 		log.Printf("Error saving token: %v", err)
@@ -214,7 +189,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>")
+	fmt.Fprintln(w, "<h1>Success!</h1>")
 }
 
 // cliHandler prints the authorization URL to the console.
@@ -229,18 +204,13 @@ func cliHandler() {
 // --- Main Function ---
 
 func main() {
-	// Simple check for a "cli" argument to run in command-line mode.
+	// Run in "cli" mode to get the auth URL, or run as a server to handle the callback.
 	if len(os.Args) > 1 && os.Args[1] == "cli" {
 		cliHandler()
 	} else {
 		// Default to running as an HTTP server.
 		http.HandleFunc("/v1/auth/digitalocean/callback", callbackHandler)
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// Redirect root to the callback path which will then trigger the auth flow.
-			http.Redirect(w, r, "/v1/auth/digitalocean/callback", http.StatusTemporaryRedirect)
-		})
 
-		log.Println("Starting server on " + thisEndpoint)
 		u, err := url.Parse(thisEndpoint)
 		if err != nil {
 			log.Fatalf("Invalid THIS_ENDPOINT URL: %v", err)
@@ -252,7 +222,7 @@ func main() {
 		}
 		addr := ":" + port
 
-		log.Printf("Server listening on %s", addr)
+		log.Printf("Server starting. Listening on %s for OAuth callback.", addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
