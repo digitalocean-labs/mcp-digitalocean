@@ -143,25 +143,30 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 <head>
     <title>Authorizing...</title>
     <script>
-        // Create a URL object from the current window location.
-        const url = new URL(window.location.href);
-        // The token is in the hash part of the URL (e.g., #access_token=...).
-        // Create a URLSearchParams object from the hash, skipping the leading '#'.
-        const searchParams = new URLSearchParams(url.hash.slice(1));
+        window.addEventListener('DOMContentLoaded', () => {
+            const url = new URL(window.location.href);
+            // Check if the URL has a hash component.
+            const hash = url.hash.slice(1);
 
-        // If the access_token exists in the params from the hash, process it.
-        if (searchParams.has("access_token")) {
-            // Set the URL's search string (query part) to the params from the hash.
-            url.search = searchParams.toString();
-            // Clear the hash from the URL.
-            url.hash = "";
-            // Replace the current URL in the browser's history with the new one.
-            // This reloads the page, and the server can now read the token.
-            window.location.replace(url.toString());
-        } else {
-            // If no token is found, an error likely occurred during authorization.
-            document.body.innerHTML = "<h1>Error</h1><p>Authentication failed. No access token found in the URL.</p>";
-        }
+            // Only process if there is a hash.
+            if (hash) {
+                const searchParams = new URLSearchParams(hash);
+                // If the access_token exists in the hash, move it to the query string.
+                if (searchParams.has("access_token")) {
+                    url.search = searchParams.toString();
+                    url.hash = "";
+                    // Replace the URL to reload the page with the token in the query string.
+                    window.location.replace(url.toString());
+                } else {
+                    // A hash exists, but it doesn't contain the token. This is an error.
+                    document.body.innerHTML = "<h1>Error</h1><p>Authentication failed. Invalid parameters found in the URL.</p>";
+                }
+            } else {
+                // No hash. This means the process is complete and the token is stored.
+                // Display the final success message.
+                document.body.innerHTML = "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>";
+            }
+        });
     </script>
 </head>
 <body>
@@ -188,8 +193,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>")
+	// Instead of writing HTML, redirect back to this same callback URL.
+	// This clears the access_token from the browser's address bar. The page's
+	// script will then see a URL with no hash and display the success message.
+	http.Redirect(w, r, "/v1/auth/digitalocean/callback", http.StatusTemporaryRedirect)
 }
 
 // cliHandler prints the authorization URL to the console.
