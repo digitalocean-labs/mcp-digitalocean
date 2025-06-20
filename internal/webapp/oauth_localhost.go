@@ -189,7 +189,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Success!</h1>")
+	fmt.Fprintln(w, "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>")
 }
 
 // cliHandler prints the authorization URL to the console.
@@ -211,6 +211,25 @@ func main() {
 		// Default to running as an HTTP server.
 		http.HandleFunc("/v1/auth/digitalocean/callback", callbackHandler)
 
+		// Add a root handler that redirects to the DigitalOcean auth page to start the flow.
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// This handler should only respond to the root path.
+			if r.URL.Path != "/" {
+				http.NotFound(w, r)
+				return
+			}
+
+			authURL, err := createAuthorizeURL()
+			if err != nil {
+				http.Error(w, "Failed to create authorization URL", http.StatusInternalServerError)
+				log.Printf("Error creating authorization URL: %v", err)
+				return
+			}
+
+			// Perform a 307 Temporary Redirect to the authorization URL.
+			http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+		})
+
 		u, err := url.Parse(thisEndpoint)
 		if err != nil {
 			log.Fatalf("Invalid THIS_ENDPOINT URL: %v", err)
@@ -222,7 +241,7 @@ func main() {
 		}
 		addr := ":" + port
 
-		log.Printf("Server starting. Listening on %s for OAuth callback.", addr)
+		log.Printf("Server starting. Visit http://localhost%s to begin authentication.", addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
