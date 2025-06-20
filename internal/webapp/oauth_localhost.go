@@ -1,22 +1,26 @@
-package main
+package webapp
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
+	"github.com/pkg/browser"
 	"github.com/zalando/go-keyring" // Import the keyring library
 )
 
 // --- Constants ---
 // The 'service' name used to store credentials in the system's keyring.
 const keyringService = "mcp-digitalocean-oauth-callback-go"
+const keyringLastUsedTeam = "last-used-team"
 
 // --- Environment Variables ---
 var (
@@ -108,15 +112,28 @@ func saveTokenToKeyring(teamUUID, token string) error {
 	if err != nil {
 		return fmt.Errorf("failed to save token to keyring: %w", err)
 	}
-	log.Printf("Successfully saved token for team %s to the system keyring.", teamUUID)
+	err = keyring.Set(keyringService, keyringLastUsedTeam, teamUUID)
+	if err != nil {
+		return fmt.Errorf("failed to save token to keyring: %w", err)
+	}
+	slog.Info("Successfully saved token for team %s to the system keyring.", teamUUID)
 	return nil
 }
 
-// getTokenFromKeyring retrieves a token from the keyring for a given team UUID.
-func getTokenFromKeyring(teamUUID string) (string, error) {
+// GetLastUsedTeamUUID retrieves the last saved team UUID from the keyring.
+func GetLastUsedTeamUUID() (string, error) {
+	secret, err := keyring.Get(keyringService, keyringLastUsedTeam)
+	if err != nil {
+		return "", err
+	}
+	return secret, nil
+}
+
+// GetTokenFromKeyring retrieves a token from the keyring for a given team UUID.
+func GetTokenFromKeyring(teamUUID string) (string, error) {
 	secret, err := keyring.Get(keyringService, teamUUID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get token from keyring: %w", err)
+		return "", err
 	}
 	return secret, nil
 }
@@ -125,132 +142,152 @@ func getTokenFromKeyring(teamUUID string) (string, error) {
 
 // callbackHandler handles the OAuth2 callback.
 // It uses a two-step process for the implicit grant flow.
-func callbackHandler(w http.ResponseWriter, r *http.Request) {
-	// Step 2: Check if the access_token is now in the query parameters
-	// after being redirected by our own JavaScript.
-	token := r.URL.Query().Get("access_token")
+func callbackHandler(tokenChan chan string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Step 2: Check if the access_token is now in the query parameters
+		// after being redirected by our own JavaScript.
+		token := r.URL.Query().Get("access_token")
 
-	// If the token is NOT in the query string, this is the first hit from DigitalOcean.
-	// The token is in the URL fragment ('#'), which the server cannot see.
-	if token == "" {
-		// Step 1: Serve an HTML page with JavaScript.
-		// This script will read the token from the fragment and reload the page,
-		// moving the token into the query string ('?') for the server to read.
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, `
+		// If the token is NOT in the query string, this is the first hit from DigitalOcean.
+		// The token is in the URL fragment ('#'), which the server cannot see.
+		if token == "" {
+			// Step 1: Serve an HTML page with JavaScript.
+			// This script will read the token from the fragment and reload the page,
+			// moving the token into the query string ('?') for the server to read.
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Authorizing...</title>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const url = new URL(window.location.href);
-            // Check if the URL has a hash component.
-            const hash = url.hash.slice(1);
+		<title>Authorizing...</title>
+		<script>
+				window.addEventListener('DOMContentLoaded', () => {
+						const url = new URL(window.location.href);
+						// Check if the URL has a hash component.
+						const hash = url.hash.slice(1);
 
-            // Only process if there is a hash.
-            if (hash) {
-                const searchParams = new URLSearchParams(hash);
-                // If the access_token exists in the hash, move it to the query string.
-                if (searchParams.has("access_token")) {
-                    url.search = searchParams.toString();
-                    url.hash = "";
-                    // Replace the URL to reload the page with the token in the query string.
-                    window.location.replace(url.toString());
-                } else {
-                    // A hash exists, but it doesn't contain the token. This is an error.
-                    document.body.innerHTML = "<h1>Error</h1><p>Authentication failed. Invalid parameters found in the URL.</p>";
-                }
-            } else {
-                // No hash. This means the process is complete and the token is stored.
-                // Display the final success message.
-                document.body.innerHTML = "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>";
-            }
-        });
-    </script>
+						// Only process if there is a hash.
+						if (hash) {
+								const searchParams = new URLSearchParams(hash);
+								// If the access_token exists in the hash, move it to the query string.
+								if (searchParams.has("access_token")) {
+										url.search = searchParams.toString();
+										url.hash = "";
+										// Replace the URL to reload the page with the token in the query string.
+										window.location.replace(url.toString());
+								} else {
+										// A hash exists, but it doesn't contain the token. This is an error.
+										document.body.innerHTML = "<h1>Error</h1><p>Authentication failed. Invalid parameters found in the URL.</p>";
+								}
+						} else {
+								// No hash. This means the process is complete and the token is stored.
+								// Display the final success message.
+								document.body.innerHTML = "<h1>Success!</h1><p>OAuth token has been successfully obtained and stored securely in your system's keychain.</p>";
+						}
+				});
+		</script>
 </head>
 <body>
-    <p>Please wait, processing authentication...</p>
+		<p>Please wait, processing authentication...</p>
 </body>
 </html>`)
-		return // Stop further processing for this request.
+			return // Stop further processing for this request.
+		}
+
+		// --- If we reach here, the token was successfully extracted and is in the query ---
+
+		// Get account info to find the team UUID.
+		teamUUID, err := getTeamUUID(token)
+		if err != nil {
+			http.Error(w, "Failed to get team information", http.StatusInternalServerError)
+			slog.Error("Error getting team UUID: %v", err)
+			return
+		}
+
+		// Save the token to the system keyring.
+		if err := saveTokenToKeyring(teamUUID, token); err != nil {
+			http.Error(w, "Failed to save token to system keyring", http.StatusInternalServerError)
+			slog.Error("Error saving token: %v", err)
+			return
+		}
+
+		// Signal that the token has been received.
+		tokenChan <- token
+
+		// Instead of writing HTML, redirect back to this same callback URL.
+		// This clears the access_token from the browser's address bar. The page's
+		// script will then see a URL with no hash and display the success message.
+		http.Redirect(w, r, "/v1/auth/digitalocean/callback", http.StatusTemporaryRedirect)
 	}
-
-	// --- If we reach here, the token was successfully extracted and is in the query ---
-
-	// Get account info to find the team UUID.
-	teamUUID, err := getTeamUUID(token)
-	if err != nil {
-		http.Error(w, "Failed to get team information", http.StatusInternalServerError)
-		log.Printf("Error getting team UUID: %v", err)
-		return
-	}
-
-	// Save the token to the system keyring.
-	if err := saveTokenToKeyring(teamUUID, token); err != nil {
-		http.Error(w, "Failed to save token to system keyring", http.StatusInternalServerError)
-		log.Printf("Error saving token: %v", err)
-		return
-	}
-
-	// Instead of writing HTML, redirect back to this same callback URL.
-	// This clears the access_token from the browser's address bar. The page's
-	// script will then see a URL with no hash and display the success message.
-	http.Redirect(w, r, "/v1/auth/digitalocean/callback", http.StatusTemporaryRedirect)
 }
 
-// cliHandler prints the authorization URL to the console.
-func cliHandler() {
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	// This handler should only respond to the root path.
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
 	authURL, err := createAuthorizeURL()
 	if err != nil {
-		log.Fatalf("Failed to create authorization URL: %v", err)
+		http.Error(w, "Failed to create authorization URL", http.StatusInternalServerError)
+		slog.Error("Error creating authorization URL: %v", err)
+		return
 	}
-	fmt.Println(authURL)
+
+	// Perform a 307 Temporary Redirect to the authorization URL.
+	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
-// --- Main Function ---
+// LocalhostAuthorize starts the entire OAuth2 implicit grant flow. It starts a
+// local web server, opens the browser for user authorization, and waits until
+// the token is received and stored in the keyring. It returns the token.
+func LocalhostAuthorize() (string, error) {
+	// A channel to receive the token from the callback handler.
+	tokenChan := make(chan string)
+	// A channel to signal errors from the server.
+	errChan := make(chan error, 1)
 
-func main() {
-	// Run in "cli" mode to get the auth URL, or run as a server to handle the callback.
-	if len(os.Args) > 1 && os.Args[1] == "cli" {
-		cliHandler()
-	} else {
-		// Default to running as an HTTP server.
-		http.HandleFunc("/v1/auth/digitalocean/callback", callbackHandler)
+	// Create the HTTP server.
+	server := &http.Server{Addr: ":8080"}
 
-		// Add a root handler that redirects to the DigitalOcean auth page to start the flow.
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// This handler should only respond to the root path.
-			if r.URL.Path != "/" {
-				http.NotFound(w, r)
-				return
-			}
+	http.HandleFunc("/v1/auth/digitalocean/callback", callbackHandler(tokenChan))
+	http.HandleFunc("/", rootHandler)
 
-			authURL, err := createAuthorizeURL()
-			if err != nil {
-				http.Error(w, "Failed to create authorization URL", http.StatusInternalServerError)
-				log.Printf("Error creating authorization URL: %v", err)
-				return
-			}
-
-			// Perform a 307 Temporary Redirect to the authorization URL.
-			http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
-		})
-
-		u, err := url.Parse(thisEndpoint)
-		if err != nil {
-			log.Fatalf("Invalid THIS_ENDPOINT URL: %v", err)
+	// Start the server in a goroutine so it doesn't block.
+	go func() {
+		slog.Info("Starting OAuth server on http://localhost:8080...")
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			errChan <- fmt.Errorf("failed to start server: %w", err)
 		}
+	}()
 
-		port := u.Port()
-		if port == "" {
-			port = "8080" // Default port if not specified in THIS_ENDPOINT
-		}
-		addr := ":" + port
-
-		log.Printf("Server starting. Visit http://localhost%s to begin authentication.", addr)
-		if err := http.ListenAndServe(addr, nil); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
-		}
+	// Open the user's browser to the root URL, which will redirect to DigitalOcean.
+	slog.Info("Opening browser for authentication...")
+	time.Sleep(1 * time.Second) // Give the server a moment to start.
+	if err := browser.OpenURL("http://localhost:8080/"); err != nil {
+		slog.Warn("Warning: could not open browser automatically: %v", err)
+		slog.Info("Please manually open http://localhost:8080/ in your browser to proceed.")
 	}
+
+	// Wait for a token from the callback or an error from the server.
+	var token string
+	select {
+	case token = <-tokenChan:
+		slog.Info("Token received successfully.")
+	case err := <-errChan:
+		return "", err
+	case <-time.After(5 * time.Minute): // Timeout after 5 minutes.
+		return "", fmt.Errorf("timed out waiting for OAuth token")
+	}
+
+	// Shutdown the server gracefully.
+	slog.Info("Shutting down OAuth server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		return "", fmt.Errorf("failed to shut down server gracefully: %w", err)
+	}
+
+	return token, nil
 }

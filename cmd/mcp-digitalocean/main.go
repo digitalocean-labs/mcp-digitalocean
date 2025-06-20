@@ -9,8 +9,11 @@ import (
 	"strings"
 
 	registry "mcp-digitalocean/internal"
+	"mcp-digitalocean/internal/webapp"
 
 	"github.com/digitalocean/godo"
+	"github.com/zalando/go-keyring"
+
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -53,6 +56,34 @@ func main() {
 	if *serviceFlag != "" {
 		services = strings.Split(*serviceFlag, ",")
 	}
+
+	var token string
+	var err error
+
+	// Attempt to retrieve the last used team's token from the keyring.
+	teamUUID, teamErr := webapp.GetLastUsedTeamUUID()
+	if teamErr == nil {
+		// If a team UUID was found, try to get the token for it.
+		token, err = webapp.GetTokenFromKeyring(teamUUID)
+	}
+
+	// If no token was found (either because the team didn't exist, the token didn't exist,
+	// or another keyring error occurred), start the authorization flow.
+	if token == "" || err != nil {
+		if err != nil && !errors.Is(err, keyring.ErrNotFound) {
+			// Log if the error was something other than just "not found".
+			slog.Warn("Could not retrieve token from keyring", "error", err)
+		}
+
+		slog.Info("Starting authorization flow.")
+		token, err = webapp.LocalhostAuthorize()
+		if err != nil {
+			slog.Error("Authorization failed", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	slog.Info("Successfully configured DigitalOcean token.")
 
 	client := godo.NewFromToken(token)
 	s := server.NewMCPServer(mcpName, mcpVersion)

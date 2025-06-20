@@ -6,6 +6,7 @@ require (
 	github.com/digitalocean/godo v1.152.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mark3labs/mcp-go v0.32.0
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/zalando/go-keyring v0.2.6
 )
 
