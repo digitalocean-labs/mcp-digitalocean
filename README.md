@@ -24,10 +24,7 @@ npx @digitalocean/mcp-digitalocean --services apps,droplets --log-level debug
   "mcpServers": {
     "digitalocean": {
       "command": "npx",
-      "args": ["@digitalocean/mcp-digitalocean", "--services apps"],
-      "env": {
-        "DIGITALOCEAN_API_TOKEN": "YOUR_API_TOKEN"
-      }
+      "args": ["@digitalocean/mcp-digitalocean", "--services apps"]
     }
   }
 }
@@ -45,10 +42,7 @@ npx @digitalocean/mcp-digitalocean --services apps,droplets --log-level debug
                     "@digitalocean/mcp-digitalocean",
                     "--services",
                     "apps"
-                ],
-                "env": {
-                    "DIGITALOCEAN_API_TOKEN": "YOUR_API_TOKEN"    
-                }
+                ]
             }
         }
     }

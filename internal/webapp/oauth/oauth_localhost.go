@@ -1,4 +1,4 @@
-package webapp
+package oauth
 
 import (
 	"context"
@@ -116,7 +116,7 @@ func saveTokenToKeyring(teamUUID, token string) error {
 	if err != nil {
 		return fmt.Errorf("failed to save token to keyring: %w", err)
 	}
-	slog.Info("Successfully saved token for team %s to the system keyring.", teamUUID)
+	slog.Info(fmt.Sprintf("Successfully saved token for team %s to the system keyring.", teamUUID))
 	return nil
 }
 
@@ -200,14 +200,14 @@ func callbackHandler(tokenChan chan string) http.HandlerFunc {
 		teamUUID, err := getTeamUUID(token)
 		if err != nil {
 			http.Error(w, "Failed to get team information", http.StatusInternalServerError)
-			slog.Error("Error getting team UUID: %v", err)
+			slog.Error(fmt.Sprintf("Error getting team UUID: %v", err))
 			return
 		}
 
 		// Save the token to the system keyring.
 		if err := saveTokenToKeyring(teamUUID, token); err != nil {
 			http.Error(w, "Failed to save token to system keyring", http.StatusInternalServerError)
-			slog.Error("Error saving token: %v", err)
+			slog.Error(fmt.Sprintf("Error saving token: %v", err))
 			return
 		}
 
@@ -231,7 +231,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	authURL, err := createAuthorizeURL()
 	if err != nil {
 		http.Error(w, "Failed to create authorization URL", http.StatusInternalServerError)
-		slog.Error("Error creating authorization URL: %v", err)
+		slog.Error(fmt.Sprintf("Error creating authorization URL: %v", err))
 		return
 	}
 
@@ -249,14 +249,14 @@ func LocalhostAuthorize() (string, error) {
 	errChan := make(chan error, 1)
 
 	// Create the HTTP server.
-	server := &http.Server{Addr: ":8080"}
+	server := &http.Server{Addr: "127.0.0.1:8080"}
 
 	http.HandleFunc("/v1/auth/digitalocean/callback", callbackHandler(tokenChan))
 	http.HandleFunc("/", rootHandler)
 
 	// Start the server in a goroutine so it doesn't block.
 	go func() {
-		slog.Info("Starting OAuth server on http://localhost:8080...")
+		slog.Info(fmt.Sprintf("Starting OAuth server on %s...", thisEndpoint))
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start server: %w", err)
 		}
@@ -265,9 +265,9 @@ func LocalhostAuthorize() (string, error) {
 	// Open the user's browser to the root URL, which will redirect to DigitalOcean.
 	slog.Info("Opening browser for authentication...")
 	time.Sleep(1 * time.Second) // Give the server a moment to start.
-	if err := browser.OpenURL("http://localhost:8080/"); err != nil {
-		slog.Warn("Warning: could not open browser automatically: %v", err)
-		slog.Info("Please manually open http://localhost:8080/ in your browser to proceed.")
+	if err := browser.OpenURL(thisEndpoint); err != nil {
+		slog.Warn(fmt.Sprintf("Warning: could not open browser automatically: %v", err))
+		slog.Info(fmt.Sprintf("Please manually open %s in your browser to proceed.", thisEndpoint))
 	}
 
 	// Wait for a token from the callback or an error from the server.
