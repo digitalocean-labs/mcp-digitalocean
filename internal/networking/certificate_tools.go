@@ -61,25 +61,6 @@ func (c *CertificateTool) deleteCertificate(ctx context.Context, req mcp.CallToo
 	return mcp.NewToolResultText("Certificate deleted successfully"), nil
 }
 
-<<<<<<< HEAD
-// getCertificate retrieves a certificate by ID
-func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	certID := req.GetArguments()["ID"].(string)
-	certificate, _, err := c.client.Certificates.Get(ctx, certID)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("api error", err), nil
-	}
-
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCert)), nil
-}
-
-=======
->>>>>>> main
 // Tools returns a list of certificate tools
 func (c *CertificateTool) Tools() []server.ServerTool {
 	return []server.ServerTool{

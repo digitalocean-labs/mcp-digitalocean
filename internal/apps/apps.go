@@ -29,7 +29,7 @@ func NewAppPlatformTool(client *godo.Client) (*AppPlatformTool, error) {
 func (a *AppPlatformTool) createAppFromAppSpec(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	jsonBytes, err := json.Marshal(req.GetArguments())
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	var create godo.AppCreateRequest
@@ -48,7 +48,7 @@ func (a *AppPlatformTool) createAppFromAppSpec(ctx context.Context, req mcp.Call
 
 	appJSON, err := json.MarshalIndent(app, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(appJSON)), nil
@@ -73,7 +73,7 @@ func (a *AppPlatformTool) listApps(ctx context.Context, req mcp.CallToolRequest)
 
 	appsJSON, err := json.MarshalIndent(apps, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(appsJSON)), nil
@@ -130,7 +130,7 @@ func (a *AppPlatformTool) getDeploymentStatus(ctx context.Context, req mcp.CallT
 
 	activeDeploymentJSON, err := json.MarshalIndent(deploymentStatus, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(activeDeploymentJSON)), nil
@@ -150,7 +150,7 @@ func (a *AppPlatformTool) getAppInfo(ctx context.Context, req mcp.CallToolReques
 
 	appJSON, err := json.MarshalIndent(app.Spec, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(appJSON)), nil
@@ -172,7 +172,7 @@ type AppUpdateRequest struct {
 func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	jsonBytes, err := json.Marshal(req.GetArguments())
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	var update AppUpdate
@@ -190,7 +190,7 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 
 		deploymentJSON, err := json.MarshalIndent(deployment, "", "  ")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+			return nil, fmt.Errorf("marshal error: %w", err)
 		}
 
 		return mcp.NewToolResultText(string(deploymentJSON)), nil
@@ -203,7 +203,7 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 
 	appJSON, err := json.MarshalIndent(app, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(appJSON)), nil

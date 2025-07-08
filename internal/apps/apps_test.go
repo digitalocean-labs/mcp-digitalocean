@@ -32,11 +32,12 @@ func equalsToolResult[T any](t *testing.T, expected T, actual *mcp.CallToolResul
 
 func TestUpdateApp(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        map[string]any
-		mock        func(*MockAppsService)
-		mcpResult   *mcp.CallToolResult
-		expectError bool
+		name         string
+		args         map[string]any
+		mock         func(*MockAppsService)
+		mcpResult    *mcp.CallToolResult
+		expectError  bool
+		handlerError bool
 	}{
 		{
 			name: "Force build (no spec)",
@@ -93,9 +94,10 @@ func TestUpdateApp(t *testing.T) {
 			},
 		},
 		{
-			name:        "Invalid JSON",
-			args:        map[string]any{"invalid": make(chan int)},
-			expectError: true,
+			name:         "Invalid JSON",
+			args:         map[string]any{"invalid": make(chan int)},
+			expectError:  true,
+			handlerError: true,
 		},
 		{
 			name: "API error on force build",
@@ -128,8 +130,14 @@ func TestUpdateApp(t *testing.T) {
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
 			resp, err := tool.updateApp(context.Background(), req)
 			if tc.expectError {
-				require.NotNil(t, resp)
-				require.True(t, resp.IsError)
+				if tc.handlerError {
+					require.Error(t, err)
+					require.Nil(t, resp)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, resp)
+					require.True(t, resp.IsError)
+				}
 				return
 			}
 
@@ -150,6 +158,7 @@ func TestListApps(t *testing.T) {
 		expectedApps []*godo.App
 		mock         func(app *MockAppsService, apps []*godo.App)
 		expectError  bool
+		handlerError bool
 	}{
 		{
 			name:         "Successful list",
@@ -187,8 +196,14 @@ func TestListApps(t *testing.T) {
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
 			resp, err := tool.listApps(context.Background(), req)
 			if tc.expectError {
-				require.NotNil(t, resp)
-				require.True(t, resp.IsError)
+				if tc.handlerError {
+					require.Error(t, err)
+					require.Nil(t, resp)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, resp)
+					require.True(t, resp.IsError)
+				}
 				return
 			}
 			require.NoError(t, err)
@@ -221,11 +236,12 @@ func TestCreateAppFromAppSpec(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		spec        *godo.AppSpec
-		mock        func(app *MockAppsService)
-		mcpResult   *mcp.CallToolResult
-		expectError bool
+		name         string
+		spec         *godo.AppSpec
+		mock         func(app *MockAppsService)
+		mcpResult    *mcp.CallToolResult
+		expectError  bool
+		handlerError bool
 	}{
 		{
 			name: "Successful create",
@@ -285,8 +301,14 @@ func TestCreateAppFromAppSpec(t *testing.T) {
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"spec": tc.spec}}}
 			resp, err := tool.createAppFromAppSpec(context.Background(), req)
 			if tc.expectError {
-				require.NotNil(t, resp)
-				require.True(t, resp.IsError)
+				if tc.handlerError {
+					require.Error(t, err)
+					require.Nil(t, resp)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, resp)
+					require.True(t, resp.IsError)
+				}
 				return
 			}
 
@@ -302,11 +324,12 @@ func TestCreateAppFromAppSpec(t *testing.T) {
 
 func TestDeleteApp(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        map[string]any
-		mock        func(app *MockAppsService)
-		expectError bool
-		expectMcp   string
+		name         string
+		args         map[string]any
+		mock         func(app *MockAppsService)
+		expectError  bool
+		expectMcp    string
+		handlerError bool
 	}{
 		{
 			name: "Successful delete",
@@ -340,8 +363,14 @@ func TestDeleteApp(t *testing.T) {
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
 			resp, err := tool.deleteApp(context.Background(), req)
 			if tc.expectError {
-				require.NotNil(t, resp)
-				require.True(t, resp.IsError)
+				if tc.handlerError {
+					require.Error(t, err)
+					require.Nil(t, resp)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, resp)
+					require.True(t, resp.IsError)
+				}
 				return
 			}
 			if tc.expectMcp != "" {
@@ -366,6 +395,7 @@ func TestGetDeploymentStatus(t *testing.T) {
 		expectErr           bool
 		mcpResult           *mcp.CallToolResult
 		mock                func(app *MockAppsService, deployments []*godo.Deployment)
+		handlerError        bool
 	}{
 		{
 			name: "Deployments found, returns the latest one",
@@ -475,8 +505,14 @@ func TestGetDeploymentStatus(t *testing.T) {
 
 			// unexpected error from the http client should return an error
 			if tc.expectErr {
-				require.NotNil(t, resp)
-				require.True(t, resp.IsError)
+				if tc.handlerError {
+					require.Error(t, err)
+					require.Nil(t, resp)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, resp)
+					require.True(t, resp.IsError)
+				}
 				return
 			}
 
