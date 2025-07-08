@@ -4,53 +4,48 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mcp-digitalocean/internal/droplet"
-	"regexp"
+	"mcp-digitalocean/internal/common"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
-// CDNResource represents a handler for MCP CDN resources
-type CDNResource struct {
+const CDNURI = "cdn://"
+
+type CDNMCPResource struct {
 	client *godo.Client
 }
 
-// NewCDNResource creates a new CDN MCP resource handler
-func NewCDNResource(client *godo.Client) *CDNResource {
-	return &CDNResource{
+func NewCDNMCPResource(client *godo.Client) *CDNMCPResource {
+	return &CDNMCPResource{
 		client: client,
 	}
 }
 
-// GetResourceTemplate returns the template for the CDN MCP resource
-func (c *CDNResource) GetResourceTemplate() mcp.ResourceTemplate {
+func (c *CDNMCPResource) getCDNResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"cdn://{id}",
+		CDNURI+"{id}",
 		"CDN",
 		mcp.WithTemplateDescription("Returns CDN information"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-// HandleGetResource handles the CDN MCP resource requests
-func (c *CDNResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// Extract CDN ID from the URI
-	cdnID, err := extractCDNIDFromURI(request.Params.URI)
+func (c *CDNMCPResource) handleGetCDNResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	cdnID, err := common.ExtractStringIDFromURI(request.Params.URI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid CDN URI: %s", err)
+		return nil, fmt.Errorf("invalid CDN URI: %w", err)
 	}
 
-	// Get CDN from DigitalOcean API
 	cdn, _, err := c.client.CDNs.Get(ctx, cdnID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching CDN: %s", err)
+		return nil, fmt.Errorf("error fetching CDN: %w", err)
 	}
 
-	// Serialize to JSON
 	jsonData, err := json.MarshalIndent(cdn, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing CDN: %s", err)
+		return nil, fmt.Errorf("error serializing CDN: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -62,21 +57,8 @@ func (c *CDNResource) HandleGetResource(ctx context.Context, request mcp.ReadRes
 	}, nil
 }
 
-// extractCDNIDFromURI extracts the CDN ID from the URI
-func extractCDNIDFromURI(uri string) (string, error) {
-	// Use regex to extract the ID from the URI format "cdn://{id}"
-	re := regexp.MustCompile(`cdn://(.+)`)
-	match := re.FindStringSubmatch(uri)
-	if len(match) < 2 {
-		return "", fmt.Errorf("could not extract CDN ID from URI: %s", uri)
-	}
-
-	return match[1], nil
-}
-
-// ResourceTemplates returns the available resource templates for the CDN MCP resource
-func (c *CDNResource) ResourceTemplates() map[mcp.ResourceTemplate]droplet.MCPResourceHandler {
-	return map[mcp.ResourceTemplate]droplet.MCPResourceHandler{
-		c.GetResourceTemplate(): c.HandleGetResource,
+func (c *CDNMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		c.getCDNResourceTemplate(): c.handleGetCDNResource,
 	}
 }

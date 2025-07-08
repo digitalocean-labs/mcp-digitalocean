@@ -4,63 +4,54 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mcp-digitalocean/internal/droplet"
-	"strconv"
-	"strings"
+
+	"mcp-digitalocean/internal/common"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
-// BillingMCPResource represents a handler for MCP Billing resources
+const BillingURI = "billing://"
+
 type BillingMCPResource struct {
 	client *godo.Client
 }
 
-// NewBillingMCPResource creates a new Billing MCP resource handler
 func NewBillingMCPResource(client *godo.Client) *BillingMCPResource {
 	return &BillingMCPResource{
 		client: client,
 	}
 }
 
-// GetResourceTemplate returns the template for the Billing MCP resource
-func (b *BillingMCPResource) GetResourceTemplate() mcp.ResourceTemplate {
+func (b *BillingMCPResource) getBillingResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"billing://{last}",
+		BillingURI+"{last}",
 		"Billing History",
-		mcp.WithTemplateDescription("Returns billing history"),
+		mcp.WithTemplateDescription("Provide billing history for a user for last n months"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-// HandleGetResource handles the Billing MCP resource requests
-func (b *BillingMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// Extract the last parameter from the URI
-	lastParam := strings.TrimPrefix(request.Params.URI, "billing://")
-	if lastParam == "" {
-		return nil, fmt.Errorf("invalid billing URI: %s", request.Params.URI)
-	}
-
-	// Check if the last parameter is a valid number
-	perpage, err := strconv.Atoi(lastParam)
+func (b *BillingMCPResource) handleGetBillingResourceTemplate(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	perPage, err := common.ExtractNumericIDFromURI(request.Params.URI)
 	if err != nil {
 		return nil, fmt.Errorf("invalid billing URI: %s", request.Params.URI)
 	}
 
-	// Get billing history from DigitalOcean API
-	billingHistory, _, err := b.client.BillingHistory.List(ctx, &godo.ListOptions{
+	opt := &godo.ListOptions{
 		Page:    1,
-		PerPage: perpage,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error fetching billing history: %s", err)
+		PerPage: int(perPage),
 	}
 
-	// Serialize to JSON
+	billingHistory, _, err := b.client.BillingHistory.List(ctx, opt)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching billing history: %w", err)
+	}
+
 	jsonData, err := json.MarshalIndent(billingHistory, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing billing history: %s", err)
+		return nil, fmt.Errorf("error serializing billing history: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -71,9 +62,8 @@ func (b *BillingMCPResource) HandleGetResource(ctx context.Context, request mcp.
 	}, nil
 }
 
-// ResourceTemplates returns the resource templates for the Billing MCP resource
-func (b *BillingMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]droplet.MCPResourceHandler {
-	return map[mcp.ResourceTemplate]droplet.MCPResourceHandler{
-		b.GetResourceTemplate(): b.HandleGetResource,
+func (b *BillingMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		b.getBillingResourceTemplate(): b.handleGetBillingResourceTemplate,
 	}
 }

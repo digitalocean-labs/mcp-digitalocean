@@ -10,6 +10,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+const AccountURI = "account://"
+
 type AccountMCPResource struct {
 	client *godo.Client
 }
@@ -20,26 +22,24 @@ func NewAccountMCPResource(client *godo.Client) *AccountMCPResource {
 	}
 }
 
-func (a *AccountMCPResource) GetResource() mcp.Resource {
+func (a *AccountMCPResource) getAccountResource() mcp.Resource {
 	return mcp.NewResource(
-		"account://current",
+		AccountURI+"current",
 		"Account Information",
-		mcp.WithResourceDescription("Returns account information"),
+		mcp.WithResourceDescription("Provides information about user account"),
 		mcp.WithMIMEType("application/json"),
 	)
 }
 
-func (a *AccountMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// Get account information from DigitalOcean API
+func (a *AccountMCPResource) handleGetAccountResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	account, _, err := a.client.Account.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching account: %s", err)
+		return nil, fmt.Errorf("error fetching account: %w", err)
 	}
 
-	// Serialize to JSON
 	jsonData, err := json.MarshalIndent(account, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing account: %s", err)
+		return nil, fmt.Errorf("error serializing account: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -52,6 +52,6 @@ func (a *AccountMCPResource) HandleGetResource(ctx context.Context, request mcp.
 
 func (a *AccountMCPResource) Resources() map[mcp.Resource]server.ResourceHandlerFunc {
 	return map[mcp.Resource]server.ResourceHandlerFunc{
-		a.GetResource(): a.HandleGetResource,
+		a.getAccountResource(): a.handleGetAccountResource,
 	}
 }

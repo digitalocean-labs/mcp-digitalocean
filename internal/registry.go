@@ -7,6 +7,7 @@ import (
 
 	"mcp-digitalocean/internal/account"
 	"mcp-digitalocean/internal/apps"
+	"mcp-digitalocean/internal/common"
 	"mcp-digitalocean/internal/droplet"
 	"mcp-digitalocean/internal/networking"
 
@@ -30,6 +31,14 @@ func registerAppTools(s *server.MCPServer, c *godo.Client) error {
 	}
 
 	s.AddTools(appTools.Tools()...)
+
+	return nil
+}
+
+func registerCommonTools(s *server.MCPServer, c *godo.Client) error {
+	for resource, handler := range common.NewRegionMCPResource(c).Resources() {
+		s.AddResource(resource, handler)
+	}
 
 	return nil
 }
@@ -65,13 +74,12 @@ func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 	s.AddTools(networking.NewCertificateTool(c).Tools()...)
 	s.AddTools(networking.NewDomainsTool(c).Tools()...)
 	s.AddTools(networking.NewFirewallTool(c).Tools()...)
-	s.AddTools(networking.NewKeysTool(c).Tools()...)
 	s.AddTools(networking.NewReservedIPTool(c).Tools()...)
 	s.AddTools(networking.NewPartnerAttachmentTool(c).Tools()...)
 	s.AddTools(networking.NewVPCTool(c).Tools()...)
 
 	// Register the resources for networking
-	cdnResource := networking.NewCDNResource(c)
+	cdnResource := networking.NewCDNMCPResource(c)
 	for template, handler := range cdnResource.ResourceTemplates() {
 		s.AddResourceTemplate(template, handler)
 	}
@@ -83,7 +91,7 @@ func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 	}
 
 	// Register domains resource
-	domainsResource := networking.NewDomainsMCPResource(c)
+	domainsResource := networking.NewDomainMCPResource(c)
 	for template, handler := range domainsResource.ResourceTemplates() {
 		s.AddResourceTemplate(template, handler)
 	}
@@ -94,20 +102,8 @@ func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 		s.AddResourceTemplate(template, handler)
 	}
 
-	// Register keys resource
-	keysResource := networking.NewKeysMCPResource(c)
-	for template, handler := range keysResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register regions resource
-	regionsResource := networking.NewRegionsMCPResource(c)
-	for resource, handler := range regionsResource.Resources() {
-		s.AddResource(resource, handler)
-	}
-
 	// Register reserved IP resources
-	reservedIPResource := networking.NewReservedIPResource(c)
+	reservedIPResource := networking.NewReservedIPMCPResource(c)
 	for template, handler := range reservedIPResource.ResourceTemplates() {
 		s.AddResourceTemplate(template, handler)
 	}
@@ -128,22 +124,25 @@ func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 
 // registerAccountTools account resource and resource templates
 func registerAccountTools(s *server.MCPServer, c *godo.Client) error {
+	s.AddTools(account.NewKeysTool(c).Tools()...)
 
-	invoicesResource := account.NewInvoicesMCPResource(c)
-	for resource, handler := range invoicesResource.Resources() {
-		s.AddResource(resource, handler)
-	}
 	for resource, handler := range account.NewAccountMCPResource(c).Resources() {
 		s.AddResource(resource, handler)
 	}
 	for resource, handler := range account.NewBalanceMCPResource(c).Resources() {
 		s.AddResource(resource, handler)
 	}
+
+	for resource, handler := range account.NewInvoicesMCPResource(c).ResourceTemplates() {
+		s.AddResourceTemplate(resource, handler)
+	}
 	for template, handler := range account.NewBillingMCPResource(c).ResourceTemplates() {
 		s.AddResourceTemplate(template, handler)
 	}
-	// Register action resource
-	for template, handler := range account.NewActionMCPResource(c).Resources() {
+	for template, handler := range account.NewActionMCPResource(c).ResourcesTemplates() {
+		s.AddResourceTemplate(template, handler)
+	}
+	for template, handler := range account.NewKeyMCPResource(c).ResourceTemplates() {
 		s.AddResourceTemplate(template, handler)
 	}
 
@@ -181,6 +180,11 @@ func Register(logger *slog.Logger, s *server.MCPServer, c *godo.Client, services
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
 		}
+	}
+
+	// Common tools are always registered because they provide common functionality for all services such as region resources
+	if err := registerCommonTools(s, c); err != nil {
+		return fmt.Errorf("failed to register common tools: %w", err)
 	}
 
 	return nil

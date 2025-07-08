@@ -10,22 +10,22 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// SizesMCPResource represents a handler for MCP Size resources
+const SizesURI = "sizes://"
+
 type SizesMCPResource struct {
 	client *godo.Client
 }
 
-// NewSizesMCPResource creates a new Sizes MCP resource handler
 func NewSizesMCPResource(client *godo.Client) *SizesMCPResource {
 	return &SizesMCPResource{
 		client: client,
 	}
 }
 
-// GetResource returns the template for the Sizes MCP resource
-func (s *SizesMCPResource) GetResource() mcp.Resource {
+// GetResource returns the resource for all droplet sizes
+func (s *SizesMCPResource) getSizeResource() mcp.Resource {
 	return mcp.NewResource(
-		"sizes://all",
+		SizesURI+"all",
 		"Droplet Sizes",
 		mcp.WithResourceDescription("Returns all available droplet sizes"),
 		mcp.WithMIMEType("application/json"),
@@ -33,20 +33,17 @@ func (s *SizesMCPResource) GetResource() mcp.Resource {
 }
 
 // HandleGetResource handles the Sizes MCP resource requests for all sizes
-func (s *SizesMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// List all droplet sizes from DigitalOcean API
+func (s *SizesMCPResource) handleGetSizeResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	opt := &godo.ListOptions{
 		Page:    1,
-		PerPage: 200, // Get a large number of sizes at once
+		PerPage: 200,
 	}
 
 	sizes, _, err := s.client.Sizes.List(ctx, opt)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching droplet sizes: %s", err)
+		return nil, fmt.Errorf("error fetching droplet sizes: %w", err)
 	}
 
-	// Serialize to JSON
-	// Filter sizes to only include slug, availability, and price details
 	filteredSizes := make([]map[string]any, len(sizes))
 	for i, size := range sizes {
 		filteredSizes[i] = map[string]any{
@@ -57,10 +54,9 @@ func (s *SizesMCPResource) HandleGetResource(ctx context.Context, request mcp.Re
 		}
 	}
 
-	// Serialize filtered sizes to JSON
 	jsonData, err := json.MarshalIndent(filteredSizes, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing sizes: %s", err)
+		return nil, fmt.Errorf("error serializing sizes: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -75,6 +71,6 @@ func (s *SizesMCPResource) HandleGetResource(ctx context.Context, request mcp.Re
 // Resources returns the available resources for the Sizes MCP resource
 func (s *SizesMCPResource) Resources() map[mcp.Resource]server.ResourceHandlerFunc {
 	return map[mcp.Resource]server.ResourceHandlerFunc{
-		s.GetResource(): s.HandleGetResource,
+		s.getSizeResource(): s.handleGetSizeResource,
 	}
 }

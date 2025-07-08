@@ -4,56 +4,59 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mcp-digitalocean/internal/droplet"
-	"regexp"
+	"mcp-digitalocean/internal/common"
 	"strconv"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
-type DomainsMCPResource struct {
+const DomainURI = "domains://"
+
+type DomainMCPResource struct {
 	client *godo.Client
 }
 
-func NewDomainsMCPResource(client *godo.Client) *DomainsMCPResource {
-	return &DomainsMCPResource{
+func NewDomainMCPResource(client *godo.Client) *DomainMCPResource {
+	return &DomainMCPResource{
 		client: client,
 	}
 }
 
-func (d *DomainsMCPResource) GetResourceTemplate() mcp.ResourceTemplate {
+func (d *DomainMCPResource) getDomainResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"domains://{name}",
+		DomainURI+"{name}",
 		"Domain",
 		mcp.WithTemplateDescription("Returns domain information"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-func (d *DomainsMCPResource) GetRecordResourceTemplate() mcp.ResourceTemplate {
+func (d *DomainMCPResource) getDomainRecordResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"domains://{name}/records/{record_id}",
+		DomainURI+"{name}/records/{record_id}",
 		"Domain Record",
 		mcp.WithTemplateDescription("Returns information about a domain record"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-func (d *DomainsMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	domainName, err := extractDomainNameFromURI(request.Params.URI)
+func (d *DomainMCPResource) handleGetDomainResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	domainName, err := common.ExtractStringIDFromURI(request.Params.URI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid domain URI: %s", err)
+		return nil, fmt.Errorf("invalid domain URI: %w", err)
 	}
 
 	domain, _, err := d.client.Domains.Get(ctx, domainName)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching domain: %s", err)
+		return nil, fmt.Errorf("error fetching domain: %w", err)
 	}
 
 	jsonData, err := json.MarshalIndent(domain, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing domain: %s", err)
+		return nil, fmt.Errorf("error serializing domain: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -65,20 +68,20 @@ func (d *DomainsMCPResource) HandleGetResource(ctx context.Context, request mcp.
 	}, nil
 }
 
-func (d *DomainsMCPResource) HandleGetRecordResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	domainName, recordID, err := extractDomainRecordFromURI(request.Params.URI)
+func (d *DomainMCPResource) handleGetDomainRecordResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	domainName, recordID, err := extractDomainAndRecordFromURI(request.Params.URI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid domain record URI: %s", err)
+		return nil, fmt.Errorf("invalid domain record URI: %w", err)
 	}
 
 	record, _, err := d.client.Domains.Record(ctx, domainName, recordID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching domain record: %s", err)
+		return nil, fmt.Errorf("error fetching domain record: %w", err)
 	}
 
 	jsonData, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing domain record: %s", err)
+		return nil, fmt.Errorf("error serializing domain record: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -90,31 +93,30 @@ func (d *DomainsMCPResource) HandleGetRecordResource(ctx context.Context, reques
 	}, nil
 }
 
-func extractDomainNameFromURI(uri string) (string, error) {
-	re := regexp.MustCompile(`domains://([^/]+)`)
-	match := re.FindStringSubmatch(uri)
-	if len(match) < 2 {
-		return "", fmt.Errorf("could not extract domain name from URI: %s", uri)
+func extractDomainAndRecordFromURI(uri string) (string, int, error) {
+	// First extract the domain name part
+	uri = strings.TrimPrefix(uri, DomainURI)
+	parts := strings.Split(uri, "/records/")
+	if len(parts) != 2 {
+		return "", 0, fmt.Errorf("invalid domain record URI format")
 	}
-	return match[1], nil
-}
 
-func extractDomainRecordFromURI(uri string) (string, int, error) {
-	re := regexp.MustCompile(`domains://([^/]+)/records/(\d+)`)
-	match := re.FindStringSubmatch(uri)
-	if len(match) < 3 {
-		return "", 0, fmt.Errorf("could not extract domain record from URI: %s", uri)
+	domainName := parts[0]
+	if domainName == "" {
+		return "", 0, fmt.Errorf("empty domain name")
 	}
-	recordID, err := strconv.Atoi(match[2])
+
+	recordID, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return "", 0, fmt.Errorf("invalid record ID: %s", err)
+		return "", 0, fmt.Errorf("invalid record ID: %w", err)
 	}
-	return match[1], recordID, nil
+
+	return domainName, recordID, nil
 }
 
-func (d *DomainsMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]droplet.MCPResourceHandler {
-	return map[mcp.ResourceTemplate]droplet.MCPResourceHandler{
-		d.GetResourceTemplate():       d.HandleGetResource,
-		d.GetRecordResourceTemplate(): d.HandleGetRecordResource,
+func (d *DomainMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		d.getDomainResourceTemplate():       d.handleGetDomainResource,
+		d.getDomainRecordResourceTemplate(): d.handleGetDomainRecordResource,
 	}
 }

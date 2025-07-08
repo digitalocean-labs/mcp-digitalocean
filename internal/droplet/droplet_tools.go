@@ -23,12 +23,13 @@ func NewDropletTool(client *godo.Client) *DropletTool {
 
 // CreateDroplet creates a new droplet
 func (d *DropletTool) CreateDroplet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	dropletName := req.GetArguments()["Name"].(string)
-	size := req.GetArguments()["Size"].(string)
-	imageID := req.GetArguments()["ImageID"].(float64)
-	region := req.GetArguments()["Region"].(string)
-	backup, _ := req.GetArguments()["Backup"].(bool)         // Defaults to false
-	monitoring, _ := req.GetArguments()["Monitoring"].(bool) // Defaults to false
+	args := req.GetArguments()
+	dropletName := args["Name"].(string)
+	size := args["Size"].(string)
+	imageID := args["ImageID"].(float64)
+	region := args["Region"].(string)
+	backup, _ := args["Backup"].(bool)         // Defaults to false
+	monitoring, _ := args["Monitoring"].(bool) // Defaults to false
 	// Create the droplet
 	dropletCreateRequest := &godo.DropletCreateRequest{
 		Name:       dropletName,
@@ -40,11 +41,11 @@ func (d *DropletTool) CreateDroplet(ctx context.Context, req mcp.CallToolRequest
 	}
 	droplet, _, err := d.client.Droplets.Create(ctx, dropletCreateRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("droplet create", err), nil
 	}
 	jsonDroplet, err := json.MarshalIndent(droplet, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
 	}
 	return mcp.NewToolResultText(string(jsonDroplet)), nil
 }

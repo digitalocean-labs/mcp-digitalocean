@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mcp-digitalocean/internal/droplet"
-	"regexp"
+	"mcp-digitalocean/internal/common"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
+
+const PartnerAttachmentURI = "partner_attachment://"
 
 type PartnerAttachmentMCPResource struct {
 	client *godo.Client
@@ -21,29 +23,29 @@ func NewPartnerAttachmentMCPResource(client *godo.Client) *PartnerAttachmentMCPR
 	}
 }
 
-func (p *PartnerAttachmentMCPResource) GetResourceTemplate() mcp.ResourceTemplate {
+func (p *PartnerAttachmentMCPResource) getPartnerAttachmentResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"partner_attachment://{id}",
+		PartnerAttachmentURI+"{id}",
 		"Partner Attachment",
 		mcp.WithTemplateDescription("Returns partner attachment information"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-func (p *PartnerAttachmentMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	attachmentID, err := extractAttachmentIDFromURI(request.Params.URI)
+func (p *PartnerAttachmentMCPResource) handleGetPartnerAttachmentResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	attachmentID, err := common.ExtractStringIDFromURI(request.Params.URI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid partner attachment URI: %s", err)
+		return nil, fmt.Errorf("invalid partner attachment URI: %w", err)
 	}
 
 	attachment, _, err := p.client.PartnerAttachment.Get(ctx, attachmentID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching partner attachment: %s", err)
+		return nil, fmt.Errorf("error fetching partner attachment: %w", err)
 	}
 
 	jsonData, err := json.MarshalIndent(attachment, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing partner attachment: %s", err)
+		return nil, fmt.Errorf("error serializing partner attachment: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -55,17 +57,8 @@ func (p *PartnerAttachmentMCPResource) HandleGetResource(ctx context.Context, re
 	}, nil
 }
 
-func extractAttachmentIDFromURI(uri string) (string, error) {
-	re := regexp.MustCompile(`partner_attachment://(.+)`)
-	match := re.FindStringSubmatch(uri)
-	if len(match) < 2 {
-		return "", fmt.Errorf("could not extract partner attachment ID from URI: %s", uri)
-	}
-	return match[1], nil
-}
-
-func (p *PartnerAttachmentMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]droplet.MCPResourceHandler {
-	return map[mcp.ResourceTemplate]droplet.MCPResourceHandler{
-		p.GetResourceTemplate(): p.HandleGetResource,
+func (p *PartnerAttachmentMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		p.getPartnerAttachmentResourceTemplate(): p.handleGetPartnerAttachmentResource,
 	}
 }

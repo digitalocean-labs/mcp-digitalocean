@@ -4,45 +4,48 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mcp-digitalocean/internal/droplet"
+	"mcp-digitalocean/internal/common"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
-// CertificateMCPResource represents a handler for MCP Certificate resources
+const CertificateURI = "certificates://"
+
 type CertificateMCPResource struct {
 	client *godo.Client
 }
 
-// NewCertificateMCPResource creates a new Certificate MCP resource handler
 func NewCertificateMCPResource(client *godo.Client) *CertificateMCPResource {
 	return &CertificateMCPResource{
 		client: client,
 	}
 }
 
-// GetResourceTemplate returns the template for the Certificate MCP resource
-func (c *CertificateMCPResource) GetResourceTemplate() mcp.ResourceTemplate {
+func (c *CertificateMCPResource) getCertificateResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"certificates://{id}",
+		CertificateURI+"{id}",
 		"Certificate",
 		mcp.WithTemplateDescription("Returns certificate information"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-// HandleGetResource handles the Certificate MCP resource requests
-func (c *CertificateMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	certID := request.Params.URI[len("certificates://"):]
+func (c *CertificateMCPResource) handleGetCertificateResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	certID, err := common.ExtractStringIDFromURI(request.Params.URI)
+	if err != nil {
+		return nil, fmt.Errorf("invalid certificate URI: %w", err)
+	}
+
 	certificate, _, err := c.client.Certificates.Get(ctx, certID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching certificate: %s", err)
+		return nil, fmt.Errorf("error fetching certificate: %w", err)
 	}
 
 	jsonData, err := json.MarshalIndent(certificate, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing certificate: %s", err)
+		return nil, fmt.Errorf("error serializing certificate: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -54,9 +57,8 @@ func (c *CertificateMCPResource) HandleGetResource(ctx context.Context, request 
 	}, nil
 }
 
-// ResourceTemplates returns the available resource templates for the Certificate MCP resource
-func (c *CertificateMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]droplet.MCPResourceHandler {
-	return map[mcp.ResourceTemplate]droplet.MCPResourceHandler{
-		c.GetResourceTemplate(): c.HandleGetResource,
+func (c *CertificateMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		c.getCertificateResourceTemplate(): c.handleGetCertificateResource,
 	}
 }

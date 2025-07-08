@@ -4,33 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
+	"mcp-digitalocean/internal/common"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// ImagesMCPResource represents a handler for MCP Images response
+const ImagesURI = "images://"
+
 type ImagesMCPResource struct {
 	client *godo.Client
 }
 
-// NewImagesMCPResource creates a new Images MCP resource handler
 func NewImagesMCPResource(client *godo.Client) *ImagesMCPResource {
 	return &ImagesMCPResource{
 		client: client,
 	}
 }
 
-// We will provide a general resource which will get all images
-// Another template resource that will provide a detailed single image.
-
-// GetResource returns the template for the Images MCP resource
-func (i *ImagesMCPResource) GetResource() mcp.Resource {
+// GetResource returns the resource for all distribution images
+func (i *ImagesMCPResource) getImageResource() mcp.Resource {
 	return mcp.NewResource(
-		"images://distribution",
+		ImagesURI+"distribution",
 		"Distribution Images",
 		mcp.WithResourceDescription("Returns all available distribution images"),
 		mcp.WithMIMEType("application/json"),
@@ -38,23 +34,20 @@ func (i *ImagesMCPResource) GetResource() mcp.Resource {
 }
 
 // HandleGetResource handles the Images MCP resource requests for all images
-func (i *ImagesMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// List all images from DigitalOcean API
+func (i *ImagesMCPResource) handleGetImageResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	opt := &godo.ListOptions{
 		Page:    1,
-		PerPage: 200, // Get a large number of images at once
+		PerPage: 200,
 	}
 
 	images, _, err := i.client.Images.ListDistribution(ctx, opt)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching images: %s", err)
+		return nil, fmt.Errorf("error fetching images: %w", err)
 	}
 
-	// Serialize to JSON
-	// Filter images to only include id, name, distribution, and type details
 	filteredImages := make([]map[string]any, len(images))
-	for i, image := range images {
-		filteredImages[i] = map[string]any{
+	for idx, image := range images {
+		filteredImages[idx] = map[string]any{
 			"id":           image.ID,
 			"name":         image.Name,
 			"distribution": image.Distribution,
@@ -62,10 +55,9 @@ func (i *ImagesMCPResource) HandleGetResource(ctx context.Context, request mcp.R
 		}
 	}
 
-	// Serialize filtered images to JSON
 	jsonData, err := json.MarshalIndent(filteredImages, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing images: %s", err)
+		return nil, fmt.Errorf("error serializing images: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -76,34 +68,31 @@ func (i *ImagesMCPResource) HandleGetResource(ctx context.Context, request mcp.R
 	}, nil
 }
 
-// GetResourceTemplate returns the template for the Images MCP resource
-func (i *ImagesMCPResource) GetResourceTemplate() mcp.ResourceTemplate {
+// getImageResourceTemplate returns the template for a single image
+func (i *ImagesMCPResource) getImageResourceTemplate() mcp.ResourceTemplate {
 	return mcp.NewResourceTemplate(
-		"images://{id}",
+		ImagesURI+"{id}",
 		"Image",
 		mcp.WithTemplateDescription("Returns image information"),
 		mcp.WithTemplateMIMEType("application/json"),
 	)
 }
 
-// HandleGetResourceTemplates handles the Images MCP resource requests
-func (i *ImagesMCPResource) HandleGetResourceTemplates(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// Extract image ID from the URI
-	imageID, err := extractImageIDFromURI(request.Params.URI)
+// handleGetImageResource handles the Images MCP resource requests for a single image
+func (i *ImagesMCPResource) handleGetImageResourceTemplate(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	imageID, err := common.ExtractNumericIDFromURI(request.Params.URI)
 	if err != nil {
-		return nil, fmt.Errorf("invalid image URI: %s", err)
+		return nil, fmt.Errorf("invalid image URI: %w", err)
 	}
 
-	// Get image from DigitalOcean API
-	image, _, err := i.client.Images.GetByID(ctx, imageID)
+	image, _, err := i.client.Images.GetByID(ctx, int(imageID))
 	if err != nil {
-		return nil, fmt.Errorf("error fetching image: %s", err)
+		return nil, fmt.Errorf("error fetching image: %w", err)
 	}
 
-	// Serialize to JSON
 	jsonData, err := json.MarshalIndent(image, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing image: %s", err)
+		return nil, fmt.Errorf("error serializing image: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -115,34 +104,14 @@ func (i *ImagesMCPResource) HandleGetResourceTemplates(ctx context.Context, requ
 	}, nil
 }
 
-// extractImageIDFromURI extracts the image ID from the URI
-func extractImageIDFromURI(uri string) (int, error) {
-	// Extract the image ID from the URI
-	// The URI format is assumed to be "images://{id}"
-	// Split the URI by "//" to get the image ID
-	parts := strings.Split(uri, "//")
-	if len(parts) != 2 {
-		return 0, fmt.Errorf("invalid image URI format")
-	}
-
-	imageID, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, fmt.Errorf("invalid image ID: %s", err)
-	}
-
-	return imageID, nil
-}
-
-// Resources returns the resources for the Images MCP resource
 func (i *ImagesMCPResource) Resources() map[mcp.Resource]server.ResourceHandlerFunc {
 	return map[mcp.Resource]server.ResourceHandlerFunc{
-		i.GetResource(): i.HandleGetResource,
+		i.getImageResource(): i.handleGetImageResource,
 	}
 }
 
-// ResourceTemplates returns the available resources for the Images MCP resource
-func (i *ImagesMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]MCPResourceHandler {
-	return map[mcp.ResourceTemplate]MCPResourceHandler{
-		i.GetResourceTemplate(): i.HandleGetResource,
+func (i *ImagesMCPResource) ResourceTemplates() map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc {
+	return map[mcp.ResourceTemplate]server.ResourceTemplateHandlerFunc{
+		i.getImageResourceTemplate(): i.handleGetImageResourceTemplate,
 	}
 }

@@ -1,4 +1,4 @@
-package networking
+package account
 
 import (
 	"context"
@@ -21,10 +21,10 @@ func NewKeysTool(client *godo.Client) *KeysTool {
 	}
 }
 
-// CreateKey creates a new SSH key
-func (k *KeysTool) CreateKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name := req.GetArguments()["Name"].(string)
-	publicKey := req.GetArguments()["PublicKey"].(string)
+func (k *KeysTool) createKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	name := args["Name"].(string)
+	publicKey := args["PublicKey"].(string)
 
 	key, _, err := k.client.Keys.Create(ctx, &godo.KeyCreateRequest{
 		Name:      name,
@@ -42,8 +42,7 @@ func (k *KeysTool) CreateKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	return mcp.NewToolResultText(string(jsonKey)), nil
 }
 
-// DeleteKey deletes an SSH key by ID
-func (k *KeysTool) DeleteKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (k *KeysTool) deleteKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	keyID := int(req.GetArguments()["ID"].(float64))
 
 	_, err := k.client.Keys.DeleteByID(ctx, keyID)
@@ -58,7 +57,7 @@ func (k *KeysTool) DeleteKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 func (k *KeysTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: k.CreateKey,
+			Handler: k.createKey,
 			Tool: mcp.NewTool("digitalocean-key-create",
 				mcp.WithDescription("Create a new SSH key"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the SSH key")),
@@ -66,7 +65,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: k.DeleteKey,
+			Handler: k.deleteKey,
 			Tool: mcp.NewTool("digitalocean-key-delete",
 				mcp.WithDescription("Delete an SSH key"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the SSH key to delete")),

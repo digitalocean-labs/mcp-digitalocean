@@ -10,40 +10,36 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// BalanceMCPResource represents a handler for MCP Balance resources
+const BalanceURI = "balance://"
+
 type BalanceMCPResource struct {
 	client *godo.Client
 }
 
-// NewBalanceMCPResource creates a new Balance MCP resource handler
 func NewBalanceMCPResource(client *godo.Client) *BalanceMCPResource {
 	return &BalanceMCPResource{
 		client: client,
 	}
 }
 
-// GetResourceTemplate returns the template for the Balance MCP resource
-func (b *BalanceMCPResource) GetResource() mcp.Resource {
+func (b *BalanceMCPResource) getBalanceResource() mcp.Resource {
 	return mcp.NewResource(
-		"balance://current",
+		BalanceURI+"current",
 		"Balance Information",
-		mcp.WithResourceDescription("Returns balance information"),
+		mcp.WithResourceDescription("Provide balance information for the user account"),
 		mcp.WithMIMEType("application/json"),
 	)
 }
 
-// HandleGetResource handles the Balance MCP resource requests
-func (b *BalanceMCPResource) HandleGetResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	// Get balance from DigitalOcean API
+func (b *BalanceMCPResource) handleGetBalanceResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	balance, _, err := b.client.Balance.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching balance: %s", err)
+		return nil, fmt.Errorf("error fetching balance: %w", err)
 	}
 
-	// Serialize to JSON
 	jsonData, err := json.MarshalIndent(balance, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing balance: %s", err)
+		return nil, fmt.Errorf("error serializing balance: %w", err)
 	}
 
 	return []mcp.ResourceContents{
@@ -56,6 +52,6 @@ func (b *BalanceMCPResource) HandleGetResource(ctx context.Context, request mcp.
 
 func (b *BalanceMCPResource) Resources() map[mcp.Resource]server.ResourceHandlerFunc {
 	return map[mcp.Resource]server.ResourceHandlerFunc{
-		b.GetResource(): b.HandleGetResource,
+		b.getBalanceResource(): b.handleGetBalanceResource,
 	}
 }
