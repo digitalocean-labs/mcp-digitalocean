@@ -22,8 +22,8 @@ func NewReservedIPTool(client *godo.Client) *ReservedIPTool {
 	}
 }
 
-// ReserveIP reserves a new IPv4 or IPv6
-func (t *ReservedIPTool) ReserveIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// reserveIP reserves a new IPv4 or IPv6
+func (t *ReservedIPTool) reserveIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	region := req.GetArguments()["Region"].(string)
 	ipType := req.GetArguments()["Type"].(string) // "ipv4" or "ipv6"
 
@@ -36,23 +36,23 @@ func (t *ReservedIPTool) ReserveIP(ctx context.Context, req mcp.CallToolRequest)
 	case "ipv6":
 		reservedIP, _, err = t.client.ReservedIPV6s.Create(ctx, &godo.ReservedIPV6CreateRequest{Region: region})
 	default:
-		return nil, errors.New("invalid IP type. Use 'ipv4' or 'ipv6'")
+		return mcp.NewToolResultErrorFromErr("invalid IP type. Use 'ipv4' or 'ipv6'", errors.New("invalid IP type")), nil
 	}
 
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
-// ReleaseIP releases a reserved IPv4 or IPv6
-func (t *ReservedIPTool) ReleaseIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// releaseIP releases a reserved IPv4 or IPv6
+func (t *ReservedIPTool) releaseIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	ip := req.GetArguments()["IP"].(string)
 	ipType := req.GetArguments()["Type"].(string) // "ipv4" or "ipv6"
 
@@ -63,18 +63,18 @@ func (t *ReservedIPTool) ReleaseIP(ctx context.Context, req mcp.CallToolRequest)
 	case "ipv6":
 		_, err = t.client.ReservedIPV6s.Delete(ctx, ip)
 	default:
-		return nil, errors.New("invalid IP type. Use 'ipv4' or 'ipv6'")
+		return mcp.NewToolResultErrorFromErr("invalid IP type. Use 'ipv4' or 'ipv6'", errors.New("invalid IP type")), nil
 	}
 
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("reserved IP released successfully"), nil
 }
 
-// AssignIP assigns a reserved IP to a droplet
-func (t *ReservedIPTool) AssignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// assignIP assigns a reserved IP to a droplet
+func (t *ReservedIPTool) assignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	ip := req.GetArguments()["IP"].(string)
 	dropletID := int(req.GetArguments()["DropletID"].(float64))
 	ipType := req.GetArguments()["Type"].(string) // "ipv4" or "ipv6"
@@ -88,23 +88,23 @@ func (t *ReservedIPTool) AssignIP(ctx context.Context, req mcp.CallToolRequest) 
 	case "ipv6":
 		action, _, err = t.client.ReservedIPV6Actions.Assign(ctx, ip, dropletID)
 	default:
-		return nil, errors.New("invalid IP type. Use 'ipv4' or 'ipv6'")
+		return mcp.NewToolResultErrorFromErr("invalid IP type. Use 'ipv4' or 'ipv6'", errors.New("invalid IP type")), nil
 	}
 
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonData, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
-// UnassignIP unassigns a reserved IP from a droplet
-func (t *ReservedIPTool) UnassignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// unassignIP unassigns a reserved IP from a droplet
+func (t *ReservedIPTool) unassignIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	ip := req.GetArguments()["IP"].(string)
 	ipType := req.GetArguments()["Type"].(string) // "ipv4" or "ipv6"
 
@@ -117,16 +117,16 @@ func (t *ReservedIPTool) UnassignIP(ctx context.Context, req mcp.CallToolRequest
 	case "ipv6":
 		action, _, err = t.client.ReservedIPV6Actions.Unassign(ctx, ip)
 	default:
-		return nil, errors.New("invalid IP type. Use 'ipv4' or 'ipv6'")
+		return mcp.NewToolResultErrorFromErr("invalid IP type. Use 'ipv4' or 'ipv6'", errors.New("invalid IP type")), nil
 	}
 
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonData, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil
@@ -136,7 +136,7 @@ func (t *ReservedIPTool) UnassignIP(ctx context.Context, req mcp.CallToolRequest
 func (t *ReservedIPTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: t.ReserveIP,
+			Handler: t.reserveIP,
 			Tool: mcp.NewTool("digitalocean-reserved-ip-reserve",
 				mcp.WithDescription("Reserve a new IPv4 or IPv6"),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region to reserve the IP in")),
@@ -144,7 +144,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: t.ReleaseIP,
+			Handler: t.releaseIP,
 			Tool: mcp.NewTool("digitalocean-reserved-ip-release",
 				mcp.WithDescription("Release a reserved IPv4 or IPv6"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to release")),
@@ -152,7 +152,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: t.AssignIP,
+			Handler: t.assignIP,
 			Tool: mcp.NewTool("digitalocean-reserved-ip-assign",
 				mcp.WithDescription("Assign a reserved IP to a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to assign")),
@@ -161,7 +161,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: t.UnassignIP,
+			Handler: t.unassignIP,
 			Tool: mcp.NewTool("digitalocean-reserved-ip-unassign",
 				mcp.WithDescription("Unassign a reserved IP from a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to unassign")),

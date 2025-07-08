@@ -21,8 +21,8 @@ func NewVPCTool(client *godo.Client) *VPCTool {
 	}
 }
 
-// CreateVPC creates a new VPC
-func (v *VPCTool) CreateVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// createVPC creates a new VPC
+func (v *VPCTool) createVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 	region := req.GetArguments()["Region"].(string)
 
@@ -33,41 +33,41 @@ func (v *VPCTool) CreateVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	vpc, _, err := v.client.VPCs.Create(ctx, createRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonVPC)), nil
 }
 
-// ListVPCMembers lists members of a VPC
-func (v *VPCTool) ListVPCMembers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// listVPCMembers lists members of a VPC
+func (v *VPCTool) listVPCMembers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	vpcID := req.GetArguments()["ID"].(string)
 
 	members, _, err := v.client.VPCs.ListMembers(ctx, vpcID, nil, nil)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonMembers, err := json.MarshalIndent(members, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonMembers)), nil
 }
 
-// DeleteVPC deletes a VPC
-func (v *VPCTool) DeleteVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// deleteVPC deletes a VPC
+func (v *VPCTool) deleteVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	vpcID := req.GetArguments()["ID"].(string)
 
 	_, err := v.client.VPCs.Delete(ctx, vpcID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("VPC deleted successfully"), nil
@@ -77,7 +77,7 @@ func (v *VPCTool) DeleteVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 func (v *VPCTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: v.CreateVPC,
+			Handler: v.createVPC,
 			Tool: mcp.NewTool("digitalocean-vpc-create",
 				mcp.WithDescription("Create a new VPC"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the VPC")),
@@ -85,14 +85,14 @@ func (v *VPCTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: v.ListVPCMembers,
+			Handler: v.listVPCMembers,
 			Tool: mcp.NewTool("digitalocean-vpc-list-members",
 				mcp.WithDescription("List members of a VPC"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
 			),
 		},
 		{
-			Handler: v.DeleteVPC,
+			Handler: v.deleteVPC,
 			Tool: mcp.NewTool("digitalocean-vpc-delete",
 				mcp.WithDescription("Delete a VPC"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC to delete")),

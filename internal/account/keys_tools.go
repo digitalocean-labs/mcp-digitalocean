@@ -31,12 +31,12 @@ func (k *KeysTool) createKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		PublicKey: publicKey,
 	})
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonKey, err := json.MarshalIndent(key, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonKey)), nil
@@ -47,7 +47,7 @@ func (k *KeysTool) deleteKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 	_, err := k.client.Keys.DeleteByID(ctx, keyID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("SSH key deleted successfully"), nil

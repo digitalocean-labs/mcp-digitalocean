@@ -21,8 +21,8 @@ func NewCDNTool(client *godo.Client) *CDNTool {
 	}
 }
 
-// CreateCDN creates a new CDN
-func (c *CDNTool) CreateCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// createCDN creates a new CDN
+func (c *CDNTool) createCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	origin := req.GetArguments()["Origin"].(string)
 	ttl := uint32(req.GetArguments()["TTL"].(float64))
 	customDomain, _ := req.GetArguments()["CustomDomain"].(string)
@@ -35,30 +35,30 @@ func (c *CDNTool) CreateCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	cdn, _, err := c.client.CDNs.Create(ctx, createRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonCDN, err := json.MarshalIndent(cdn, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonCDN)), nil
 }
 
-// DeleteCDN deletes a CDN
-func (c *CDNTool) DeleteCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// deleteCDN deletes a CDN
+func (c *CDNTool) deleteCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	cdnID := req.GetArguments()["ID"].(string)
 	_, err := c.client.CDNs.Delete(ctx, cdnID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("CDN deleted successfully"), nil
 }
 
-// FlushCDNCache flushes the cache of a CDN
-func (c *CDNTool) FlushCDNCache(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// flushCDNCache flushes the cache of a CDN
+func (c *CDNTool) flushCDNCache(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	cdnID := req.GetArguments()["ID"].(string)
 	files := req.GetArguments()["Files"].([]string)
 
@@ -68,7 +68,7 @@ func (c *CDNTool) FlushCDNCache(ctx context.Context, req mcp.CallToolRequest) (*
 
 	_, err := c.client.CDNs.FlushCache(ctx, cdnID, flushRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("CDN cache flushed successfully"), nil
@@ -78,7 +78,7 @@ func (c *CDNTool) FlushCDNCache(ctx context.Context, req mcp.CallToolRequest) (*
 func (c *CDNTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: c.CreateCDN,
+			Handler: c.createCDN,
 			Tool: mcp.NewTool("digitalocean-cdn-create",
 				mcp.WithDescription("Create a new CDN"),
 				mcp.WithString("Origin", mcp.Required(), mcp.Description("Origin URL for the CDN")),
@@ -87,14 +87,14 @@ func (c *CDNTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: c.DeleteCDN,
+			Handler: c.deleteCDN,
 			Tool: mcp.NewTool("digitalocean-cdn-delete",
 				mcp.WithDescription("Delete a CDN"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the CDN to delete")),
 			),
 		},
 		{
-			Handler: c.FlushCDNCache,
+			Handler: c.flushCDNCache,
 			Tool: mcp.NewTool("digitalocean-cdn-flush-cache",
 				mcp.WithDescription("Flush the cache of a CDN"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the CDN")),

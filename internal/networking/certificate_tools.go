@@ -21,8 +21,8 @@ func NewCertificateTool(client *godo.Client) *CertificateTool {
 	}
 }
 
-// CreateCertificate creates a new certificate
-func (c *CertificateTool) CreateCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// createCertificate creates a new certificate
+func (c *CertificateTool) createCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 	privateKey := req.GetArguments()["PrivateKey"].(string)
 	leafCertificate := req.GetArguments()["LeafCertificate"].(string)
@@ -38,39 +38,39 @@ func (c *CertificateTool) CreateCertificate(ctx context.Context, req mcp.CallToo
 
 	certificate, _, err := c.client.Certificates.Create(ctx, certRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonCert)), nil
 }
 
-// DeleteCertificate deletes a certificate
-func (c *CertificateTool) DeleteCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// deleteCertificate deletes a certificate
+func (c *CertificateTool) deleteCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	certID := req.GetArguments()["ID"].(string)
 	_, err := c.client.Certificates.Delete(ctx, certID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("Certificate deleted successfully"), nil
 }
 
-// GetCertificate retrieves a certificate by ID
-func (c *CertificateTool) GetCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// getCertificate retrieves a certificate by ID
+func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	certID := req.GetArguments()["ID"].(string)
 	certificate, _, err := c.client.Certificates.Get(ctx, certID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonCert)), nil
@@ -80,7 +80,7 @@ func (c *CertificateTool) GetCertificate(ctx context.Context, req mcp.CallToolRe
 func (c *CertificateTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: c.CreateCertificate,
+			Handler: c.createCertificate,
 			Tool: mcp.NewTool("digitalocean-certificate-create",
 				mcp.WithDescription("Create a new certificate"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the certificate")),
@@ -90,14 +90,14 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: c.DeleteCertificate,
+			Handler: c.deleteCertificate,
 			Tool: mcp.NewTool("digitalocean-certificate-delete",
 				mcp.WithDescription("Delete a certificate"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate to delete")),
 			),
 		},
 		{
-			Handler: c.GetCertificate,
+			Handler: c.getCertificate,
 			Tool: mcp.NewTool("digitalocean-certificate-get",
 				mcp.WithDescription("Get details of a certificate"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate to retrieve")),

@@ -19,7 +19,7 @@ func NewDomainsTool(client *godo.Client) *DomainsTool {
 	}
 }
 
-func (d *DomainsTool) CreateDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (d *DomainsTool) createDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 	ipAddress := req.GetArguments()["IPAddress"].(string)
 
@@ -30,29 +30,29 @@ func (d *DomainsTool) CreateDomain(ctx context.Context, req mcp.CallToolRequest)
 
 	domain, _, err := d.client.Domains.Create(ctx, createRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonDomain, err := json.MarshalIndent(domain, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonDomain)), nil
 }
 
-func (d *DomainsTool) DeleteDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (d *DomainsTool) deleteDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 
 	_, err := d.client.Domains.Delete(ctx, name)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("Domain deleted successfully"), nil
 }
 
-func (d *DomainsTool) CreateRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (d *DomainsTool) createRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	domain := req.GetArguments()["Domain"].(string)
 	recordType := req.GetArguments()["Type"].(string)
 	name := req.GetArguments()["Name"].(string)
@@ -66,30 +66,30 @@ func (d *DomainsTool) CreateRecord(ctx context.Context, req mcp.CallToolRequest)
 
 	record, _, err := d.client.Domains.CreateRecord(ctx, domain, createRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonRecord, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonRecord)), nil
 }
 
-func (d *DomainsTool) DeleteRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (d *DomainsTool) deleteRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	domain := req.GetArguments()["Domain"].(string)
 	recordID := int(req.GetArguments()["RecordID"].(float64))
 
 	_, err := d.client.Domains.DeleteRecord(ctx, domain, recordID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	return mcp.NewToolResultText("Record deleted successfully"), nil
 }
 
-func (d *DomainsTool) EditRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (d *DomainsTool) editRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	domain := req.GetArguments()["Domain"].(string)
 	recordID := int(req.GetArguments()["RecordID"].(float64))
 	recordType := req.GetArguments()["Type"].(string)
@@ -104,12 +104,12 @@ func (d *DomainsTool) EditRecord(ctx context.Context, req mcp.CallToolRequest) (
 
 	record, _, err := d.client.Domains.EditRecord(ctx, domain, recordID, editRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonRecord, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonRecord)), nil
@@ -118,7 +118,7 @@ func (d *DomainsTool) EditRecord(ctx context.Context, req mcp.CallToolRequest) (
 func (d *DomainsTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: d.CreateDomain,
+			Handler: d.createDomain,
 			Tool: mcp.NewTool("digitalocean-domain-create",
 				mcp.WithDescription("Create a new domain"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the domain")),
@@ -126,14 +126,14 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: d.DeleteDomain,
+			Handler: d.deleteDomain,
 			Tool: mcp.NewTool("digitalocean-domain-delete",
 				mcp.WithDescription("Delete a domain"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the domain to delete")),
 			),
 		},
 		{
-			Handler: d.CreateRecord,
+			Handler: d.createRecord,
 			Tool: mcp.NewTool("digitalocean-domain-record-create",
 				mcp.WithDescription("Create a new domain record"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
@@ -143,7 +143,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: d.DeleteRecord,
+			Handler: d.deleteRecord,
 			Tool: mcp.NewTool("digitalocean-domain-record-delete",
 				mcp.WithDescription("Delete a domain record"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
@@ -151,7 +151,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: d.EditRecord,
+			Handler: d.editRecord,
 			Tool: mcp.NewTool("digitalocean-domain-record-edit",
 				mcp.WithDescription("Edit a domain record"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),

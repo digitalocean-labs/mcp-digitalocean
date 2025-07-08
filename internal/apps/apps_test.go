@@ -126,10 +126,10 @@ func TestUpdateApp(t *testing.T) {
 				tc.mock(appService)
 			}
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
-			resp, err := tool.UpdateApp(context.Background(), req)
+			resp, err := tool.updateApp(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
-				require.Nil(t, resp)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 
@@ -185,10 +185,10 @@ func TestListApps(t *testing.T) {
 				tc.mock(appService, tc.expectedApps)
 			}
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
-			resp, err := tool.ListApps(context.Background(), req)
+			resp, err := tool.listApps(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
-				require.Nil(t, resp)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			require.NoError(t, err)
@@ -283,10 +283,10 @@ func TestCreateAppFromAppSpec(t *testing.T) {
 			}
 
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"spec": tc.spec}}}
-			resp, err := tool.CreateAppFromAppSpec(context.Background(), req)
+			resp, err := tool.createAppFromAppSpec(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
-				require.Nil(t, resp)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 
@@ -338,9 +338,10 @@ func TestDeleteApp(t *testing.T) {
 				tc.mock(appService)
 			}
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
-			resp, err := tool.DeleteApp(context.Background(), req)
+			resp, err := tool.deleteApp(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			if tc.expectMcp != "" {
@@ -443,11 +444,12 @@ func TestGetDeploymentStatus(t *testing.T) {
 				tc.mock(appService, tc.expectedDeployments)
 			}
 
-			resp, err := tool.GetDeploymentStatus(context.Background(), tc.toolRequest)
+			resp, err := tool.getDeploymentStatus(context.Background(), tc.toolRequest)
 
 			// unexpected error from the http client should return an error
 			if tc.expectErr {
-				require.Error(t, err)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 

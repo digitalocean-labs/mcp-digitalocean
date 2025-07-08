@@ -21,8 +21,8 @@ func NewFirewallTool(client *godo.Client) *FirewallTool {
 	}
 }
 
-// CreateFirewall creates a new firewall
-func (f *FirewallTool) CreateFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// createFirewall creates a new firewall
+func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 	inboundProtocol := req.GetArguments()["InboundProtocol"].(string)
 	inboundPortRange := req.GetArguments()["InboundPortRange"].(string)
@@ -60,23 +60,23 @@ func (f *FirewallTool) CreateFirewall(ctx context.Context, req mcp.CallToolReque
 
 	firewall, _, err := f.client.Firewalls.Create(ctx, firewallRequest)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
 	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
 	return mcp.NewToolResultText(string(jsonFirewall)), nil
 }
 
-// DeleteFirewall deletes a firewall
-func (f *FirewallTool) DeleteFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// deleteFirewall deletes a firewall
+func (f *FirewallTool) deleteFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	firewallID := req.GetArguments()["ID"].(string)
 	_, err := f.client.Firewalls.Delete(ctx, firewallID)
 	if err != nil {
-		return nil, err
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 	return mcp.NewToolResultText("Firewall deleted successfully"), nil
 }
@@ -85,7 +85,7 @@ func (f *FirewallTool) DeleteFirewall(ctx context.Context, req mcp.CallToolReque
 func (f *FirewallTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
-			Handler: f.CreateFirewall,
+			Handler: f.createFirewall,
 			Tool: mcp.NewTool("digitalocean-firewall-create",
 				mcp.WithDescription("Create a new firewall"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the firewall")),
@@ -106,7 +106,7 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: f.DeleteFirewall,
+			Handler: f.deleteFirewall,
 			Tool: mcp.NewTool("digitalocean-firewall-delete",
 				mcp.WithDescription("Delete a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to delete")),
