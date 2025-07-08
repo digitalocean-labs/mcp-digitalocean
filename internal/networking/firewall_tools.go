@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -65,7 +66,7 @@ func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolReque
 
 	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonFirewall)), nil

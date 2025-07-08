@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -36,7 +37,7 @@ func (k *KeysTool) createKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 	jsonKey, err := json.MarshalIndent(key, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonKey)), nil

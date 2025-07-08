@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -45,7 +46,7 @@ func (t *ReservedIPTool) reserveIP(ctx context.Context, req mcp.CallToolRequest)
 
 	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil
@@ -97,7 +98,7 @@ func (t *ReservedIPTool) assignIP(ctx context.Context, req mcp.CallToolRequest) 
 
 	jsonData, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil
@@ -126,7 +127,7 @@ func (t *ReservedIPTool) unassignIP(ctx context.Context, req mcp.CallToolRequest
 
 	jsonData, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonData)), nil

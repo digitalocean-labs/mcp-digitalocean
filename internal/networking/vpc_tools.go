@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -38,7 +39,7 @@ func (v *VPCTool) createVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonVPC)), nil
@@ -55,7 +56,7 @@ func (v *VPCTool) listVPCMembers(ctx context.Context, req mcp.CallToolRequest) (
 
 	jsonMembers, err := json.MarshalIndent(members, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonMembers)), nil

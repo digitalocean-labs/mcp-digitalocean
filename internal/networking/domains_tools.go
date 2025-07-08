@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -35,7 +36,7 @@ func (d *DomainsTool) createDomain(ctx context.Context, req mcp.CallToolRequest)
 
 	jsonDomain, err := json.MarshalIndent(domain, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonDomain)), nil
@@ -71,7 +72,7 @@ func (d *DomainsTool) createRecord(ctx context.Context, req mcp.CallToolRequest)
 
 	jsonRecord, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonRecord)), nil
@@ -109,7 +110,7 @@ func (d *DomainsTool) editRecord(ctx context.Context, req mcp.CallToolRequest) (
 
 	jsonRecord, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonRecord)), nil

@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -43,7 +44,7 @@ func (c *CertificateTool) createCertificate(ctx context.Context, req mcp.CallToo
 
 	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonCert)), nil
@@ -70,7 +71,7 @@ func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRe
 
 	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonCert)), nil

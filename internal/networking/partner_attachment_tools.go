@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -37,7 +38,7 @@ func (p *PartnerAttachmentTool) createPartnerAttachment(ctx context.Context, req
 
 	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAttachment)), nil
@@ -61,7 +62,7 @@ func (p *PartnerAttachmentTool) getServiceKey(ctx context.Context, req mcp.CallT
 
 	jsonServiceKey, err := json.MarshalIndent(serviceKey, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonServiceKey)), nil
@@ -76,7 +77,7 @@ func (p *PartnerAttachmentTool) getBGPConfig(ctx context.Context, req mcp.CallTo
 
 	jsonBGPAuthKey, err := json.MarshalIndent(bgpAuthKey, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonBGPAuthKey)), nil
@@ -99,7 +100,7 @@ func (p *PartnerAttachmentTool) updatePartnerAttachment(ctx context.Context, req
 
 	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAttachment)), nil

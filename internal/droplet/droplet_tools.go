@@ -3,6 +3,7 @@ package droplet
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -70,7 +71,7 @@ func (d *DropletTool) powerCycleDroplet(ctx context.Context, req mcp.CallToolReq
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -86,7 +87,7 @@ func (d *DropletTool) powerOnDroplet(ctx context.Context, req mcp.CallToolReques
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -102,7 +103,7 @@ func (d *DropletTool) powerOffDroplet(ctx context.Context, req mcp.CallToolReque
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -118,7 +119,7 @@ func (d *DropletTool) shutdownDroplet(ctx context.Context, req mcp.CallToolReque
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -135,7 +136,7 @@ func (d *DropletTool) restoreDroplet(ctx context.Context, req mcp.CallToolReques
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -153,7 +154,7 @@ func (d *DropletTool) resizeDroplet(ctx context.Context, req mcp.CallToolRequest
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -170,7 +171,7 @@ func (d *DropletTool) rebuildDroplet(ctx context.Context, req mcp.CallToolReques
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -187,7 +188,7 @@ func (d *DropletTool) renameDroplet(ctx context.Context, req mcp.CallToolRequest
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -204,7 +205,7 @@ func (d *DropletTool) changeKernel(ctx context.Context, req mcp.CallToolRequest)
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -220,7 +221,7 @@ func (d *DropletTool) enableIPv6(ctx context.Context, req mcp.CallToolRequest) (
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -236,7 +237,7 @@ func (d *DropletTool) enableBackups(ctx context.Context, req mcp.CallToolRequest
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -252,7 +253,7 @@ func (d *DropletTool) disableBackups(ctx context.Context, req mcp.CallToolReques
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -269,7 +270,7 @@ func (d *DropletTool) snapshotDroplet(ctx context.Context, req mcp.CallToolReque
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -285,7 +286,7 @@ func (d *DropletTool) getDropletNeighbors(ctx context.Context, req mcp.CallToolR
 
 	jsonNeighbors, err := json.MarshalIndent(neighbors, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonNeighbors)), nil
@@ -301,7 +302,7 @@ func (d *DropletTool) enablePrivateNetworking(ctx context.Context, req mcp.CallT
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -324,7 +325,7 @@ func (d *DropletTool) getDropletKernels(ctx context.Context, req mcp.CallToolReq
 
 	jsonKernels, err := json.MarshalIndent(kernels, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonKernels)), nil
@@ -340,7 +341,7 @@ func (d *DropletTool) rebootDroplet(ctx context.Context, req mcp.CallToolRequest
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -356,7 +357,7 @@ func (d *DropletTool) passwordResetDroplet(ctx context.Context, req mcp.CallTool
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil
@@ -373,7 +374,7 @@ func (d *DropletTool) rebuildByImageSlugDroplet(ctx context.Context, req mcp.Cal
 
 	jsonAction, err := json.MarshalIndent(action, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonAction)), nil

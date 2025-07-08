@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -40,7 +41,7 @@ func (c *CDNTool) createCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	jsonCDN, err := json.MarshalIndent(cdn, "", "  ")
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
+		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
 	return mcp.NewToolResultText(string(jsonCDN)), nil
