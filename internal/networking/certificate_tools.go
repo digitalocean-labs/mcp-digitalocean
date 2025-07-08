@@ -61,6 +61,7 @@ func (c *CertificateTool) deleteCertificate(ctx context.Context, req mcp.CallToo
 	return mcp.NewToolResultText("Certificate deleted successfully"), nil
 }
 
+<<<<<<< HEAD
 // getCertificate retrieves a certificate by ID
 func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	certID := req.GetArguments()["ID"].(string)
@@ -77,6 +78,8 @@ func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRe
 	return mcp.NewToolResultText(string(jsonCert)), nil
 }
 
+=======
+>>>>>>> main
 // Tools returns a list of certificate tools
 func (c *CertificateTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
@@ -95,13 +98,6 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("digitalocean-certificate-delete",
 				mcp.WithDescription("Delete a certificate"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate to delete")),
-			),
-		},
-		{
-			Handler: c.getCertificate,
-			Tool: mcp.NewTool("digitalocean-certificate-get",
-				mcp.WithDescription("Get details of a certificate"),
-				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate to retrieve")),
 			),
 		},
 	}
