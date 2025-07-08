@@ -135,6 +135,258 @@ func TestFirewallTool_createFirewall(t *testing.T) {
 	}
 }
 
+func TestFirewallTool_addTags(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+		expectText  string
+	}{
+		{
+			name: "Successful add tags",
+			args: map[string]any{
+				"ID":   "fw-123",
+				"Tags": []string{"web", "prod"},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					AddTags(gomock.Any(), "fw-123", "web", "prod").
+					Return(&godo.Response{}, nil).
+					Times(1)
+			},
+			expectText: "Tag(s) added to firewall successfully",
+		},
+		{
+			name: "API error",
+			args: map[string]any{
+				"ID":   "fw-456",
+				"Tags": []string{"fail"},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					AddTags(gomock.Any(), "fw-456", "fail").
+					Return(nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.addTags(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.expectText)
+		})
+	}
+}
+
+func TestFirewallTool_removeTags(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+		expectText  string
+	}{
+		{
+			name: "Successful remove tags",
+			args: map[string]any{
+				"ID":   "fw-123",
+				"Tags": []string{"web", "prod"},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					RemoveTags(gomock.Any(), "fw-123", "web", "prod").
+					Return(&godo.Response{}, nil).
+					Times(1)
+			},
+			expectText: "Tag(s) removed from firewall successfully",
+		},
+		{
+			name: "API error",
+			args: map[string]any{
+				"ID":   "fw-456",
+				"Tags": []string{"fail"},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					RemoveTags(gomock.Any(), "fw-456", "fail").
+					Return(nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.removeTags(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.expectText)
+		})
+	}
+}
+
+func TestFirewallTool_addDroplets(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+		expectText  string
+	}{
+		{
+			name: "Successful add droplets",
+			args: map[string]any{
+				"ID":         "fw-123",
+				"DropletIDs": []float64{101, 202},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					AddDroplets(gomock.Any(), "fw-123", 101, 202).
+					Return(&godo.Response{}, nil).
+					Times(1)
+			},
+			expectText: "Droplet(s) added to firewall successfully",
+		},
+		{
+			name: "API error",
+			args: map[string]any{
+				"ID":         "fw-456",
+				"DropletIDs": []float64{303},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					AddDroplets(gomock.Any(), "fw-456", 303).
+					Return(nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.addDroplets(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.expectText)
+		})
+	}
+}
+
+func TestFirewallTool_removeDroplets(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+		expectText  string
+	}{
+		{
+			name: "Successful remove droplets",
+			args: map[string]any{
+				"ID":         "fw-123",
+				"DropletIDs": []float64{101, 202},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					RemoveDroplets(gomock.Any(), "fw-123", 101, 202).
+					Return(&godo.Response{}, nil).
+					Times(1)
+			},
+			expectText: "Droplet(s) removed from firewall successfully",
+		},
+		{
+			name: "API error",
+			args: map[string]any{
+				"ID":         "fw-456",
+				"DropletIDs": []float64{303},
+			},
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					RemoveDroplets(gomock.Any(), "fw-456", 303).
+					Return(nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.removeDroplets(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.expectText)
+		})
+	}
+}
+
 func TestFirewallTool_deleteFirewall(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

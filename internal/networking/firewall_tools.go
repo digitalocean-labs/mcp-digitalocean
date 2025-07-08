@@ -81,6 +81,57 @@ func (f *FirewallTool) deleteFirewall(ctx context.Context, req mcp.CallToolReque
 	return mcp.NewToolResultText("Firewall deleted successfully"), nil
 }
 
+// addDroplets adds one or more droplet to a firewall
+func (f *FirewallTool) addDroplets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	firewallID := req.GetArguments()["ID"].(string)
+	dropletIDs := req.GetArguments()["DropletIDs"].([]float64)
+	dIDs := make([]int, len(dropletIDs))
+	for i, id := range dropletIDs {
+		dIDs[i] = int(id)
+	}
+	_, err := f.client.Firewalls.AddDroplets(ctx, firewallID, dIDs...)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return mcp.NewToolResultText("Droplet(s) added to firewall successfully"), nil
+}
+
+func (f *FirewallTool) removeDroplets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	firewallID := req.GetArguments()["ID"].(string)
+	dropletIDs := req.GetArguments()["DropletIDs"].([]float64)
+	dIDs := make([]int, len(dropletIDs))
+	for i, id := range dropletIDs {
+		dIDs[i] = int(id)
+	}
+	_, err := f.client.Firewalls.RemoveDroplets(ctx, firewallID, dIDs...)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return mcp.NewToolResultText("Droplet(s) removed from firewall successfully"), nil
+}
+
+// addTags adds one or more tags to a firewall
+func (f *FirewallTool) addTags(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	firewallID := req.GetArguments()["ID"].(string)
+	tagNames := req.GetArguments()["Tags"].([]string)
+	_, err := f.client.Firewalls.AddTags(ctx, firewallID, tagNames...)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return mcp.NewToolResultText("Tag(s) added to firewall successfully"), nil
+}
+
+// removeTags removes one or more tags from a firewall
+func (f *FirewallTool) removeTags(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	firewallID := req.GetArguments()["ID"].(string)
+	tagNames := req.GetArguments()["Tags"].([]string)
+	_, err := f.client.Firewalls.RemoveTags(ctx, firewallID, tagNames...)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return mcp.NewToolResultText("Tag(s) removed from firewall successfully"), nil
+}
+
 // Tools returns a list of tool functions
 func (f *FirewallTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
@@ -110,6 +161,51 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("digitalocean-firewall-delete",
 				mcp.WithDescription("Delete a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to delete")),
+			),
+		},
+		{
+			Handler: f.addDroplets,
+			Tool: mcp.NewTool("digitalocean-firewall-add-droplets",
+				mcp.WithDescription("Adds one or more droplets to a firewall"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to apply to droplets")),
+				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("Droplet IDs to apply the firewall to"), mcp.Items(map[string]any{
+					"type":        "number",
+					"description": "droplet ID to apply the firewall to",
+				})),
+			),
+		},
+		{
+			Handler: f.addTags,
+			Tool: mcp.NewTool("digitalocean-firewall-add-tags",
+				mcp.WithDescription("Adds one or more tags to a firewall"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to update tags")),
+				mcp.WithArray("Tags", mcp.Required(), mcp.Description("Tags to apply the firewall to"), mcp.Items(map[string]any{
+					"type":        "string",
+					"description": "Tag to apply",
+				})),
+			),
+		},
+
+		{
+			Handler: f.removeDroplets,
+			Tool: mcp.NewTool("digitalocean-firewall-remove-droplets",
+				mcp.WithDescription("Removes one or more droplets from a firewall"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to remove droplets from")),
+				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("Droplet IDs to remove from the firewall"), mcp.Items(map[string]any{
+					"type":        "number",
+					"description": "droplet ID to remove from the firewall",
+				})),
+			),
+		},
+		{
+			Handler: f.removeTags,
+			Tool: mcp.NewTool("digitalocean-firewall-remove-tags",
+				mcp.WithDescription("Removes one or more tags from a firewall"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to update tags")),
+				mcp.WithArray("Tags", mcp.Required(), mcp.Description("Tags to remove from the firewall"), mcp.Items(map[string]any{
+					"type":        "string",
+					"description": "Tag to remove",
+				})),
 			),
 		},
 	}
