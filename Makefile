@@ -30,3 +30,5 @@ format:
 format-check:
 	bash -c 'diff -u <(echo -n) <(gofmt -d ./)'
 
+gen:
+	go generate ./...

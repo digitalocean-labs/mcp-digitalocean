@@ -106,6 +106,10 @@ func extractDropletAndActionFromURI(uri string) (int, int, error) {
 		return 0, 0, fmt.Errorf("invalid droplet ID")
 	}
 
+	if parts[1] != "actions" {
+		return 0, 0, fmt.Errorf("invalid URI format")
+	}
+
 	actionID, err := strconv.Atoi(parts[2])
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid action ID")
