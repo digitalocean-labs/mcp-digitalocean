@@ -75,7 +75,7 @@ Each service provides a toolset to interact with DigitalOcean.
 | **Account**    | `digitalocean-key-create`, `digitalocean-key-delete`, `account://current`, `balance://current`, `billing://{last}`, `invoice://{last}`, `actions://{id}`, `keys://{id}` |
 | **Apps**       | `digitalocean-create-app-from-spec`, `digitalocean-apps-update`, `digitalocean-apps-delete`, `digitalocean-apps-get-info`, `digitalocean-apps-usage`, `digitalocean-apps-get-deployment-status`, `digitalocean-apps-list` |
 | **Droplets**   | `digitalocean-droplet-create`, `digitalocean-droplet-delete`, `digitalocean-droplet-power-cycle`, `digitalocean-droplet-resize`, `digitalocean-droplet-snapshot`, `digitalocean-droplet-enable-backups`, `digitalocean-droplet-get-neighbors`, `digitalocean-droplet-rename`, `digitalocean-droplet-rebuild`, `digitalocean-droplet-get-kernels`, ... (see [Droplet README](./internal/droplet/README.md)) |
-| **Networking** | `digitalocean-domain-create`, `digitalocean-domain-delete`, `digitalocean-domain-record-create`, `digitalocean-domain-record-delete`, `digitalocean-certificate-create`, `digitalocean-certificate-delete`, `digitalocean-firewall-create`, `digitalocean-firewall-delete`, `digitalocean-reserved-ip-reserve`, `digitalocean-reserved-ip-release`, `digitalocean-vpc-create`, `digitalocean-vpc-delete`, `digitalocean-cdn-create`, `digitalocean-cdn-delete`, `digitalocean-partner-attachment-create`, ... (see [Networking README](./internal/networking/README.md)) |
+| **Networking** | `digitalocean-domain-create`, `digitalocean-domain-delete`, `digitalocean-domain-record-create`, `digitalocean-domain-record-delete`, `digitalocean-certificate-create`, `digitalocean-certificate-delete`, `digitalocean-firewall-create`, `digitalocean-firewall-delete`, `digitalocean-reserved-ip-reserve`, `digitalocean-reserved-ip-release`, `digitalocean-vpc-create`, `digitalocean-vpc-delete`, `digitalocean-vpc-peering-create`, `digitalocean-vpc-peering-delete`, `digitalocean-cdn-create`, `digitalocean-cdn-delete`, `digitalocean-partner-attachment-create`, ... (see [Networking README](./internal/networking/README.md)) |
 
 ---
 ## Service Documentation
@@ -97,7 +97,7 @@ Each service exposes resources that can be queried directly. Examples:
 - **Account:** `account://current`, `balance://current`, `billing://3`, `invoice://6`, `actions://123456`, `keys://987654`
 - **Apps:** `apps://{id}`, `apps://{id}/deployments/{deployment_id}`
 - **Droplets:** `droplets://{id}`, `droplets://{id}/actions/{action_id}`, `images://distribution`, `images://{id}`, `sizes://all`
-- **Networking:** `domains://{name}`, `domains://{name}/records/{record_id}`, `certificates://{id}`, `firewalls://{id}`, `reserved_ipv4://{ip}`, `vpcs://{id}`, `cdn://{id}`, `partner_attachment://{id}`
+- **Networking:** `domains://{name}`, `domains://{name}/records/{record_id}`, `certificates://{id}`, `firewalls://{id}`, `reserved_ipv4://{ip}`, `vpcs://{id}`, `cdn://{id}`, `partner_attachment://{id}`, `vpc_peering://{id}`
 
 ---
 
@@ -111,6 +111,8 @@ Each service exposes resources that can be queried directly. Examples:
 - Flush a CDN cache: `digitalocean-cdn-flush-cache`
 - List all available droplet sizes: `sizes://all`
 - Get account balance: `balance://current`
+- Create a VPC peering connection: `digitalocean-vpc-peering-create`
+- Delete a VPC peering connection: `digitalocean-vpc-peering-delete`
 
 ---
 

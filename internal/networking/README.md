@@ -120,6 +120,20 @@ This directory contains tools and resources for managing DigitalOcean networking
 
 ---
 
+### VPC Peering
+
+- **`digitalocean-vpc-peering-create`**
+  Create a new VPC Peering connection between two VPCs.
+  - `Name` (string, required): Name for the Peering connection
+  - `Vpc1` (string, required): ID of the first VPC
+  - `Vpc2` (string, required): ID of the second VPC
+
+- **`digitalocean-vpc-peering-delete`**
+  Delete a VPC Peering connection.
+  - `ID` (string, required): ID of the VPC Peering connection to delete
+
+---
+
 ### VPCs
 
 - **`digitalocean-vpc-create`**
@@ -155,6 +169,10 @@ This directory contains tools and resources for managing DigitalOcean networking
   - `Files` (array of strings, required): File names to flush from the cache
 
 ---
+
+- **`vpc_peering://{id}`**
+  Returns information about a specific VPC Peering connection.
+
 
 ### Partner Attachments
 
