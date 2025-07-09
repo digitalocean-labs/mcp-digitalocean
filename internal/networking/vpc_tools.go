@@ -22,6 +22,44 @@ func NewVPCTool(client *godo.Client) *VPCTool {
 	}
 }
 
+// getVPC fetches VPC information by ID
+func (v *VPCTool) getVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(string)
+	if !ok || id == "" {
+		return mcp.NewToolResultError("VPC ID is required"), nil
+	}
+	vpc, _, err := v.client.VPCs.Get(ctx, id)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonVPC)), nil
+}
+
+// listVPCs lists VPCs with pagination support
+func (v *VPCTool) listVPCs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if vArg, ok := req.GetArguments()["Page"].(float64); ok && int(vArg) > 0 {
+		page = int(vArg)
+	}
+	if vArg, ok := req.GetArguments()["PerPage"].(float64); ok && int(vArg) > 0 {
+		perPage = int(vArg)
+	}
+	vpcs, _, err := v.client.VPCs.List(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonVPCs, err := json.MarshalIndent(vpcs, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonVPCs)), nil
+}
+
 // createVPC creates a new VPC
 func (v *VPCTool) createVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
@@ -77,6 +115,21 @@ func (v *VPCTool) deleteVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 // Tools returns a list of tool functions
 func (v *VPCTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: v.getVPC,
+			Tool: mcp.NewTool("digitalocean-vpc-get",
+				mcp.WithDescription("Get VPC information by ID"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
+			),
+		},
+		{
+			Handler: v.listVPCs,
+			Tool: mcp.NewTool("digitalocean-vpc-list",
+				mcp.WithDescription("List VPCs with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: v.createVPC,
 			Tool: mcp.NewTool("digitalocean-vpc-create",

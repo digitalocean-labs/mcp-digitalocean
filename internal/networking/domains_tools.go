@@ -20,6 +20,91 @@ func NewDomainsTool(client *godo.Client) *DomainsTool {
 	}
 }
 
+// getDomain fetches domain information by name
+func (d *DomainsTool) getDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	name, ok := req.GetArguments()["Name"].(string)
+	if !ok || name == "" {
+		return mcp.NewToolResultError("Domain name is required"), nil
+	}
+	domain, _, err := d.client.Domains.Get(ctx, name)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonDomain, err := json.MarshalIndent(domain, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonDomain)), nil
+}
+
+// listDomains lists domains with pagination support
+func (d *DomainsTool) listDomains(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	domains, _, err := d.client.Domains.List(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonDomains, err := json.MarshalIndent(domains, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonDomains)), nil
+}
+
+// getDomainRecord fetches a domain record by domain name and record ID
+func (d *DomainsTool) getDomainRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	domain, ok := req.GetArguments()["Domain"].(string)
+	if !ok || domain == "" {
+		return mcp.NewToolResultError("Domain name is required"), nil
+	}
+	recordIDf, ok := req.GetArguments()["RecordID"].(float64)
+	if !ok {
+		return mcp.NewToolResultError("RecordID is required"), nil
+	}
+	recordID := int(recordIDf)
+	record, _, err := d.client.Domains.Record(ctx, domain, recordID)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonRecord, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonRecord)), nil
+}
+
+// listDomainRecords lists domain records for a domain with pagination support
+func (d *DomainsTool) listDomainRecords(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	domain, ok := req.GetArguments()["Domain"].(string)
+	if !ok || domain == "" {
+		return mcp.NewToolResultError("Domain name is required"), nil
+	}
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	records, _, err := d.client.Domains.Records(ctx, domain, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonRecords, err := json.MarshalIndent(records, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonRecords)), nil
+}
+
 func (d *DomainsTool) createDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
 	ipAddress := req.GetArguments()["IPAddress"].(string)
@@ -118,6 +203,38 @@ func (d *DomainsTool) editRecord(ctx context.Context, req mcp.CallToolRequest) (
 
 func (d *DomainsTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: d.getDomain,
+			Tool: mcp.NewTool("digitalocean-domain-get",
+				mcp.WithDescription("Get domain information by name"),
+				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the domain")),
+			),
+		},
+		{
+			Handler: d.listDomains,
+			Tool: mcp.NewTool("digitalocean-domain-list",
+				mcp.WithDescription("List domains with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
+		{
+			Handler: d.getDomainRecord,
+			Tool: mcp.NewTool("digitalocean-domain-record-get",
+				mcp.WithDescription("Get a domain record by domain name and record ID"),
+				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
+				mcp.WithNumber("RecordID", mcp.Required(), mcp.Description("ID of the domain record")),
+			),
+		},
+		{
+			Handler: d.listDomainRecords,
+			Tool: mcp.NewTool("digitalocean-domain-record-list",
+				mcp.WithDescription("List domain records for a domain with pagination"),
+				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: d.createDomain,
 			Tool: mcp.NewTool("digitalocean-domain-create",

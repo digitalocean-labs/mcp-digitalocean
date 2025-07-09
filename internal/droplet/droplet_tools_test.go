@@ -106,6 +106,148 @@ func TestDropletTool_createDroplet(t *testing.T) {
 	}
 }
 
+func TestDropletTool_getDropletByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testDroplet := &godo.Droplet{
+		ID:   123,
+		Name: "test-droplet",
+	}
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockDropletsService)
+		expectError bool
+	}{
+		{
+			name: "Successful get",
+			args: map[string]any{"ID": float64(123)},
+			mockSetup: func(m *MockDropletsService) {
+				m.EXPECT().
+					Get(gomock.Any(), 123).
+					Return(testDroplet, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "API error",
+			args: map[string]any{"ID": float64(456)},
+			mockSetup: func(m *MockDropletsService) {
+				m.EXPECT().
+					Get(gomock.Any(), 456).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:        "Missing ID argument",
+			args:        map[string]any{},
+			mockSetup:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockDroplets := NewMockDropletsService(ctrl)
+			mockActions := NewMockDropletActionsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockDroplets)
+			}
+			tool := setupDropletToolWithMocks(mockDroplets, mockActions)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.getDropletByID(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var outDroplet godo.Droplet
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outDroplet))
+			require.Equal(t, testDroplet.ID, outDroplet.ID)
+		})
+	}
+}
+
+func TestDropletTool_getDropletActionByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testAction := &godo.Action{
+		ID:     789,
+		Status: "completed",
+	}
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockDropletActionsService)
+		expectError bool
+	}{
+		{
+			name: "Successful get action",
+			args: map[string]any{"DropletID": float64(123), "ActionID": float64(789)},
+			mockSetup: func(m *MockDropletActionsService) {
+				m.EXPECT().
+					Get(gomock.Any(), 123, 789).
+					Return(testAction, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "API error",
+			args: map[string]any{"DropletID": float64(456), "ActionID": float64(999)},
+			mockSetup: func(m *MockDropletActionsService) {
+				m.EXPECT().
+					Get(gomock.Any(), 456, 999).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:        "Missing DropletID argument",
+			args:        map[string]any{"ActionID": float64(789)},
+			mockSetup:   nil,
+			expectError: true,
+		},
+		{
+			name:        "Missing ActionID argument",
+			args:        map[string]any{"DropletID": float64(123)},
+			mockSetup:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockDroplets := NewMockDropletsService(ctrl)
+			mockActions := NewMockDropletActionsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockActions)
+			}
+			tool := setupDropletToolWithMocks(mockDroplets, mockActions)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.getDropletActionByID(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var outAction godo.Action
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outAction))
+			require.Equal(t, testAction.ID, outAction.ID)
+		})
+	}
+}
+
 func TestDropletTool_deleteDroplet(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

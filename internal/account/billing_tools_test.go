@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/digitalocean/godo"
@@ -12,13 +11,13 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupBillingResourceWithMock(mockBilling *MockBillingHistoryService) *BillingMCPResource {
+func setupBillingToolsWithMock(mockBilling *MockBillingHistoryService) *BillingTools {
 	client := &godo.Client{}
 	client.BillingHistory = mockBilling
-	return NewBillingMCPResource(client)
+	return NewBillingTools(client)
 }
 
-func TestBillingMCPResource_handleGetBillingResourceTemplate(t *testing.T) {
+func TestBillingTools_listBillingHistory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -39,12 +38,14 @@ func TestBillingMCPResource_handleGetBillingResourceTemplate(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		perPage     int
+		page        float64
+		perPage     float64
 		mockSetup   func(*MockBillingHistoryService)
 		expectError bool
 	}{
 		{
-			name:    "Successful get",
+			name:    "Successful list",
+			page:    1,
 			perPage: 2,
 			mockSetup: func(m *MockBillingHistoryService) {
 				m.EXPECT().
@@ -55,6 +56,7 @@ func TestBillingMCPResource_handleGetBillingResourceTemplate(t *testing.T) {
 		},
 		{
 			name:    "API error",
+			page:    1,
 			perPage: 3,
 			mockSetup: func(m *MockBillingHistoryService) {
 				m.EXPECT().
@@ -64,6 +66,17 @@ func TestBillingMCPResource_handleGetBillingResourceTemplate(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockBillingHistoryService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 30}).
+					Return(testBillingHistory, nil, nil).
+					Times(1)
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -72,24 +85,25 @@ func TestBillingMCPResource_handleGetBillingResourceTemplate(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(mockBilling)
 			}
-			resource := setupBillingResourceWithMock(mockBilling)
-			// Simulate the URI extraction logic
-			req := mcp.ReadResourceRequest{
-				Params: mcp.ReadResourceParams{
-					URI: fmt.Sprintf("billing://%d", tc.perPage),
-				},
+			tool := setupBillingToolsWithMock(mockBilling)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
 			}
-			resp, err := resource.handleGetBillingResourceTemplate(context.Background(), req)
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listBillingHistory(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			require.Len(t, resp, 1)
-			content, ok := resp[0].(mcp.TextResourceContents)
-			require.True(t, ok)
-			require.Equal(t, "application/json", content.MIMEType)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
 		})
 	}
 }

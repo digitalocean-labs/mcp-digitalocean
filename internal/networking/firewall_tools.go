@@ -22,6 +22,44 @@ func NewFirewallTool(client *godo.Client) *FirewallTool {
 	}
 }
 
+// getFirewall fetches firewall information by ID
+func (f *FirewallTool) getFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(string)
+	if !ok || id == "" {
+		return mcp.NewToolResultError("Firewall ID is required"), nil
+	}
+	firewall, _, err := f.client.Firewalls.Get(ctx, id)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonFirewall)), nil
+}
+
+// listFirewalls lists firewalls with pagination support
+func (f *FirewallTool) listFirewalls(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	firewalls, _, err := f.client.Firewalls.List(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonFirewalls, err := json.MarshalIndent(firewalls, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonFirewalls)), nil
+}
+
 // createFirewall creates a new firewall
 func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	name := req.GetArguments()["Name"].(string)
@@ -136,6 +174,21 @@ func (f *FirewallTool) removeTags(ctx context.Context, req mcp.CallToolRequest) 
 // Tools returns a list of tool functions
 func (f *FirewallTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: f.getFirewall,
+			Tool: mcp.NewTool("digitalocean-firewall-get",
+				mcp.WithDescription("Get firewall information by ID"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall")),
+			),
+		},
+		{
+			Handler: f.listFirewalls,
+			Tool: mcp.NewTool("digitalocean-firewall-list",
+				mcp.WithDescription("List firewalls with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: f.createFirewall,
 			Tool: mcp.NewTool("digitalocean-firewall-create",

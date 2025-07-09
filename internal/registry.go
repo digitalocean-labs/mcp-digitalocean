@@ -37,40 +37,22 @@ func registerAppTools(s *server.MCPServer, c *godo.Client) error {
 	return nil
 }
 
+// registerCommonTools registers the common tools with the MCP server.
 func registerCommonTools(s *server.MCPServer, c *godo.Client) error {
-	for resource, handler := range common.NewRegionMCPResource(c).Resources() {
-		s.AddResource(resource, handler)
-	}
+	s.AddTools(common.NewRegionTools(c).Tools()...)
 
 	return nil
 }
 
-// registerDropletTools registers the tools and resources for droplets with the MCP server.
+// registerDropletTools registers the droplet tools with the MCP server.
 func registerDropletTools(s *server.MCPServer, c *godo.Client) error {
-	// Register the tools and resources for droplets
 	s.AddTools(droplet.NewDropletTool(c).Tools()...)
-
-	// Register the resources for droplets
-	imageResource := droplet.NewImagesMCPResource(c)
-	for resource, handler := range imageResource.Resources() {
-		s.AddResource(resource, handler)
-	}
-	for template, handler := range imageResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-	sizesResource := droplet.NewSizesMCPResource(c)
-	for resource, handler := range sizesResource.Resources() {
-		s.AddResource(resource, handler)
-	}
-	dropletResource := droplet.NewDropletMCPResource(c)
-	for template, handler := range dropletResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
+	s.AddTools(droplet.NewImagesTool(c).Tools()...)
+	s.AddTools(droplet.NewSizesTool(c).Tools()...)
 	return nil
 }
 
-// registerNetworkingTools registers the networking tools and resources with the MCP server.
+// registerNetworkingTools registers the networking tools with the MCP server.
 func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 	s.AddTools(networking.NewCDNTool(c).Tools()...)
 	s.AddTools(networking.NewCertificateTool(c).Tools()...)
@@ -80,80 +62,17 @@ func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
 	s.AddTools(networking.NewPartnerAttachmentTool(c).Tools()...)
 	s.AddTools(networking.NewVPCTool(c).Tools()...)
 	s.AddTools(networking.NewVPCPeeringTool(c).Tools()...)
-
-	// Register the resources for networking
-	cdnResource := networking.NewCDNMCPResource(c)
-	for template, handler := range cdnResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register certificate resource and resource templates
-	certificateResource := networking.NewCertificateMCPResource(c)
-	for template, handler := range certificateResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register domains resource
-	domainsResource := networking.NewDomainMCPResource(c)
-	for template, handler := range domainsResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register firewall resource
-	firewallResource := networking.NewFirewallMCPResource(c)
-	for template, handler := range firewallResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register reserved IP resources
-	reservedIPResource := networking.NewReservedIPMCPResource(c)
-	for template, handler := range reservedIPResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	partnerAttachmentResource := networking.NewPartnerAttachmentMCPResource(c)
-	for template, handler := range partnerAttachmentResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register VPC resource
-	vpcResource := networking.NewVPCMCPResource(c)
-	for template, handler := range vpcResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
-	// Register VPC Peering resource
-	vpcPeeringResource := networking.NewVPCPeeringMCPResource(c)
-	for template, handler := range vpcPeeringResource.ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-
 	return nil
 }
 
-// registerAccountTools account resource and resource templates
+// registerAccountTools registers the account tools with the MCP server.
 func registerAccountTools(s *server.MCPServer, c *godo.Client) error {
+	s.AddTools(account.NewAccountTools(c).Tools()...)
+	s.AddTools(account.NewActionTools(c).Tools()...)
+	s.AddTools(account.NewBalanceTools(c).Tools()...)
+	s.AddTools(account.NewBillingTools(c).Tools()...)
+	s.AddTools(account.NewInvoiceTools(c).Tools()...)
 	s.AddTools(account.NewKeysTool(c).Tools()...)
-
-	for resource, handler := range account.NewAccountMCPResource(c).Resources() {
-		s.AddResource(resource, handler)
-	}
-	for resource, handler := range account.NewBalanceMCPResource(c).Resources() {
-		s.AddResource(resource, handler)
-	}
-
-	for resource, handler := range account.NewInvoicesMCPResource(c).ResourceTemplates() {
-		s.AddResourceTemplate(resource, handler)
-	}
-	for template, handler := range account.NewBillingMCPResource(c).ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-	for template, handler := range account.NewActionMCPResource(c).ResourcesTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
-	for template, handler := range account.NewKeyMCPResource(c).ResourceTemplates() {
-		s.AddResourceTemplate(template, handler)
-	}
 
 	return nil
 }

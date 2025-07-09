@@ -18,6 +18,161 @@ func setupVPCToolWithMock(vpcs *MockVPCsService) *VPCTool {
 	return NewVPCTool(client)
 }
 
+func TestVPCTool_getVPC(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testVPC := &godo.VPC{
+		ID:         "vpc-123",
+		Name:       "private-net",
+		RegionSlug: "nyc3",
+	}
+	tests := []struct {
+		name        string
+		id          string
+		mockSetup   func(*MockVPCsService)
+		expectError bool
+	}{
+		{
+			name: "Successful get",
+			id:   "vpc-123",
+			mockSetup: func(m *MockVPCsService) {
+				m.EXPECT().
+					Get(gomock.Any(), "vpc-123").
+					Return(testVPC, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "API error",
+			id:   "vpc-456",
+			mockSetup: func(m *MockVPCsService) {
+				m.EXPECT().
+					Get(gomock.Any(), "vpc-456").
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:        "Missing ID argument",
+			id:          "",
+			mockSetup:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockVPCs := NewMockVPCsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockVPCs)
+			}
+			tool := setupVPCToolWithMock(mockVPCs)
+			args := map[string]any{}
+			if tc.name != "Missing ID argument" {
+				args["ID"] = tc.id
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.getVPC(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var outVPC godo.VPC
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outVPC))
+			require.Equal(t, testVPC.ID, outVPC.ID)
+		})
+	}
+}
+
+func TestVPCTool_listVPCs(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testVPCs := []*godo.VPC{
+		{ID: "vpc-1", Name: "vpc1"},
+		{ID: "vpc-2", Name: "vpc2"},
+	}
+	tests := []struct {
+		name        string
+		page        float64
+		perPage     float64
+		mockSetup   func(*MockVPCsService)
+		expectError bool
+	}{
+		{
+			name:    "Successful list",
+			page:    2,
+			perPage: 1,
+			mockSetup: func(m *MockVPCsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testVPCs, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name:    "API error",
+			page:    1,
+			perPage: 2,
+			mockSetup: func(m *MockVPCsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockVPCsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testVPCs, nil, nil).
+					Times(1)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockVPCs := NewMockVPCsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockVPCs)
+			}
+			tool := setupVPCToolWithMock(mockVPCs)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
+			}
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listVPCs(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
+			var outVPCs []godo.VPC
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outVPCs))
+			require.GreaterOrEqual(t, len(outVPCs), 1)
+		})
+	}
+}
+
 func TestVPCTool_createVPC(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

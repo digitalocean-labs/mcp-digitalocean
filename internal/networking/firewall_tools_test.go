@@ -18,6 +18,160 @@ func setupFirewallToolWithMock(firewalls *MockFirewallsService) *FirewallTool {
 	return NewFirewallTool(client)
 }
 
+func TestFirewallTool_getFirewall(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testFirewall := &godo.Firewall{
+		ID:   "fw-123",
+		Name: "test-fw",
+	}
+	tests := []struct {
+		name        string
+		id          string
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+	}{
+		{
+			name: "Successful get",
+			id:   "fw-123",
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					Get(gomock.Any(), "fw-123").
+					Return(testFirewall, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "API error",
+			id:   "fw-456",
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					Get(gomock.Any(), "fw-456").
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:        "Missing ID argument",
+			id:          "",
+			mockSetup:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			args := map[string]any{}
+			if tc.name != "Missing ID argument" {
+				args["ID"] = tc.id
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.getFirewall(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var outFirewall godo.Firewall
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outFirewall))
+			require.Equal(t, testFirewall.ID, outFirewall.ID)
+		})
+	}
+}
+
+func TestFirewallTool_listFirewalls(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testFirewalls := []godo.Firewall{
+		{ID: "fw-1", Name: "fw1"},
+		{ID: "fw-2", Name: "fw2"},
+	}
+	tests := []struct {
+		name        string
+		page        float64
+		perPage     float64
+		mockSetup   func(*MockFirewallsService)
+		expectError bool
+	}{
+		{
+			name:    "Successful list",
+			page:    2,
+			perPage: 1,
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testFirewalls, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name:    "API error",
+			page:    1,
+			perPage: 2,
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockFirewallsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testFirewalls, nil, nil).
+					Times(1)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockFirewalls := NewMockFirewallsService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockFirewalls)
+			}
+			tool := setupFirewallToolWithMock(mockFirewalls)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
+			}
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listFirewalls(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
+			var outFirewalls []godo.Firewall
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outFirewalls))
+			require.GreaterOrEqual(t, len(outFirewalls), 1)
+		})
+	}
+}
+
 func TestFirewallTool_createFirewall(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

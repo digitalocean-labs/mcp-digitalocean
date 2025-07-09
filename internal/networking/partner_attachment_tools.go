@@ -44,6 +44,44 @@ func (p *PartnerAttachmentTool) createPartnerAttachment(ctx context.Context, req
 	return mcp.NewToolResultText(string(jsonAttachment)), nil
 }
 
+// getPartnerAttachment fetches partner attachment information by ID
+func (p *PartnerAttachmentTool) getPartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(string)
+	if !ok || id == "" {
+		return mcp.NewToolResultError("Partner attachment ID is required"), nil
+	}
+	attachment, _, err := p.client.PartnerAttachment.Get(ctx, id)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonAttachment)), nil
+}
+
+// listPartnerAttachments lists partner attachments with pagination support
+func (p *PartnerAttachmentTool) listPartnerAttachments(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	attachments, _, err := p.client.PartnerAttachment.List(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonAttachments, err := json.MarshalIndent(attachments, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonAttachments)), nil
+}
+
 func (p *PartnerAttachmentTool) deletePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	id := req.GetArguments()["ID"].(string)
 	_, err := p.client.PartnerAttachment.Delete(ctx, id)
@@ -108,6 +146,21 @@ func (p *PartnerAttachmentTool) updatePartnerAttachment(ctx context.Context, req
 
 func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: p.getPartnerAttachment,
+			Tool: mcp.NewTool("digitalocean-partner-attachment-get",
+				mcp.WithDescription("Get partner attachment information by ID"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
+			),
+		},
+		{
+			Handler: p.listPartnerAttachments,
+			Tool: mcp.NewTool("digitalocean-partner-attachment-list",
+				mcp.WithDescription("List partner attachments with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: p.createPartnerAttachment,
 			Tool: mcp.NewTool("digitalocean-partner-attachment-create",

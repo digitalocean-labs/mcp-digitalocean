@@ -72,10 +72,10 @@ Each service provides a toolset to interact with DigitalOcean.
 
 | **Service**    | **Tools** (examples, see per-service README for full list)                                           |
 |----------------|------------------------------------------------------------------------------------------------------|
-| **Account**    | `digitalocean-key-create`, `digitalocean-key-delete`, `account://current`, `balance://current`, `billing://{last}`, `invoice://{last}`, `actions://{id}`, `keys://{id}` |
+| **Account**    | `digitalocean-key-create`, `digitalocean-key-delete`, `digitalocean-account-get-information`, `digitalocean-balance-get`, `digitalocean-billing-history-list`, `digitalocean-invoice-list`, `digitalocean-action-get`, `digitalocean-action-list`, `digitalocean-key-get`, `digitalocean-key-list` |
 | **Apps**       | `digitalocean-create-app-from-spec`, `digitalocean-apps-update`, `digitalocean-apps-delete`, `digitalocean-apps-get-info`, `digitalocean-apps-usage`, `digitalocean-apps-get-deployment-status`, `digitalocean-apps-list` |
 | **Droplets**   | `digitalocean-droplet-create`, `digitalocean-droplet-delete`, `digitalocean-droplet-power-cycle`, `digitalocean-droplet-resize`, `digitalocean-droplet-snapshot`, `digitalocean-droplet-enable-backups`, `digitalocean-droplet-get-neighbors`, `digitalocean-droplet-rename`, `digitalocean-droplet-rebuild`, `digitalocean-droplet-get-kernels`, ... (see [Droplet README](./internal/droplet/README.md)) |
-| **Networking** | `digitalocean-domain-create`, `digitalocean-domain-delete`, `digitalocean-domain-record-create`, `digitalocean-domain-record-delete`, `digitalocean-certificate-create`, `digitalocean-certificate-delete`, `digitalocean-firewall-create`, `digitalocean-firewall-delete`, `digitalocean-reserved-ip-reserve`, `digitalocean-reserved-ip-release`, `digitalocean-vpc-create`, `digitalocean-vpc-delete`, `digitalocean-vpc-peering-create`, `digitalocean-vpc-peering-delete`, `digitalocean-cdn-create`, `digitalocean-cdn-delete`, `digitalocean-partner-attachment-create`, ... (see [Networking README](./internal/networking/README.md)) |
+| **Networking** | `digitalocean-domain-create`, `digitalocean-domain-delete`, `digitalocean-domain-record-create`, `digitalocean-domain-record-delete`, `digitalocean-domain-get`, `digitalocean-domain-list`, `digitalocean-domain-record-get`, `digitalocean-domain-record-list`, `digitalocean-certificate-create`, `digitalocean-certificate-delete`, `digitalocean-certificate-get`, `digitalocean-certificate-list`, `digitalocean-firewall-create`, `digitalocean-firewall-delete`, `digitalocean-firewall-get`, `digitalocean-firewall-list`, `digitalocean-firewall-add-tags`, `digitalocean-firewall-remove-tags`, `digitalocean-firewall-add-droplets`, `digitalocean-firewall-remove-droplets`, `digitalocean-reserved-ip-reserve`, `digitalocean-reserved-ip-release`, `digitalocean-reserved-ip-assign`, `digitalocean-reserved-ip-unassign`, `digitalocean-reserved-ipv4-get`, `digitalocean-reserved-ipv6-get`, `digitalocean-vpc-create`, `digitalocean-vpc-delete`, `digitalocean-vpc-get`, `digitalocean-vpc-list`, `digitalocean-vpc-list-members`, `digitalocean-vpc-peering-create`, `digitalocean-vpc-peering-delete`, `digitalocean-vpc-peering-get`, `digitalocean-vpc-peering-list`, `digitalocean-cdn-create`, `digitalocean-cdn-delete`, `digitalocean-cdn-get`, `digitalocean-cdn-list`, `digitalocean-cdn-flush-cache`, `digitalocean-partner-attachment-create`, `digitalocean-partner-attachment-delete`, `digitalocean-partner-attachment-get`, `digitalocean-partner-attachment-list`, `digitalocean-partner-attachment-get-service-key`, `digitalocean-partner-attachment-get-bgp-config`, `digitalocean-partner-attachment-update` ... (see [Networking README](./internal/networking/README.md)) |
 
 ---
 ## Service Documentation
@@ -87,17 +87,6 @@ See the following files for full documentation:
 - [Droplet Service README](./internal/droplet/README.md)
 - [Account Service README](./internal/account/README.md)
 - [Networking Service README](./internal/networking/README.md)
-
----
-
-### Example Resource URIs
-
-Each service exposes resources that can be queried directly. Examples:
-
-- **Account:** `account://current`, `balance://current`, `billing://3`, `invoice://6`, `actions://123456`, `keys://987654`
-- **Apps:** `apps://{id}`, `apps://{id}/deployments/{deployment_id}`
-- **Droplets:** `droplets://{id}`, `droplets://{id}/actions/{action_id}`, `images://distribution`, `images://{id}`, `sizes://all`
-- **Networking:** `domains://{name}`, `domains://{name}/records/{record_id}`, `certificates://{id}`, `firewalls://{id}`, `reserved_ipv4://{ip}`, `vpcs://{id}`, `cdn://{id}`, `partner_attachment://{id}`, `vpc_peering://{id}`
 
 ---
 

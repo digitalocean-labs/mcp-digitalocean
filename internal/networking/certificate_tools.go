@@ -61,9 +61,65 @@ func (c *CertificateTool) deleteCertificate(ctx context.Context, req mcp.CallToo
 	return mcp.NewToolResultText("Certificate deleted successfully"), nil
 }
 
+// getCertificate fetches certificate information by ID
+func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(string)
+	if !ok || id == "" {
+		return mcp.NewToolResultError("Certificate ID is required"), nil
+	}
+
+	certificate, _, err := c.client.Certificates.Get(ctx, id)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+
+	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+
+	return mcp.NewToolResultText(string(jsonCert)), nil
+}
+
+// listCertificates lists certificates with pagination support
+func (c *CertificateTool) listCertificates(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	certs, _, err := c.client.Certificates.List(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonCerts, err := json.MarshalIndent(certs, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonCerts)), nil
+}
+
 // Tools returns a list of certificate tools
 func (c *CertificateTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: c.getCertificate,
+			Tool: mcp.NewTool("digitalocean-certificate-get",
+				mcp.WithDescription("Get certificate information by ID"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate")),
+			),
+		},
+		{
+			Handler: c.listCertificates,
+			Tool: mcp.NewTool("digitalocean-certificate-list",
+				mcp.WithDescription("List certificates with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: c.createCertificate,
 			Tool: mcp.NewTool("digitalocean-certificate-create",

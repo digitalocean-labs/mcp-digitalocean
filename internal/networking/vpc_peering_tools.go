@@ -22,6 +22,42 @@ func NewVPCPeeringTool(client *godo.Client) *VPCPeeringTool {
 	}
 }
 
+func (t *VPCPeeringTool) getVPCPeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(string)
+	if !ok || id == "" {
+		return mcp.NewToolResultError("VPC Peering ID is required"), nil
+	}
+	peering, _, err := t.client.VPCs.GetVPCPeering(ctx, id)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonData, err := json.MarshalIndent(peering, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+func (t *VPCPeeringTool) listVPCPeerings(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	page := 1
+	perPage := 20
+	if v, ok := req.GetArguments()["Page"].(float64); ok && int(v) > 0 {
+		page = int(v)
+	}
+	if v, ok := req.GetArguments()["PerPage"].(float64); ok && int(v) > 0 {
+		perPage = int(v)
+	}
+	peerings, _, err := t.client.VPCs.ListVPCPeerings(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonPeerings, err := json.MarshalIndent(peerings, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonPeerings)), nil
+}
+
 func (t *VPCPeeringTool) createPeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
@@ -62,6 +98,21 @@ func (t *VPCPeeringTool) deletePeering(ctx context.Context, req mcp.CallToolRequ
 
 func (t *VPCPeeringTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: t.getVPCPeering,
+			Tool: mcp.NewTool("digitalocean-vpc-peering-get",
+				mcp.WithDescription("Get VPC Peering information by ID"),
+				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC Peering connection")),
+			),
+		},
+		{
+			Handler: t.listVPCPeerings,
+			Tool: mcp.NewTool("digitalocean-vpc-peering-list",
+				mcp.WithDescription("List VPC Peering connections with pagination"),
+				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
+				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
+			),
+		},
 		{
 			Handler: t.createPeering,
 			Tool: mcp.NewTool("digitalocean-vpc-peering-create",

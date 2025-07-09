@@ -23,6 +23,40 @@ func NewReservedIPTool(client *godo.Client) *ReservedIPTool {
 	}
 }
 
+// getReservedIPv4 fetches reserved IPv4 information by IP
+func (t *ReservedIPTool) getReservedIPv4(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	ip, ok := req.GetArguments()["IP"].(string)
+	if !ok || ip == "" {
+		return mcp.NewToolResultError("IPv4 address is required"), nil
+	}
+	reservedIP, _, err := t.client.ReservedIPs.Get(ctx, ip)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// getReservedIPv6 fetches reserved IPv6 information by IP
+func (t *ReservedIPTool) getReservedIPv6(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	ip, ok := req.GetArguments()["IP"].(string)
+	if !ok || ip == "" {
+		return mcp.NewToolResultError("IPv6 address is required"), nil
+	}
+	reservedIP, _, err := t.client.ReservedIPV6s.Get(ctx, ip)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
 // reserveIP reserves a new IPv4 or IPv6
 func (t *ReservedIPTool) reserveIP(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	region := req.GetArguments()["Region"].(string)
@@ -136,6 +170,20 @@ func (t *ReservedIPTool) unassignIP(ctx context.Context, req mcp.CallToolRequest
 // Tools returns a list of tools for managing reserved IPs
 func (t *ReservedIPTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: t.getReservedIPv4,
+			Tool: mcp.NewTool("digitalocean-reserved-ipv4-get",
+				mcp.WithDescription("Get reserved IPv4 information by IP"),
+				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IPv4 address")),
+			),
+		},
+		{
+			Handler: t.getReservedIPv6,
+			Tool: mcp.NewTool("digitalocean-reserved-ipv6-get",
+				mcp.WithDescription("Get reserved IPv6 information by IP"),
+				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IPv6 address")),
+			),
+		},
 		{
 			Handler: t.reserveIP,
 			Tool: mcp.NewTool("digitalocean-reserved-ip-reserve",

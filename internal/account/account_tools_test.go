@@ -11,13 +11,13 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupAccountResourceWithMock(mockAccount *MockAccountService) *AccountMCPResource {
+func setupAccountToolsWithMock(mockAccount *MockAccountService) *AccountTools {
 	client := &godo.Client{}
 	client.Account = mockAccount
-	return NewAccountMCPResource(client)
+	return NewAccountTools(client)
 }
 
-func TestAccountMCPResource_handleGetAccountResource(t *testing.T) {
+func TestAccountTools_handleGetAccountInformation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -58,19 +58,19 @@ func TestAccountMCPResource_handleGetAccountResource(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(mockAccount)
 			}
-			resource := setupAccountResourceWithMock(mockAccount)
-			req := mcp.ReadResourceRequest{}
-			resp, err := resource.handleGetAccountResource(context.Background(), req)
+			tool := setupAccountToolsWithMock(mockAccount)
+			req := mcp.CallToolRequest{}
+			resp, err := tool.getAccountInformation(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			require.Len(t, resp, 1)
-			content, ok := resp[0].(mcp.TextResourceContents)
-			require.True(t, ok)
-			require.Equal(t, "application/json", content.MIMEType)
+			require.False(t, resp.IsError)
+			content := resp.Content[0].(mcp.TextContent).Text
+			require.NotEmpty(t, content)
 		})
 	}
 }

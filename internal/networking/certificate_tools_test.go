@@ -18,7 +18,7 @@ func setupCertificateToolWithMock(cert *MockCertificatesService) *CertificateToo
 	return NewCertificateTool(client)
 }
 
-func TestCertificateTool_createCertificate(t *testing.T) {
+func TestCertificateTool_getCertificate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -28,51 +28,35 @@ func TestCertificateTool_createCertificate(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		args        map[string]any
+		id          string
 		mockSetup   func(*MockCertificatesService)
 		expectError bool
 	}{
 		{
-			name: "Successful create",
-			args: map[string]any{
-				"Name":             "my-cert",
-				"PrivateKey":       "privkey",
-				"LeafCertificate":  "leafcert",
-				"CertificateChain": "chain",
-			},
+			name: "Successful get",
+			id:   "cert-123",
 			mockSetup: func(m *MockCertificatesService) {
 				m.EXPECT().
-					Create(gomock.Any(), &godo.CertificateRequest{
-						Name:             "my-cert",
-						PrivateKey:       "privkey",
-						LeafCertificate:  "leafcert",
-						CertificateChain: "chain",
-						Type:             "custom",
-					}).
+					Get(gomock.Any(), "cert-123").
 					Return(testCert, nil, nil).
 					Times(1)
 			},
 		},
 		{
 			name: "API error",
-			args: map[string]any{
-				"Name":             "fail-cert",
-				"PrivateKey":       "privkey",
-				"LeafCertificate":  "leafcert",
-				"CertificateChain": "chain",
-			},
+			id:   "fail-456",
 			mockSetup: func(m *MockCertificatesService) {
 				m.EXPECT().
-					Create(gomock.Any(), &godo.CertificateRequest{
-						Name:             "fail-cert",
-						PrivateKey:       "privkey",
-						LeafCertificate:  "leafcert",
-						CertificateChain: "chain",
-						Type:             "custom",
-					}).
+					Get(gomock.Any(), "fail-456").
 					Return(nil, nil, errors.New("api error")).
 					Times(1)
 			},
+			expectError: true,
+		},
+		{
+			name:        "Missing ID argument",
+			id:          "",
+			mockSetup:   nil,
 			expectError: true,
 		},
 	}
@@ -84,8 +68,12 @@ func TestCertificateTool_createCertificate(t *testing.T) {
 				tc.mockSetup(mockCert)
 			}
 			tool := setupCertificateToolWithMock(mockCert)
-			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
-			resp, err := tool.createCertificate(context.Background(), req)
+			args := map[string]any{}
+			if tc.name != "Missing ID argument" {
+				args["ID"] = tc.id
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.getCertificate(context.Background(), req)
 			if tc.expectError {
 				require.NotNil(t, resp)
 				require.True(t, resp.IsError)
@@ -97,6 +85,89 @@ func TestCertificateTool_createCertificate(t *testing.T) {
 			var outCert godo.Certificate
 			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outCert))
 			require.Equal(t, testCert.ID, outCert.ID)
+		})
+	}
+}
+
+func TestCertificateTool_listCertificates(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testCerts := []godo.Certificate{
+		{ID: "cert-1", Name: "cert1"},
+		{ID: "cert-2", Name: "cert2"},
+	}
+	tests := []struct {
+		name        string
+		page        float64
+		perPage     float64
+		mockSetup   func(*MockCertificatesService)
+		expectError bool
+	}{
+		{
+			name:    "Successful list",
+			page:    2,
+			perPage: 1,
+			mockSetup: func(m *MockCertificatesService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testCerts, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name:    "API error",
+			page:    1,
+			perPage: 2,
+			mockSetup: func(m *MockCertificatesService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockCertificatesService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testCerts, nil, nil).
+					Times(1)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCert := NewMockCertificatesService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockCert)
+			}
+			tool := setupCertificateToolWithMock(mockCert)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
+			}
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listCertificates(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
+			var outCerts []godo.Certificate
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outCerts))
+			require.GreaterOrEqual(t, len(outCerts), 1)
 		})
 	}
 }

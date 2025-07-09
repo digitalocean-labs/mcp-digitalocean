@@ -526,8 +526,44 @@ func (d *DropletTool) enablePrivateNetworkingByTag(ctx context.Context, req mcp.
 }
 
 // Tools returns a list of tool functions
+func (d *DropletTool) getDropletByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	id, ok := req.GetArguments()["ID"].(float64)
+	if !ok {
+		return mcp.NewToolResultError("Droplet ID is required"), nil
+	}
+	droplet, _, err := d.client.Droplets.Get(ctx, int(id))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonData, err := json.MarshalIndent(droplet, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+func (d *DropletTool) getDropletActionByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	dropletID, ok := req.GetArguments()["DropletID"].(float64)
+	if !ok {
+		return mcp.NewToolResultError("DropletID is required"), nil
+	}
+	actionID, ok := req.GetArguments()["ActionID"].(float64)
+	if !ok {
+		return mcp.NewToolResultError("ActionID is required"), nil
+	}
+	action, _, err := d.client.DropletActions.Get(ctx, int(dropletID), int(actionID))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	jsonData, err := json.MarshalIndent(action, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
 func (d *DropletTool) Tools() []server.ServerTool {
-	return []server.ServerTool{
+	tools := []server.ServerTool{
 		{
 			Handler: d.createDroplet,
 			Tool: mcp.NewTool("digitalocean-droplet-create",
@@ -752,5 +788,21 @@ func (d *DropletTool) Tools() []server.ServerTool {
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 			),
 		},
+		{
+			Handler: d.getDropletByID,
+			Tool: mcp.NewTool("digitalocean-droplet-get",
+				mcp.WithDescription("Get a droplet by its ID"),
+				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Droplet ID")),
+			),
+		},
+		{
+			Handler: d.getDropletActionByID,
+			Tool: mcp.NewTool("digitalocean-droplet-action-get",
+				mcp.WithDescription("Get a droplet action by droplet ID and action ID"),
+				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("Droplet ID")),
+				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("Action ID")),
+			),
+		},
 	}
+	return tools
 }

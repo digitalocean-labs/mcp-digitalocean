@@ -18,6 +18,163 @@ func setupCDNToolWithMock(cdn *MockCDNService) *CDNTool {
 	return NewCDNTool(client)
 }
 
+// --- getCDN tool handler tests ---
+
+func TestCDNTool_getCDN(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testCDN := &godo.CDN{
+		ID:     "cdn-123",
+		Origin: "origin.example.com",
+		TTL:    3600,
+	}
+	tests := []struct {
+		name        string
+		id          string
+		mockSetup   func(*MockCDNService)
+		expectError bool
+	}{
+		{
+			name: "Successful get",
+			id:   "cdn-123",
+			mockSetup: func(m *MockCDNService) {
+				m.EXPECT().
+					Get(gomock.Any(), "cdn-123").
+					Return(testCDN, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "API error",
+			id:   "cdn-456",
+			mockSetup: func(m *MockCDNService) {
+				m.EXPECT().
+					Get(gomock.Any(), "cdn-456").
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:        "Missing ID argument",
+			id:          "",
+			mockSetup:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCDN := NewMockCDNService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockCDN)
+			}
+			tool := setupCDNToolWithMock(mockCDN)
+			args := map[string]any{}
+			if tc.name != "Missing ID argument" {
+				args["ID"] = tc.id
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.getCDN(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var outCDN godo.CDN
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outCDN))
+			require.Equal(t, testCDN.ID, outCDN.ID)
+		})
+	}
+}
+
+func TestCDNTool_listCDNs(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testCDNs := []godo.CDN{
+		{ID: "cdn-1", Origin: "origin1.example.com", TTL: 3600},
+		{ID: "cdn-2", Origin: "origin2.example.com", TTL: 7200},
+	}
+	tests := []struct {
+		name        string
+		page        float64
+		perPage     float64
+		mockSetup   func(*MockCDNService)
+		expectError bool
+	}{
+		{
+			name:    "Successful list",
+			page:    2,
+			perPage: 1,
+			mockSetup: func(m *MockCDNService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testCDNs, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name:    "API error",
+			page:    1,
+			perPage: 2,
+			mockSetup: func(m *MockCDNService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockCDNService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testCDNs, nil, nil).
+					Times(1)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCDN := NewMockCDNService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockCDN)
+			}
+			tool := setupCDNToolWithMock(mockCDN)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
+			}
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listCDNs(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
+			var outCDNs []godo.CDN
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outCDNs))
+			require.GreaterOrEqual(t, len(outCDNs), 1)
+		})
+	}
+}
+
 func TestCDNTool_createCDN(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

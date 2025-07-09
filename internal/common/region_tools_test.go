@@ -12,13 +12,13 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupRegionResourceWithMock(mockRegions *MockRegionsService) *RegionMCPResource {
+func setupRegionToolsWithMock(mockRegions *MockRegionsService) *RegionTools {
 	client := &godo.Client{}
 	client.Regions = mockRegions
-	return NewRegionMCPResource(client)
+	return NewRegionTools(client)
 }
 
-func TestRegionMCPResource_handleGetRegionsResource(t *testing.T) {
+func TestRegionTools_listRegions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -39,29 +39,45 @@ func TestRegionMCPResource_handleGetRegionsResource(t *testing.T) {
 
 	tests := []struct {
 		name        string
+		page        float64
+		perPage     float64
 		mockSetup   func(*MockRegionsService)
 		expectError bool
 	}{
 		{
-			name: "Successful get",
+			name:    "Successful list",
+			page:    1,
+			perPage: 2,
 			mockSetup: func(m *MockRegionsService) {
 				m.EXPECT().
-					List(gomock.Any(), gomock.Any()).
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
 					Return(mockRegions, &godo.Response{}, nil).
 					Times(1)
 			},
 		},
 		{
-			name: "API error",
+			name:    "API error",
+			page:    1,
+			perPage: 2,
 			mockSetup: func(m *MockRegionsService) {
 				m.EXPECT().
-					List(gomock.Any(), gomock.Any()).
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 2}).
 					Return(nil, nil, errors.New("api error")).
 					Times(1)
 			},
 			expectError: true,
 		},
-		// Note: JSON serialization error is not practical with godo.Region, so not included.
+		{
+			name:    "Default pagination",
+			page:    0,
+			perPage: 0,
+			mockSetup: func(m *MockRegionsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 50}).
+					Return(mockRegions, &godo.Response{}, nil).
+					Times(1)
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -70,27 +86,28 @@ func TestRegionMCPResource_handleGetRegionsResource(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(mockRegionsSvc)
 			}
-			resource := setupRegionResourceWithMock(mockRegionsSvc)
-			req := mcp.ReadResourceRequest{
-				Params: mcp.ReadResourceParams{
-					URI: RegionsURI + "all",
-				},
+			tool := setupRegionToolsWithMock(mockRegionsSvc)
+			args := map[string]any{}
+			if tc.page != 0 {
+				args["Page"] = tc.page
 			}
-			resp, err := resource.handleGetRegionsResource(context.Background(), req)
+			if tc.perPage != 0 {
+				args["PerPage"] = tc.perPage
+			}
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}}
+			resp, err := tool.listRegions(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
-				require.Nil(t, resp)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			require.Len(t, resp, 1)
-			content, ok := resp[0].(mcp.TextResourceContents)
-			require.True(t, ok)
-			require.Equal(t, req.Params.URI, content.URI)
-			require.Equal(t, "application/json", content.MIMEType)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
+			content := resp.Content[0].(mcp.TextContent).Text
 			var regionsOut []godo.Region
-			require.NoError(t, json.Unmarshal([]byte(content.Text), &regionsOut))
+			require.NoError(t, json.Unmarshal([]byte(content), &regionsOut))
 			require.Equal(t, mockRegions, regionsOut)
 		})
 	}

@@ -202,34 +202,107 @@ This directory contains tools and resources for managing DigitalOcean networking
 
 ---
 
-## Supported Resources
+## Additional Tool-Based Handlers
 
-- **`domains://{name}`**
-  Returns information about a specific domain.
+The following tools are now available for direct querying and listing of all networking resources:
 
-- **`domains://{name}/records/{record_id}`**
-  Returns information about a specific domain record.
+### Domains
 
-- **`certificates://{id}`**
-  Returns information about a specific certificate.
+- **`digitalocean-domain-get`**  
+  Get domain information by name.  
+  - `Name` (string, required): Name of the domain
 
-- **`firewalls://{id}`**
-  Returns information about a specific firewall.
+- **`digitalocean-domain-list`**  
+  List domains with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
-- **`reserved_ipv4://{ip}`**
-  Returns information about a reserved IPv4.
+- **`digitalocean-domain-record-get`**  
+  Get a domain record by domain name and record ID.  
+  - `Domain` (string, required): Domain name  
+  - `RecordID` (number, required): ID of the domain record
 
-- **`reserved_ipv6://{ip}`**
-  Returns information about a reserved IPv6.
+- **`digitalocean-domain-record-list`**  
+  List domain records for a domain with pagination.  
+  - `Domain` (string, required): Domain name  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
-- **`vpcs://{id}`**
-  Returns information about a specific VPC.
+### Certificates
 
-- **`cdn://{id}`**
-  Returns information about a specific CDN.
+- **`digitalocean-certificate-get`**  
+  Get certificate information by ID.  
+  - `ID` (string, required): ID of the certificate
 
-- **`partner_attachment://{id}`**
-  Returns information about a specific partner attachment.
+- **`digitalocean-certificate-list`**  
+  List certificates with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+### Firewalls
+
+- **`digitalocean-firewall-get`**  
+  Get firewall information by ID.  
+  - `ID` (string, required): ID of the firewall
+
+- **`digitalocean-firewall-list`**  
+  List firewalls with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+### Reserved IPs
+
+- **`digitalocean-reserved-ipv4-get`**  
+  Get reserved IPv4 information by IP.  
+  - `IP` (string, required): The reserved IPv4 address
+
+- **`digitalocean-reserved-ipv6-get`**  
+  Get reserved IPv6 information by IP.  
+  - `IP` (string, required): The reserved IPv6 address
+
+### VPCs
+
+- **`digitalocean-vpc-get`**  
+  Get VPC information by ID.  
+  - `ID` (string, required): ID of the VPC
+
+- **`digitalocean-vpc-list`**  
+  List VPCs with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+### VPC Peering
+
+- **`digitalocean-vpc-peering-get`**  
+  Get VPC Peering information by ID.  
+  - `ID` (string, required): ID of the VPC Peering connection
+
+- **`digitalocean-vpc-peering-list`**  
+  List VPC Peering connections with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+### CDN
+
+- **`digitalocean-cdn-get`**  
+  Get CDN information by ID.  
+  - `ID` (string, required): ID of the CDN
+
+- **`digitalocean-cdn-list`**  
+  List CDNs with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+### Partner Attachments
+
+- **`digitalocean-partner-attachment-get`**  
+  Get partner attachment information by ID.  
+  - `ID` (string, required): ID of the partner attachment
+
+- **`digitalocean-partner-attachment-list`**  
+  List partner attachments with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
 ---
 

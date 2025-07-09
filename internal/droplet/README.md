@@ -1,12 +1,14 @@
 # Droplet MCP Tools
 
-This directory contains tools and resources for managing DigitalOcean Droplets via the MCP Server. These tools enable you to create, modify, control, and query Droplets and related resources such as images and sizes.
+This directory contains tools for managing DigitalOcean Droplets, Images, and Sizes via the MCP Server. All operations are exposed as tools with argument-based input—no resource URIs are used. Pagination and filtering are supported where applicable.
+
+---
 
 ## Supported Tools
 
-### Droplet Lifecycle
+### Droplet Tools
 
-- **`digitalocean-droplet-create`**  
+- **digitalocean-droplet-create**  
   Create a new Droplet.  
   **Arguments:**  
   - `Name` (string, required): Name of the Droplet  
@@ -16,152 +18,130 @@ This directory contains tools and resources for managing DigitalOcean Droplets v
   - `Backup` (boolean, optional, default: false): Enable backups  
   - `Monitoring` (boolean, optional, default: false): Enable monitoring
 
-- **`digitalocean-droplet-delete`**  
+- **digitalocean-droplet-delete**  
   Delete a Droplet.  
   **Arguments:**  
   - `ID` (number, required): ID of the Droplet to delete
 
-### Power & State
-
-- **`digitalocean-droplet-power-cycle`**  
-  Power cycle a Droplet.  
+- **digitalocean-droplet-get**  
+  Get information about a specific Droplet by its ID.  
+  **Arguments:**  
   - `ID` (number, required): Droplet ID
 
-- **`digitalocean-droplet-power-on`**  
-  Power on a Droplet.  
+- **digitalocean-droplet-action-get**  
+  Get information about a specific action performed on a Droplet.  
+  **Arguments:**  
+  - `DropletID` (number, required): Droplet ID  
+  - `ActionID` (number, required): Action ID
+
+- **digitalocean-droplet-power-cycle**  
+- **digitalocean-droplet-power-on**  
+- **digitalocean-droplet-power-off**  
+- **digitalocean-droplet-shutdown**  
+- **digitalocean-droplet-reboot**  
+  Power and state management for a Droplet.  
+  **Arguments:**  
   - `ID` (number, required): Droplet ID
 
-- **`digitalocean-droplet-power-off`**  
-  Power off a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-- **`digitalocean-droplet-shutdown`**  
-  Shutdown a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-- **`digitalocean-droplet-reboot`**  
-  Reboot a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-### Image & Disk
-
-- **`digitalocean-droplet-restore`**  
+- **digitalocean-droplet-restore**  
   Restore a Droplet from a backup/snapshot.  
   - `ID` (number, required): Droplet ID  
   - `ImageID` (number, required): Backup/snapshot image ID
 
-- **`digitalocean-droplet-resize`**  
+- **digitalocean-droplet-resize**  
   Resize a Droplet.  
   - `ID` (number, required): Droplet ID  
   - `Size` (string, required): New size slug  
   - `ResizeDisk` (boolean, optional, default: false): Whether to resize the disk
 
-- **`digitalocean-droplet-rebuild`**  
+- **digitalocean-droplet-rebuild**  
   Rebuild a Droplet from an image.  
   - `ID` (number, required): Droplet ID  
   - `ImageID` (number, required): Image ID
 
-- **`digitalocean-droplet-rebuild-by-slug`**  
+- **digitalocean-droplet-rebuild-by-slug**  
   Rebuild a Droplet using an image slug.  
   - `ID` (number, required): Droplet ID  
   - `ImageSlug` (string, required): Image slug
 
-- **`digitalocean-droplet-snapshot`**  
+- **digitalocean-droplet-snapshot**  
   Take a snapshot of a Droplet.  
   - `ID` (number, required): Droplet ID  
   - `Name` (string, required): Name for the snapshot
 
-### Networking & Features
-
-- **`digitalocean-droplet-enable-ipv6`**  
-  Enable IPv6 on a Droplet.  
+- **digitalocean-droplet-enable-ipv6**  
+- **digitalocean-droplet-enable-private-net**  
+- **digitalocean-droplet-enable-backups**  
+- **digitalocean-droplet-disable-backups**  
+  Enable/disable features on a Droplet.  
   - `ID` (number, required): Droplet ID
 
-- **`digitalocean-droplet-enable-private-net`**  
-  Enable private networking on a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-- **`digitalocean-droplet-enable-backups`**  
-  Enable backups on a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-- **`digitalocean-droplet-disable-backups`**  
-  Disable backups on a Droplet.  
-  - `ID` (number, required): Droplet ID
-
-### Miscellaneous
-
-- **`digitalocean-droplet-get-neighbors`**  
+- **digitalocean-droplet-get-neighbors**  
   Get neighbors of a Droplet.  
   - `ID` (number, required): Droplet ID
 
-- **`digitalocean-droplet-get-kernels`**  
+- **digitalocean-droplet-get-kernels**  
   Get available kernels for a Droplet.  
   - `ID` (number, required): Droplet ID
 
-- **`digitalocean-droplet-change-kernel`**  
+- **digitalocean-droplet-change-kernel**  
   Change a Droplet's kernel.  
   - `ID` (number, required): Droplet ID  
   - `KernelID` (number, required): Kernel ID
 
-- **`digitalocean-droplet-rename`**  
+- **digitalocean-droplet-rename**  
   Rename a Droplet.  
   - `ID` (number, required): Droplet ID  
   - `Name` (string, required): New name
 
-- **`digitalocean-droplet-password-reset`**  
+- **digitalocean-droplet-password-reset**  
   Reset password for a Droplet.  
   - `ID` (number, required): Droplet ID
 
-### Tag-based Bulk Actions
+#### Tag-based Bulk Actions
 
-- **`digitalocean-droplet-power-cycle-by-tag`**  
-- **`digitalocean-droplet-power-on-by-tag`**  
-- **`digitalocean-droplet-power-off-by-tag`**  
-- **`digitalocean-droplet-shutdown-by-tag`**  
-- **`digitalocean-droplet-enable-backups-by-tag`**  
-- **`digitalocean-droplet-disable-backups-by-tag`**  
-- **`digitalocean-droplet-snapshot-by-tag`**  
-- **`digitalocean-droplet-enable-ipv6-by-tag`**  
-- **`digitalocean-droplet-enable-private-net-by-tag`**  
+- **digitalocean-droplet-power-cycle-by-tag**  
+- **digitalocean-droplet-power-on-by-tag**  
+- **digitalocean-droplet-power-off-by-tag**  
+- **digitalocean-droplet-shutdown-by-tag**  
+- **digitalocean-droplet-enable-backups-by-tag**  
+- **digitalocean-droplet-disable-backups-by-tag**  
+- **digitalocean-droplet-snapshot-by-tag**  
+- **digitalocean-droplet-enable-ipv6-by-tag**  
+- **digitalocean-droplet-enable-private-net-by-tag**  
   All require:  
   - `Tag` (string, required): Tag of the droplets  
   Some require:  
   - `Name` (string, required): Name for the snapshot (for snapshot-by-tag)
 
-## Supported Resources
+---
 
-- **`droplets://{id}`**  
-  Returns information about a specific Droplet by its numeric ID.
+### Image Tools
 
-- **`droplets://{id}/actions/{action_id}`**  
-  Returns information about a specific action performed on a Droplet.
+- **digitalocean-image-list**  
+  List all available distribution images. Supports pagination.  
+  **Arguments:**  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 50): Items per page
 
-- **`images://distribution`**  
-  Returns all available distribution images.
+- **digitalocean-image-get**  
+  Get a specific image by its numeric ID.  
+  **Arguments:**  
+  - `ID` (number, required): Image ID
 
-- **`images://{id}`**  
-  Returns information about a specific image by its numeric ID.
+---
 
-- **`sizes://all`**  
-  Returns all available Droplet sizes.
+### Size Tools
 
-## Example Queries Using Droplet MCP Tools
+- **digitalocean-size-list**  
+  List all available Droplet sizes. Supports pagination.  
+  **Arguments:**  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 50): Items per page
 
-- Create a new Droplet named "web-1" in region "nyc3" with size "s-1vcpu-1gb" and image ID 123456.
-- Delete Droplet with ID 987654.
-- Power cycle Droplet 12345.
-- Resize Droplet 12345 to "s-2vcpu-2gb" and resize the disk.
-- Take a snapshot of Droplet 12345 named "pre-upgrade".
-- Enable IPv6 on Droplet 12345.
-- List all available Droplet sizes.
-- Show all distribution images.
-- Get information about Droplet 12345.
-- Get details of action 67890 on Droplet 12345.
-- Power off all Droplets tagged "staging".
-- Enable backups for all Droplets tagged "production".
+---
 
-## Tool Usage Examples
+## Example Usage
 
 - **Create a new Droplet:**  
   Tool: `digitalocean-droplet-create`  
@@ -173,25 +153,36 @@ This directory contains tools and resources for managing DigitalOcean Droplets v
     - `Backup`: `true`  
     - `Monitoring`: `true`
 
-- **Resize a Droplet:**  
-  Tool: `digitalocean-droplet-resize`  
+- **Get a Droplet by ID:**  
+  Tool: `digitalocean-droplet-get`  
   Arguments:  
-    - `ID`: `12345`  
-    - `Size`: `"s-2vcpu-2gb"`  
-    - `ResizeDisk`: `true`
+    - `ID`: `12345`
 
-- **Take a snapshot by tag:**  
-  Tool: `digitalocean-droplet-snapshot-by-tag`  
+- **Get a Droplet action:**  
+  Tool: `digitalocean-droplet-action-get`  
   Arguments:  
-    - `Tag`: `"staging"`  
-    - `Name`: `"before-maintenance"`
+    - `DropletID`: `12345`  
+    - `ActionID`: `67890`
+
+- **List all distribution images:**  
+  Tool: `digitalocean-image-list`  
+  Arguments: `{}`
+
+- **Get image by ID:**  
+  Tool: `digitalocean-image-get`  
+  Arguments:  
+    - `ID`: `7890`
+
+- **List all Droplet sizes:**  
+  Tool: `digitalocean-size-list`  
+  Arguments: `{}`
+
+---
 
 ## Notes
 
-- All Droplet and image identifiers are numeric IDs unless otherwise specified.
+- All tools use argument-based input; do not use resource URIs.
+- Pagination is supported for list endpoints via `Page` and `PerPage` arguments.
 - Tag-based tools allow you to perform bulk actions on all Droplets with a given tag.
 - All responses are returned in JSON format for easy parsing and integration.
-- For endpoints that require an ID or tag, replace the placeholder with the appropriate value in your query.
-- Use the `sizes://all` and `images://distribution` resources to discover valid size slugs and image IDs for Droplet creation.
-
----
+- For endpoints that require an ID or tag, provide the appropriate value in your query.

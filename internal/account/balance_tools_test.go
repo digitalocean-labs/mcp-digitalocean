@@ -11,13 +11,13 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupBalanceResourceWithMock(mockBalance *MockBalanceService) *BalanceMCPResource {
+func setupBalanceToolsWithMock(mockBalance *MockBalanceService) *BalanceTools {
 	client := &godo.Client{}
 	client.Balance = mockBalance
-	return NewBalanceMCPResource(client)
+	return NewBalanceTools(client)
 }
 
-func TestBalanceMCPResource_handleGetBalanceResource(t *testing.T) {
+func TestBalanceTools_getBalance(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -26,7 +26,6 @@ func TestBalanceMCPResource_handleGetBalanceResource(t *testing.T) {
 		AccountBalance:     "5.00",
 		MonthToDateUsage:   "15.00",
 	}
-
 	tests := []struct {
 		name        string
 		mockSetup   func(*MockBalanceService)
@@ -59,19 +58,18 @@ func TestBalanceMCPResource_handleGetBalanceResource(t *testing.T) {
 			if tc.mockSetup != nil {
 				tc.mockSetup(mockBalance)
 			}
-			resource := setupBalanceResourceWithMock(mockBalance)
-			req := mcp.ReadResourceRequest{}
-			resp, err := resource.handleGetBalanceResource(context.Background(), req)
+			tool := setupBalanceToolsWithMock(mockBalance)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}}
+			resp, err := tool.getBalance(context.Background(), req)
 			if tc.expectError {
-				require.Error(t, err)
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
 				return
 			}
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			require.Len(t, resp, 1)
-			content, ok := resp[0].(mcp.TextResourceContents)
-			require.True(t, ok)
-			require.Equal(t, "application/json", content.MIMEType)
+			require.False(t, resp.IsError)
+			require.NotEmpty(t, resp.Content)
 		})
 	}
 }
