@@ -95,6 +95,16 @@ This directory contains tools and resources for managing DigitalOcean networking
 
 ---
 
+- **`digitalocean-reserved-ipv4-list`**
+  List reserved IPv4 addresses with pagination.
+  - `Page` (number, optional, default: 1): Page number
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv6-list`**
+  List reserved IPv6 addresses with pagination.
+  - `Page` (number, optional, default: 1): Page number
+  - `PerPage` (number, optional, default: 20): Items per page
+
 ### Reserved IPs
 
 - **`digitalocean-reserved-ip-reserve`**
@@ -251,6 +261,16 @@ The following tools are now available for direct querying and listing of all net
   - `PerPage` (number, default: 20): Items per page
 
 ### Reserved IPs
+
+- **`digitalocean-reserved-ipv4-list`**  
+  List reserved IPv4 addresses with pagination.  
+  - `Page` (number, optional, default: 1): Page number  
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv6-list`**  
+  List reserved IPv6 addresses with pagination.  
+  - `Page` (number, optional, default: 1): Page number  
+  - `PerPage` (number, optional, default: 20): Items per page
 
 - **`digitalocean-reserved-ipv4-get`**  
   Get reserved IPv4 information by IP.  

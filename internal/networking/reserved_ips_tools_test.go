@@ -6,6 +6,8 @@ import (
 	"errors"
 	"testing"
 
+	"reflect"
+
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
@@ -91,6 +93,164 @@ func TestReservedIPTool_getReservedIPv4(t *testing.T) {
 			var outIP godo.ReservedIP
 			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &outIP))
 			require.Equal(t, testIPv4.IP, outIP.IP)
+		})
+	}
+}
+
+func TestReservedIPTool_listReservedIPv4s(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testIPs := []godo.ReservedIP{
+		{IP: "192.0.2.1", Region: &godo.Region{Slug: "nyc3"}},
+		{IP: "192.0.2.2", Region: &godo.Region{Slug: "sfo2"}},
+	}
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockReservedIPsService)
+		expectError bool
+		expectIPs   []string
+	}{
+		{
+			name: "List IPv4s default pagination",
+			args: map[string]any{},
+			mockSetup: func(m *MockReservedIPsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testIPs, nil, nil).
+					Times(1)
+			},
+			expectIPs: []string{"192.0.2.1", "192.0.2.2"},
+		},
+		{
+			name: "List IPv4s custom pagination",
+			args: map[string]any{"Page": float64(2), "PerPage": float64(1)},
+			mockSetup: func(m *MockReservedIPsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testIPs[:1], nil, nil).
+					Times(1)
+			},
+			expectIPs: []string{"192.0.2.1"},
+		},
+		{
+			name: "API error",
+			args: map[string]any{},
+			mockSetup: func(m *MockReservedIPsService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockIPv4 := NewMockReservedIPsService(ctrl)
+			mockIPv6 := NewMockReservedIPV6sService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockIPv4)
+			}
+			tool := setupReservedIPToolWithMocks(mockIPv4, mockIPv6, nil, nil)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.listReservedIPv4s(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var out []godo.ReservedIP
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &out))
+			gotIPs := make([]string, len(out))
+			for i, ip := range out {
+				gotIPs[i] = ip.IP
+			}
+			require.True(t, reflect.DeepEqual(tc.expectIPs, gotIPs))
+		})
+	}
+}
+
+func TestReservedIPTool_listReservedIPv6s(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	testIPs := []godo.ReservedIPV6{
+		{IP: "2001:db8::1", RegionSlug: "nyc3"},
+		{IP: "2001:db8::2", RegionSlug: "sfo2"},
+	}
+	tests := []struct {
+		name        string
+		args        map[string]any
+		mockSetup   func(*MockReservedIPV6sService)
+		expectError bool
+		expectIPs   []string
+	}{
+		{
+			name: "List IPv6s default pagination",
+			args: map[string]any{},
+			mockSetup: func(m *MockReservedIPV6sService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(testIPs, nil, nil).
+					Times(1)
+			},
+			expectIPs: []string{"2001:db8::1", "2001:db8::2"},
+		},
+		{
+			name: "List IPv6s custom pagination",
+			args: map[string]any{"Page": float64(2), "PerPage": float64(1)},
+			mockSetup: func(m *MockReservedIPV6sService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 2, PerPage: 1}).
+					Return(testIPs[:1], nil, nil).
+					Times(1)
+			},
+			expectIPs: []string{"2001:db8::1"},
+		},
+		{
+			name: "API error",
+			args: map[string]any{},
+			mockSetup: func(m *MockReservedIPV6sService) {
+				m.EXPECT().
+					List(gomock.Any(), &godo.ListOptions{Page: 1, PerPage: 20}).
+					Return(nil, nil, errors.New("api error")).
+					Times(1)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockIPv4 := NewMockReservedIPsService(ctrl)
+			mockIPv6 := NewMockReservedIPV6sService(ctrl)
+			if tc.mockSetup != nil {
+				tc.mockSetup(mockIPv6)
+			}
+			tool := setupReservedIPToolWithMocks(mockIPv4, mockIPv6, nil, nil)
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.listReservedIPv6s(context.Background(), req)
+			if tc.expectError {
+				require.NotNil(t, resp)
+				require.True(t, resp.IsError)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.False(t, resp.IsError)
+			var out []godo.ReservedIPV6
+			require.NoError(t, json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &out))
+			gotIPs := make([]string, len(out))
+			for i, ip := range out {
+				gotIPs[i] = ip.IP
+			}
+			require.True(t, reflect.DeepEqual(tc.expectIPs, gotIPs))
 		})
 	}
 }
