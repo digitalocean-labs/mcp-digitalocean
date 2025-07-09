@@ -64,18 +64,7 @@ The MCP DigitalOcean Integration supports a variety of services, allowing users 
 | **Apps**       | Manage DigitalOcean App Platform applications, including deployments and configurations.                            |
 | **Droplets**   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean.                          |
 | **Account**    | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys.                          |
-| **Networking** | Manage domains, DNS records, certificates, firewalls, reserved IPs, VPCs, CDNs, and partner attachments.            |
-
-### Service Tools
-
-Each service provides a toolset to interact with DigitalOcean.
-
-| **Service**    | **Tools** (examples, see per-service README for full list)                                           |
-|----------------|------------------------------------------------------------------------------------------------------|
-| **Account**    | `digitalocean-key-create`, `digitalocean-key-delete`, `digitalocean-account-get-information`, `digitalocean-balance-get`, `digitalocean-billing-history-list`, `digitalocean-invoice-list`, `digitalocean-action-get`, `digitalocean-action-list`, `digitalocean-key-get`, `digitalocean-key-list` |
-| **Apps**       | `digitalocean-create-app-from-spec`, `digitalocean-apps-update`, `digitalocean-apps-delete`, `digitalocean-apps-get-info`, `digitalocean-apps-usage`, `digitalocean-apps-get-deployment-status`, `digitalocean-apps-list` |
-| **Droplets**   | `digitalocean-droplet-create`, `digitalocean-droplet-delete`, `digitalocean-droplet-power-cycle`, `digitalocean-droplet-resize`, `digitalocean-droplet-snapshot`, `digitalocean-droplet-enable-backups`, `digitalocean-droplet-get-neighbors`, `digitalocean-droplet-rename`, `digitalocean-droplet-rebuild`, `digitalocean-droplet-get-kernels`, ... (see [Droplet README](./internal/droplet/README.md)) |
-| **Networking** | `digitalocean-domain-create`, `digitalocean-domain-delete`, `digitalocean-domain-record-create`, `digitalocean-domain-record-delete`, `digitalocean-domain-get`, `digitalocean-domain-list`, `digitalocean-domain-record-get`, `digitalocean-domain-record-list`, `digitalocean-certificate-create`, `digitalocean-certificate-delete`, `digitalocean-certificate-get`, `digitalocean-certificate-list`, `digitalocean-firewall-create`, `digitalocean-firewall-delete`, `digitalocean-firewall-get`, `digitalocean-firewall-list`, `digitalocean-firewall-add-tags`, `digitalocean-firewall-remove-tags`, `digitalocean-firewall-add-droplets`, `digitalocean-firewall-remove-droplets`, `digitalocean-reserved-ip-reserve`, `digitalocean-reserved-ip-release`, `digitalocean-reserved-ip-assign`, `digitalocean-reserved-ip-unassign`, `digitalocean-reserved-ipv4-get`, `digitalocean-reserved-ipv6-get`, `digitalocean-vpc-create`, `digitalocean-vpc-delete`, `digitalocean-vpc-get`, `digitalocean-vpc-list`, `digitalocean-vpc-list-members`, `digitalocean-vpc-peering-create`, `digitalocean-vpc-peering-delete`, `digitalocean-vpc-peering-get`, `digitalocean-vpc-peering-list`, `digitalocean-cdn-create`, `digitalocean-cdn-delete`, `digitalocean-cdn-get`, `digitalocean-cdn-list`, `digitalocean-cdn-flush-cache`, `digitalocean-partner-attachment-create`, `digitalocean-partner-attachment-delete`, `digitalocean-partner-attachment-get`, `digitalocean-partner-attachment-list`, `digitalocean-partner-attachment-get-service-key`, `digitalocean-partner-attachment-get-bgp-config`, `digitalocean-partner-attachment-update` ... (see [Networking README](./internal/networking/README.md)) |
+| **Networking** | Manage domains, DNS records, certificates, firewalls, reserved IPs, VPCs, CDNs, and Partner Network attachments.            |
 
 ---
 ## Service Documentation
@@ -98,8 +87,6 @@ See the following files for full documentation:
 - Create a new domain: `digitalocean-domain-create`
 - Enable backups on a droplet: `digitalocean-droplet-enable-backups`
 - Flush a CDN cache: `digitalocean-cdn-flush-cache`
-- List all available droplet sizes: `sizes://all`
-- Get account balance: `balance://current`
 - Create a VPC peering connection: `digitalocean-vpc-peering-create`
 - Delete a VPC peering connection: `digitalocean-vpc-peering-delete`
 
