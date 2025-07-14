@@ -102,10 +102,17 @@ func (c *CDNTool) deleteCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 // flushCDNCache flushes the cache of a CDN
 func (c *CDNTool) flushCDNCache(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	cdnID := req.GetArguments()["ID"].(string)
-	files := req.GetArguments()["Files"].([]string)
+	files := req.GetArguments()["Files"].([]any)
+
+	filesStr := make([]string, len(files))
+	for i, file := range files {
+		if fileStr, ok := file.(string); ok {
+			filesStr[i] = fileStr
+		}
+	}
 
 	flushRequest := &godo.CDNFlushCacheRequest{
-		Files: files,
+		Files: filesStr,
 	}
 
 	_, err := c.client.CDNs.FlushCache(ctx, cdnID, flushRequest)

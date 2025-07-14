@@ -124,11 +124,17 @@ func (p *PartnerAttachmentTool) getBGPConfig(ctx context.Context, req mcp.CallTo
 func (p *PartnerAttachmentTool) updatePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	id := req.GetArguments()["ID"].(string)
 	name := req.GetArguments()["Name"].(string)
-	vpcIDs := req.GetArguments()["VPCIDs"].([]string)
+	vpcIDs := req.GetArguments()["VPCIDs"].([]any)
+	vpcIDsStr := make([]string, len(vpcIDs))
+	for i, v := range vpcIDs {
+		if vStr, ok := v.(string); ok {
+			vpcIDsStr[i] = vStr
+		}
+	}
 
 	updateRequest := &godo.PartnerAttachmentUpdateRequest{
 		Name:   name,
-		VPCIDs: vpcIDs,
+		VPCIDs: vpcIDsStr,
 	}
 
 	attachment, _, err := p.client.PartnerAttachment.Update(ctx, id, updateRequest)
