@@ -69,8 +69,15 @@ func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolReque
 	outboundProtocol := req.GetArguments()["OutboundProtocol"].(string)
 	outboundPortRange := req.GetArguments()["OutboundPortRange"].(string)
 	outboundDestination := req.GetArguments()["OutboundDestination"].(string)
-	dropletIDs := req.GetArguments()["DropletIDs"].([]any)
-	tags := req.GetArguments()["Tags"].([]any)
+
+	dropletIDs := make([]any, 0)
+	if v, ok := req.GetArguments()["DropletIDs"].([]any); ok {
+		dropletIDs = v
+	}
+	tags := make([]any, 0)
+	if v, ok := req.GetArguments()["Tags"].([]any); ok {
+		tags = v
+	}
 
 	dIDs := make([]int, len(dropletIDs))
 	for i, v := range dropletIDs {
