@@ -196,8 +196,8 @@ func TestFirewallTool_createFirewall(t *testing.T) {
 				"OutboundProtocol":    "udp",
 				"OutboundPortRange":   "53",
 				"OutboundDestination": "8.8.8.8/32",
-				"DropletIDs":          []float64{123, 456},
-				"Tags":                []string{"web", "prod"},
+				"DropletIDs":          []any{float64(123), float64(456)},
+				"Tags":                []any{"web", "prod"},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -234,8 +234,8 @@ func TestFirewallTool_createFirewall(t *testing.T) {
 				"OutboundProtocol":    "tcp",
 				"OutboundPortRange":   "443",
 				"OutboundDestination": "0.0.0.0/0",
-				"DropletIDs":          []float64{},
-				"Tags":                []string{},
+				"DropletIDs":          []any{},
+				"Tags":                []any{},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -304,7 +304,7 @@ func TestFirewallTool_addTags(t *testing.T) {
 			name: "Successful add tags",
 			args: map[string]any{
 				"ID":   "fw-123",
-				"Tags": []string{"web", "prod"},
+				"Tags": []any{"web", "prod"},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -318,7 +318,7 @@ func TestFirewallTool_addTags(t *testing.T) {
 			name: "API error",
 			args: map[string]any{
 				"ID":   "fw-456",
-				"Tags": []string{"fail"},
+				"Tags": []any{"fail"},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -367,7 +367,7 @@ func TestFirewallTool_removeTags(t *testing.T) {
 			name: "Successful remove tags",
 			args: map[string]any{
 				"ID":   "fw-123",
-				"Tags": []string{"web", "prod"},
+				"Tags": []any{"web", "prod"},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -381,7 +381,7 @@ func TestFirewallTool_removeTags(t *testing.T) {
 			name: "API error",
 			args: map[string]any{
 				"ID":   "fw-456",
-				"Tags": []string{"fail"},
+				"Tags": []any{"fail"},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -430,7 +430,7 @@ func TestFirewallTool_addDroplets(t *testing.T) {
 			name: "Successful add droplets",
 			args: map[string]any{
 				"ID":         "fw-123",
-				"DropletIDs": []float64{101, 202},
+				"DropletIDs": []any{float64(101), float64(202)},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -444,7 +444,7 @@ func TestFirewallTool_addDroplets(t *testing.T) {
 			name: "API error",
 			args: map[string]any{
 				"ID":         "fw-456",
-				"DropletIDs": []float64{303},
+				"DropletIDs": []any{float64(303)},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -493,7 +493,7 @@ func TestFirewallTool_removeDroplets(t *testing.T) {
 			name: "Successful remove droplets",
 			args: map[string]any{
 				"ID":         "fw-123",
-				"DropletIDs": []float64{101, 202},
+				"DropletIDs": []any{float64(101), float64(202)},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().
@@ -507,7 +507,7 @@ func TestFirewallTool_removeDroplets(t *testing.T) {
 			name: "API error",
 			args: map[string]any{
 				"ID":         "fw-456",
-				"DropletIDs": []float64{303},
+				"DropletIDs": []any{float64(303)},
 			},
 			mockSetup: func(m *MockFirewallsService) {
 				m.EXPECT().

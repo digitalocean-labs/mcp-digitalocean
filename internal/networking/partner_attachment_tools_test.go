@@ -450,7 +450,7 @@ func TestPartnerAttachmentTool_updatePartnerAttachment(t *testing.T) {
 			args: map[string]any{
 				"ID":     "pa-789",
 				"Name":   "updated-connect",
-				"VPCIDs": []string{"vpc-1", "vpc-2"},
+				"VPCIDs": []any{"vpc-1", "vpc-2"},
 			},
 			mockSetup: func(m *MockPartnerAttachmentService) {
 				m.EXPECT().
@@ -467,7 +467,7 @@ func TestPartnerAttachmentTool_updatePartnerAttachment(t *testing.T) {
 			args: map[string]any{
 				"ID":     "pa-999",
 				"Name":   "fail-update",
-				"VPCIDs": []string{"vpc-x"},
+				"VPCIDs": []any{"vpc-x"},
 			},
 			mockSetup: func(m *MockPartnerAttachmentService) {
 				m.EXPECT().

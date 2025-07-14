@@ -135,7 +135,7 @@ func (f *FirewallTool) addDroplets(ctx context.Context, req mcp.CallToolRequest)
 	dropletIDs := req.GetArguments()["DropletIDs"].([]any)
 	dIDs := make([]int, len(dropletIDs))
 	for i, id := range dropletIDs {
-		if did, ok := id.(float64); !ok {
+		if did, ok := id.(float64); ok {
 			dIDs[i] = int(did)
 		}
 	}
@@ -151,7 +151,7 @@ func (f *FirewallTool) removeDroplets(ctx context.Context, req mcp.CallToolReque
 	dropletIDs := req.GetArguments()["DropletIDs"].([]any)
 	dIDs := make([]int, len(dropletIDs))
 	for i, id := range dropletIDs {
-		if did, ok := id.(float64); !ok {
+		if did, ok := id.(float64); ok {
 			dIDs[i] = int(did)
 		}
 	}

@@ -325,7 +325,7 @@ func TestCDNTool_flushCDNCache(t *testing.T) {
 			name: "Successful flush",
 			args: map[string]any{
 				"ID":    "cdn-123",
-				"Files": []string{"/index.html", "/logo.png"},
+				"Files": []any{"/index.html", "/logo.png"},
 			},
 			mockSetup: func(m *MockCDNService) {
 				m.EXPECT().
@@ -341,7 +341,7 @@ func TestCDNTool_flushCDNCache(t *testing.T) {
 			name: "API error",
 			args: map[string]any{
 				"ID":    "cdn-456",
-				"Files": []string{"/fail.js"},
+				"Files": []any{"/fail.js"},
 			},
 			mockSetup: func(m *MockCDNService) {
 				m.EXPECT().
