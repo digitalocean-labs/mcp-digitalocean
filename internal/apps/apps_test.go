@@ -213,7 +213,7 @@ func TestListApps(t *testing.T) {
 	}
 }
 
-func toJSONString(v interface{}) string {
+func toJSONString(v any) string {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return fmt.Sprintf("error marshaling to JSON: %v", err)

@@ -212,13 +212,13 @@ func (f *FirewallTool) addRules(ctx context.Context, req mcp.CallToolRequest) (*
 
 	// Process inbound rules if provided
 	if inboundData, ok := req.GetArguments()["InboundRules"]; ok && inboundData != nil {
-		inboundRulesList := inboundData.([]interface{})
+		inboundRulesList := inboundData.([]any)
 		for _, ruleData := range inboundRulesList {
-			rule := ruleData.(map[string]interface{})
+			rule := ruleData.(map[string]any)
 
 			protocol := rule["Protocol"].(string)
 			portRange := rule["PortRange"].(string)
-			sources := rule["Sources"].([]interface{})
+			sources := rule["Sources"].([]any)
 
 			sourceAddresses := make([]string, len(sources))
 			for i, source := range sources {
@@ -236,13 +236,13 @@ func (f *FirewallTool) addRules(ctx context.Context, req mcp.CallToolRequest) (*
 
 	// Process outbound rules if provided
 	if outboundData, ok := req.GetArguments()["OutboundRules"]; ok && outboundData != nil {
-		outboundRulesList := outboundData.([]interface{})
+		outboundRulesList := outboundData.([]any)
 		for _, ruleData := range outboundRulesList {
-			rule := ruleData.(map[string]interface{})
+			rule := ruleData.(map[string]any)
 
 			protocol := rule["Protocol"].(string)
 			portRange := rule["PortRange"].(string)
-			destinations := rule["Destinations"].([]interface{})
+			destinations := rule["Destinations"].([]any)
 
 			destAddresses := make([]string, len(destinations))
 			for i, dest := range destinations {
@@ -284,13 +284,13 @@ func (f *FirewallTool) removeRules(ctx context.Context, req mcp.CallToolRequest)
 
 	// Process inbound rules if provided
 	if inboundData, ok := req.GetArguments()["InboundRules"]; ok && inboundData != nil {
-		inboundRulesList := inboundData.([]interface{})
+		inboundRulesList := inboundData.([]any)
 		for _, ruleData := range inboundRulesList {
-			rule := ruleData.(map[string]interface{})
+			rule := ruleData.(map[string]any)
 
 			protocol := rule["Protocol"].(string)
 			portRange := rule["PortRange"].(string)
-			sources := rule["Sources"].([]interface{})
+			sources := rule["Sources"].([]any)
 
 			sourceAddresses := make([]string, len(sources))
 			for i, source := range sources {
@@ -308,13 +308,13 @@ func (f *FirewallTool) removeRules(ctx context.Context, req mcp.CallToolRequest)
 
 	// Process outbound rules if provided
 	if outboundData, ok := req.GetArguments()["OutboundRules"]; ok && outboundData != nil {
-		outboundRulesList := outboundData.([]interface{})
+		outboundRulesList := outboundData.([]any)
 		for _, ruleData := range outboundRulesList {
-			rule := ruleData.(map[string]interface{})
+			rule := ruleData.(map[string]any)
 
 			protocol := rule["Protocol"].(string)
 			portRange := rule["PortRange"].(string)
-			destinations := rule["Destinations"].([]interface{})
+			destinations := rule["Destinations"].([]any)
 
 			destAddresses := make([]string, len(destinations))
 			for i, dest := range destinations {
