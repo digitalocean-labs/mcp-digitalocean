@@ -54,7 +54,6 @@ func registerDropletTools(s *server.MCPServer, c *godo.Client) error {
 
 // registerNetworkingTools registers the networking tools with the MCP server.
 func registerNetworkingTools(s *server.MCPServer, c *godo.Client) error {
-	s.AddTools(networking.NewCDNTool(c).Tools()...)
 	s.AddTools(networking.NewCertificateTool(c).Tools()...)
 	s.AddTools(networking.NewDomainsTool(c).Tools()...)
 	s.AddTools(networking.NewFirewallTool(c).Tools()...)
@@ -81,6 +80,7 @@ func registerAccountTools(s *server.MCPServer, c *godo.Client) error {
 func registerSpacesTools(s *server.MCPServer, c *godo.Client) error {
 	// Register the tools for spaces keys
 	s.AddTools(spaces.NewSpacesKeysTool(c).Tools()...)
+	s.AddTools(spaces.NewCDNTool(c).Tools()...)
 
 	return nil
 }

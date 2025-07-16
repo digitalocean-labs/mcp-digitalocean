@@ -38,6 +38,26 @@ This directory contains tools and resources for managing DigitalOcean networking
   - `Name` (string, required): Record name
   - `Data` (string, required): Record data
 
+- **`digitalocean-domain-get`**  
+  Get domain information by name.  
+  - `Name` (string, required): Name of the domain
+
+- **`digitalocean-domain-list`**  
+  List domains with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+- **`digitalocean-domain-record-get`**  
+  Get a domain record by domain name and record ID.  
+  - `Domain` (string, required): Domain name  
+  - `RecordID` (number, required): ID of the domain record
+
+- **`digitalocean-domain-record-list`**  
+  List domain records for a domain with pagination.  
+  - `Domain` (string, required): Domain name  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
 ---
 
 ### Certificates
@@ -52,6 +72,35 @@ This directory contains tools and resources for managing DigitalOcean networking
 - **`digitalocean-certificate-delete`**
   Delete a certificate.
   - `ID` (string, required): ID of the certificate to delete
+
+- **`digitalocean-certificate-get`**  
+  Get certificate information by ID.  
+  - `ID` (string, required): ID of the certificate
+
+- **`digitalocean-certificate-list`**  
+  List certificates with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
+
+---
+
+### Firewalls
+
+- **`digitalocean-firewall-create`**
+  Create a new firewall.
+  - `Name` (string, required): Name of the firewall
+  - `InboundProtocol` (string, required): Protocol for inbound rule
+  - `InboundPortRange` (string, required): Port range for inbound rule
+  - `InboundSource` (string, required): Source address for inbound rule
+  - `OutboundProtocol` (string, required): Protocol for outbound rule
+  - `OutboundPortRange` (string, required): Port range for outbound rule
+  - `OutboundDestination` (string, required): Destination address for outbound rule
+  - `DropletIDs` (array of numbers, optional): Droplet IDs to apply the firewall to
+  - `Tags` (array of strings, optional): Tags to apply the firewall to
+
+- **`digitalocean-firewall-delete`**
+  Delete a firewall.
+  - `ID` (string, required): ID of the firewall to delete
 
 - **`digitalocean-firewall-add-tags`**
   Add one or more tags to a firewall.
@@ -97,37 +146,17 @@ This directory contains tools and resources for managing DigitalOcean networking
     - `PortRange` (string, required): Port range (e.g., '80', '443', '8000-8080')
     - `Destinations` (array of strings, required): Destination IP addresses or CIDR blocks
 
----
+- **`digitalocean-firewall-get`**  
+  Get firewall information by ID.  
+  - `ID` (string, required): ID of the firewall
 
-### Firewalls
-
-- **`digitalocean-firewall-create`**
-  Create a new firewall.
-  - `Name` (string, required): Name of the firewall
-  - `InboundProtocol` (string, required): Protocol for inbound rule
-  - `InboundPortRange` (string, required): Port range for inbound rule
-  - `InboundSource` (string, required): Source address for inbound rule
-  - `OutboundProtocol` (string, required): Protocol for outbound rule
-  - `OutboundPortRange` (string, required): Port range for outbound rule
-  - `OutboundDestination` (string, required): Destination address for outbound rule
-  - `DropletIDs` (array of numbers, optional): Droplet IDs to apply the firewall to
-  - `Tags` (array of strings, optional): Tags to apply the firewall to
-
-- **`digitalocean-firewall-delete`**
-  Delete a firewall.
-  - `ID` (string, required): ID of the firewall to delete
+- **`digitalocean-firewall-list`**  
+  List firewalls with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
 ---
 
-- **`digitalocean-reserved-ipv4-list`**
-  List reserved IPv4 addresses with pagination.
-  - `Page` (number, optional, default: 1): Page number
-  - `PerPage` (number, optional, default: 20): Items per page
-
-- **`digitalocean-reserved-ipv6-list`**
-  List reserved IPv6 addresses with pagination.
-  - `Page` (number, optional, default: 1): Page number
-  - `PerPage` (number, optional, default: 20): Items per page
 
 ### Reserved IPs
 
@@ -152,6 +181,34 @@ This directory contains tools and resources for managing DigitalOcean networking
   - `IP` (string, required): The reserved IP to unassign
   - `Type` (string, required): Type of IP (`ipv4` or `ipv6`)
 
+- **`digitalocean-reserved-ipv4-list`**
+  List reserved IPv4 addresses with pagination.
+  - `Page` (number, optional, default: 1): Page number
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv6-list`**
+  List reserved IPv6 addresses with pagination.
+  - `Page` (number, optional, default: 1): Page number
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv4-list`**  
+  List reserved IPv4 addresses with pagination.  
+  - `Page` (number, optional, default: 1): Page number  
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv6-list`**  
+  List reserved IPv6 addresses with pagination.  
+  - `Page` (number, optional, default: 1): Page number  
+  - `PerPage` (number, optional, default: 20): Items per page
+
+- **`digitalocean-reserved-ipv4-get`**  
+  Get reserved IPv4 information by IP.  
+  - `IP` (string, required): The reserved IPv4 address
+
+- **`digitalocean-reserved-ipv6-get`**  
+  Get reserved IPv6 information by IP.  
+  - `IP` (string, required): The reserved IPv6 address
+  
 ---
 
 ### VPC Peering
@@ -165,6 +222,15 @@ This directory contains tools and resources for managing DigitalOcean networking
 - **`digitalocean-vpc-peering-delete`**
   Delete a VPC Peering connection.
   - `ID` (string, required): ID of the VPC Peering connection to delete
+
+- **`digitalocean-vpc-peering-get`**  
+  Get VPC Peering information by ID.  
+  - `ID` (string, required): ID of the VPC Peering connection
+
+- **`digitalocean-vpc-peering-list`**  
+  List VPC Peering connections with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
 ---
 
@@ -185,30 +251,16 @@ This directory contains tools and resources for managing DigitalOcean networking
   Delete a VPC.
   - `ID` (string, required): ID of the VPC to delete
 
----
+- **`digitalocean-vpc-get`**  
+  Get VPC information by ID.  
+  - `ID` (string, required): ID of the VPC
 
-### CDN
-
-- **`digitalocean-cdn-create`**
-  Create a new CDN.
-  - `Origin` (string, required): Origin URL for the CDN
-  - `TTL` (number, required): Time-to-live for the CDN cache
-  - `CustomDomain` (string, optional): Custom domain for the CDN
-
-- **`digitalocean-cdn-delete`**
-  Delete a CDN.
-  - `ID` (string, required): ID of the CDN to delete
-
-- **`digitalocean-cdn-flush-cache`**
-  Flush the cache of a CDN.
-  - `ID` (string, required): ID of the CDN
-  - `Files` (array of strings, required): File names to flush from the cache
+- **`digitalocean-vpc-list`**  
+  List VPCs with pagination.  
+  - `Page` (number, default: 1): Page number  
+  - `PerPage` (number, default: 20): Items per page
 
 ---
-
-- **`vpc_peering://{id}`**
-  Returns information about a specific VPC Peering connection.
-
 
 ### Partner Attachments
 
@@ -235,111 +287,6 @@ This directory contains tools and resources for managing DigitalOcean networking
   - `ID` (string, required): ID of the partner attachment
   - `Name` (string, required): New name
   - `VPCIDs` (array of strings, required): VPC IDs to associate
-
----
-
-## Additional Tool-Based Handlers
-
-The following tools are now available for direct querying and listing of all networking resources:
-
-### Domains
-
-- **`digitalocean-domain-get`**  
-  Get domain information by name.  
-  - `Name` (string, required): Name of the domain
-
-- **`digitalocean-domain-list`**  
-  List domains with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-- **`digitalocean-domain-record-get`**  
-  Get a domain record by domain name and record ID.  
-  - `Domain` (string, required): Domain name  
-  - `RecordID` (number, required): ID of the domain record
-
-- **`digitalocean-domain-record-list`**  
-  List domain records for a domain with pagination.  
-  - `Domain` (string, required): Domain name  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### Certificates
-
-- **`digitalocean-certificate-get`**  
-  Get certificate information by ID.  
-  - `ID` (string, required): ID of the certificate
-
-- **`digitalocean-certificate-list`**  
-  List certificates with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### Firewalls
-
-- **`digitalocean-firewall-get`**  
-  Get firewall information by ID.  
-  - `ID` (string, required): ID of the firewall
-
-- **`digitalocean-firewall-list`**  
-  List firewalls with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### Reserved IPs
-
-- **`digitalocean-reserved-ipv4-list`**  
-  List reserved IPv4 addresses with pagination.  
-  - `Page` (number, optional, default: 1): Page number  
-  - `PerPage` (number, optional, default: 20): Items per page
-
-- **`digitalocean-reserved-ipv6-list`**  
-  List reserved IPv6 addresses with pagination.  
-  - `Page` (number, optional, default: 1): Page number  
-  - `PerPage` (number, optional, default: 20): Items per page
-
-- **`digitalocean-reserved-ipv4-get`**  
-  Get reserved IPv4 information by IP.  
-  - `IP` (string, required): The reserved IPv4 address
-
-- **`digitalocean-reserved-ipv6-get`**  
-  Get reserved IPv6 information by IP.  
-  - `IP` (string, required): The reserved IPv6 address
-
-### VPCs
-
-- **`digitalocean-vpc-get`**  
-  Get VPC information by ID.  
-  - `ID` (string, required): ID of the VPC
-
-- **`digitalocean-vpc-list`**  
-  List VPCs with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### VPC Peering
-
-- **`digitalocean-vpc-peering-get`**  
-  Get VPC Peering information by ID.  
-  - `ID` (string, required): ID of the VPC Peering connection
-
-- **`digitalocean-vpc-peering-list`**  
-  List VPC Peering connections with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### CDN
-
-- **`digitalocean-cdn-get`**  
-  Get CDN information by ID.  
-  - `ID` (string, required): ID of the CDN
-
-- **`digitalocean-cdn-list`**  
-  List CDNs with pagination.  
-  - `Page` (number, default: 1): Page number  
-  - `PerPage` (number, default: 20): Items per page
-
-### Partner Attachments
 
 - **`digitalocean-partner-attachment-get`**  
   Get partner attachment information by ID.  
