@@ -64,7 +64,7 @@ The MCP DigitalOcean Integration supports a variety of services, allowing users 
 | **Apps**       | Manage DigitalOcean App Platform applications, including deployments and configurations.                            |
 | **Droplets**   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean.                          |
 | **Account**    | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys.                          |
-| **Networking** | Manage domains, DNS records, certificates, firewalls, reserved IPs, VPCs, CDNs, and Partner Network attachments.            |
+| **Networking** | Manage domains, DNS records, certificates, firewalls, reserved IPs, VPCs, and Partner Network attachments.            |
 
 ---
 ## Service Documentation
@@ -72,10 +72,10 @@ The MCP DigitalOcean Integration supports a variety of services, allowing users 
 Each service provides a detailed README describing all available tools, resources, arguments, and example queries.
 See the following files for full documentation:
 
-- [Apps Service README](./internal/apps/README.md)
-- [Droplet Service README](./internal/droplet/README.md)
-- [Account Service README](./internal/account/README.md)
-- [Networking Service README](./internal/networking/README.md)
+- [Apps Service](./internal/apps/README.md)
+- [Droplet Service](./internal/droplet/README.md)
+- [Account Service](./internal/account/README.md)
+- [Networking Service](./internal/networking/README.md)
 
 ---
 
