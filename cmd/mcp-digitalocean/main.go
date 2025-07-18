@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	registry "mcp-digitalocean/internal"
 
@@ -109,36 +112,58 @@ func main() {
 	} else {
 		sseServer := server.NewSSEServer(s, server.WithBaseURL(*baseUrl))
 
-		// Start on UNIX socket if path to bind on given, otherwise start on address and port
+		srv := &http.Server{
+			Handler: sseServer,
+		}
+
+		idleConnsClosed := make(chan struct{})
+
+		// Support graceful shutdown
+		go func() {
+			sigint := make(chan os.Signal, 1)
+			signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+
+			<-sigint
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := srv.Shutdown(ctx); err != nil {
+				logger.Error("HTTP server shutdown error", "error", err)
+			}
+
+			close(idleConnsClosed)
+		}()
+
+		// Start the HTTP server over TCP or UNIX socket
+		var err error
 		if *unixSock != "" {
-			logger.Debug("starting MCP server", "mode", "unix", "unix", *unixSock, "name", mcpName, "version", mcpVersion)
-			listener, err := net.Listen("unix", *unixSock)
-			if err != nil {
-				slog.Error("Failed to listen on UNIX socket", "error", err)
+			logger.Debug("starting MCP server", "mode", "unix", "name", mcpName, "version", mcpVersion, "path", *unixSock)
+			if err := os.Remove(*unixSock); err != nil && !os.IsNotExist(err) {
+				logger.Error("Failed to remove old unix socket", "error", err)
+				os.Exit(1)
+			}
+			listener, listenErr := net.Listen("unix", *unixSock)
+			if listenErr != nil {
+				logger.Error("Failed to listen on UNIX socket", "error", listenErr)
 				os.Exit(1)
 			}
 			defer listener.Close()
-			err = http.Serve(listener, sseServer)
-			// if context cancelled or sigterm then shutdown gracefully
-			if errors.Is(err, context.Canceled) {
-				logger.Info("Server shutdown gracefully")
-				os.Exit(0)
-			} else {
-				logger.Error("Failed to serve MCP server: " + err.Error())
-				os.Exit(1)
-			}
+			err = srv.Serve(listener)
 		} else {
-			logger.Debug("starting MCP server", "mode", "http", "http", *httpAddr, "name", mcpName, "version", mcpVersion)
-			err := http.ListenAndServe(*httpAddr, sseServer)
-			// if context cancelled or sigterm then shutdown gracefully
-			if errors.Is(err, context.Canceled) {
-				logger.Info("Server shutdown gracefully")
-				os.Exit(0)
-			} else {
-				logger.Error("Failed to serve MCP server: " + err.Error())
-				os.Exit(1)
-			}
+			logger.Debug("starting MCP server", "mode", "http", "name", mcpName, "version", mcpVersion, "addr", *httpAddr)
+			srv.Addr = *httpAddr
+			err = srv.ListenAndServe()
 		}
+
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("Failed to serve MCP server: " + err.Error())
+			os.Exit(1)
+		}
+
+		<-idleConnsClosed
+		logger.Info("Server shutdown gracefully")
+		os.Exit(0)
 	}
 }
 
