@@ -24,7 +24,7 @@ const keyringLastUsedTeam = "last-used-team"
 
 // --- Environment Variables ---
 var (
-	thisEndpoint              = getEnv("THIS_ENDPOINT", "http://localhost:8080")
+	thisEndpoint              = getEnv("THIS_ENDPOINT", "http://127.0.0.1:8080")
 	upstreamAPIURL            = getEnv("UPSTREAM_API_URL", "https://api.digitalocean.com")
 	digitalOceanOAuthClientID = getEnv("DIGITALOCEAN_OAUTH_CLIENT_ID", "61f2be08367bf0b0cd6142f66838f48d5729da42f33f300919b4a3f8a6152904")
 	// The client secret is not used in the OAuth Implicit Grant Flow.
