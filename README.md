@@ -84,7 +84,7 @@ claude mcp remove -s user digitalocean-mcp-user-scope
 
 #### Using Cursor IDE
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=digitalocean&config=eyJjb21tYW5kIjoibnB4IEBkaWdpdGFsb2NlYW4vbWNwIC0tc2VydmljZXMgYXBwcyIsImVudiI6eyJESUdJVEFMT0NFQU5fQVBJX1RPS0VOIjoiWU9VUl9ET19UT0tFTiJ9fQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=digitalocean&config=JTdCJTIyY29tbWFuZCUyMiUzQSUyMm5weCUyMCU0MGRpZ2l0YWxvY2VhbiUyRm1jcCUyMC0tc2VydmljZXMlMjBhcHBzJTIyJTJDJTIyZW52JTIyJTNBJTdCJTIyRElHSVRBTE9DRUFOX0FQSV9UT0tFTiUyMiUzQSUyMllPVVJfQVBJX1RPS0VOJTIyJTdEJTdE)
 
 ```json
 {
