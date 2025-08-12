@@ -6,10 +6,15 @@ MCP DigitalOcean Integration is an open-source project that provides a comprehen
 
 ## Installation
 
-Prerequisites:
+#### Prerequisites
 
 - Node.js (v18 or later)
 - NPM (v8 or later)
+
+```bash
+node --version
+npm --version
+```
 
 #### Local Installation
 
@@ -52,6 +57,22 @@ To remove it:
 
 ```bash
 claude mcp remove digitalocean-mcp
+```
+
+Alternatively, add the following to your **claude_desktop_config.json** file.
+
+```json
+{
+  "mcpServers": {
+    "digitalocean": {
+      "command": "npx",
+      "args": ["@digitalocean/mcp", "--services apps"],
+      "env": {
+        "DIGITALOCEAN_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}
 ```
 
 ---
