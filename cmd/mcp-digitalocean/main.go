@@ -18,13 +18,18 @@ import (
 
 const (
 	mcpName    = "mcp-digitalocean"
-	mcpVersion = "1.0.9"
+	mcpVersion = "1.0.10"
+
+	defaultEndpoint = "https://api.digitalocean.com"
 )
 
 func main() {
 	logLevelFlag := flag.String("log-level", "info", "Log level: debug, info, warn, error")
 	serviceFlag := flag.String("services", "", "Comma-separated list of services to activate (e.g., apps,networking,droplets)")
 	tokenFlag := flag.String("digitalocean-api-token", "", "DigitalOcean API token")
+
+	// optional
+	endpointFlag := flag.String("digitalocean-api-endpoint", "", "DigitalOcean API endpoint")
 	flag.Parse()
 
 	var level slog.Level
@@ -51,12 +56,20 @@ func main() {
 		}
 	}
 
+	endpoint := *endpointFlag
+	if endpoint != "" {
+		endpoint = os.Getenv("DIGITALOCEAN_API_ENDPOINT")
+		if endpoint == "" {
+			endpoint = defaultEndpoint
+		}
+	}
+
 	var services []string
 	if *serviceFlag != "" {
 		services = strings.Split(*serviceFlag, ",")
 	}
 
-	client, err := newGodoClientWithToken(context.Background(), token)
+	client, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, endpoint)
 	if err != nil {
 		logger.Error("Failed to create DigitalOcean client: " + err.Error())
 		os.Exit(1)
@@ -83,8 +96,8 @@ func main() {
 	}
 }
 
-// newGodoClientWithToken initializes a new godo client with a custom user agent.
-func newGodoClientWithToken(ctx context.Context, token string) (*godo.Client, error) {
+// newGodoClientWithTokenAndEndpoint initializes a new godo client with a custom user agent and endpoint.
+func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string) (*godo.Client, error) {
 	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
 	oauthClient := oauth2.NewClient(ctx, ts)
@@ -97,5 +110,6 @@ func newGodoClientWithToken(ctx context.Context, token string) (*godo.Client, er
 
 	return godo.New(oauthClient,
 		godo.WithRetryAndBackoffs(retry),
+		godo.SetBaseURL(endpoint),
 		godo.SetUserAgent(fmt.Sprintf("%s/%s", mcpName, mcpVersion)))
 }
