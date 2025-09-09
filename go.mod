@@ -6,7 +6,7 @@ require (
 	github.com/digitalocean/godo v1.160.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mark3labs/mcp-go v0.36.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
 	golang.org/x/oauth2 v0.30.0
 )
