@@ -8,7 +8,7 @@ require (
 	github.com/mark3labs/mcp-go v0.39.1
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 )
 
 require (
