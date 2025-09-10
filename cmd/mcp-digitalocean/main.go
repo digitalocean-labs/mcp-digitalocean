@@ -57,7 +57,7 @@ func main() {
 	}
 
 	endpoint := *endpointFlag
-	if endpoint != "" {
+	if endpoint == "" {
 		endpoint = os.Getenv("DIGITALOCEAN_API_ENDPOINT")
 		if endpoint == "" {
 			endpoint = defaultEndpoint
