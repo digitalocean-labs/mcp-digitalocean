@@ -653,6 +653,23 @@ func (d *DoksTool) recycleDOKSNodes(ctx context.Context, req mcp.CallToolRequest
 	return mcp.NewToolResultText(fmt.Sprintf("Successfully recycled %d nodes in node pool %s", len(nodeIDs), nodePoolID)), nil
 }
 
+// getKubernetesOptions gets available Kubernetes options including versions, regions, and sizes
+func (d *DoksTool) getKubernetesOptions(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Make the API call to get Kubernetes options
+	options, _, err := d.client.Kubernetes.GetOptions(ctx)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to get kubernetes options", err), nil
+	}
+
+	// Marshal the response
+	optionsJSON, err := json.MarshalIndent(options, "", "  ")
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to marshal kubernetes options", err), nil
+	}
+
+	return mcp.NewToolResultText(string(optionsJSON)), nil
+}
+
 // getDayFromString converts a day string to the format expected by the API
 func getDayFromString(day string) int {
 	// Normalize the day string
@@ -832,6 +849,12 @@ func (d *DoksTool) Tools() []server.ServerTool {
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
 				mcp.WithArray("NodeIDs", mcp.Required(), mcp.Description("List of node IDs to recycle")),
+			),
+		},
+		{
+			Handler: d.getKubernetesOptions,
+			Tool: mcp.NewTool("doks-list-options",
+				mcp.WithDescription("List available Kubernetes options including versions, regions, and sizes"),
 			),
 		},
 	}
