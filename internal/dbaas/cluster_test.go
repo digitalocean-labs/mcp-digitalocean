@@ -182,7 +182,11 @@ func TestClusterTool_listOptions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockDB := mocks.NewMockDatabasesService(ctrl)
-	mockDB.EXPECT().ListOptions(gomock.Any()).Return(&godo.DatabaseOptions{}, nil, nil)
+	mockDB.EXPECT().ListOptions(gomock.Any()).Return(&godo.DatabaseOptions{
+		Engines: map[string]godo.DatabaseEngineOptions{
+			"pg": {},
+		},
+	}, nil, nil)
 	client := &godo.Client{}
 	client.Databases = mockDB
 	ct := &ClusterTool{client: client}
