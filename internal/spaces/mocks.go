@@ -21,6 +21,7 @@ import (
 type MockSpacesKeysService struct {
 	ctrl     *gomock.Controller
 	recorder *MockSpacesKeysServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockSpacesKeysServiceMockRecorder is the mock recorder for MockSpacesKeysService.
@@ -123,6 +124,7 @@ func (mr *MockSpacesKeysServiceMockRecorder) Update(arg0, arg1, arg2 any) *gomoc
 type MockCDNService struct {
 	ctrl     *gomock.Controller
 	recorder *MockCDNServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockCDNServiceMockRecorder is the mock recorder for MockCDNService.

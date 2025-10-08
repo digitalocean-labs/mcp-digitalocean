@@ -1,0 +1,1208 @@
+{
+  "$defs": {
+    "AppAlertSpec": {
+      "description": "AppAlertSpec Configuration of an alert for the app or a individual component.",
+      "properties": {
+        "disabled": {
+          "description": "Determines whether or not the alert is disabled.",
+          "type": "boolean"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "rule": {
+          "type": "string"
+        },
+        "value": {
+          "description": "The meaning is dependent upon the rule. It is used in conjunction with the operator and window to determine when an alert should trigger.",
+          "type": "number"
+        },
+        "window": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppAutoscalingSpec": {
+      "description": "AppAutoscalingSpec struct for AppAutoscalingSpec",
+      "properties": {
+        "max_instance_count": {
+          "description": "The maximum amount of instances for this component. Maximum 250. Consider using a larger instance size if your application requires more than 250 instances.",
+          "type": "integer"
+        },
+        "metrics": {
+          "$ref": "#/$defs/AppAutoscalingSpecMetrics"
+        },
+        "min_instance_count": {
+          "description": "The minimum amount of instances for this component.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "AppAutoscalingSpecMetricCPU": {
+      "description": "AppAutoscalingSpecMetricCPU struct for AppAutoscalingSpecMetricCPU",
+      "properties": {
+        "percent": {
+          "description": "The average target CPU utilization for the component.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "AppAutoscalingSpecMetrics": {
+      "description": "AppAutoscalingSpecMetrics struct for AppAutoscalingSpecMetrics",
+      "properties": {
+        "cpu": {
+          "$ref": "#/$defs/AppAutoscalingSpecMetricCPU"
+        }
+      },
+      "type": "object"
+    },
+    "AppCORSPolicy": {
+      "description": "AppCORSPolicy struct for AppCORSPolicy",
+      "properties": {
+        "allow_credentials": {
+          "description": "Whether browsers should expose the response to the client-side JavaScript code when the request's credentials mode is `include`. This configures the Access-Control-Allow-Credentials header.",
+          "type": "boolean"
+        },
+        "allow_headers": {
+          "description": "The set of allowed HTTP request headers. This configures the Access-Control-Allow-Headers header.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "allow_methods": {
+          "description": "The set of allowed HTTP methods. This configures the Access-Control-Allow-Methods header.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "allow_origins": {
+          "description": "The set of allowed CORS origins. This configures the Access-Control-Allow-Origin header.",
+          "items": {
+            "$ref": "#/$defs/AppStringMatch"
+          },
+          "type": "array"
+        },
+        "expose_headers": {
+          "description": "The set of HTTP response headers that browsers are allowed to access. This configures the Access-Control-Expose-Headers  header.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "max_age": {
+          "description": "An optional duration specifying how long browsers can cache the results of a preflight request. This configures the Access-Control-Max-Age header. Example: `5h30m`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppCreateRequest": {
+      "description": "AppCreateRequest struct for AppCreateRequest",
+      "properties": {
+        "project_id": {
+          "description": "Optional. The UUID of the project the app should be assigned.",
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/$defs/AppSpec"
+        }
+      },
+      "type": "object"
+    },
+    "AppDatabaseSpec": {
+      "description": "AppDatabaseSpec struct for AppDatabaseSpec",
+      "properties": {
+        "cluster_name": {
+          "description": "The name of the underlying DigitalOcean DBaaS cluster. This is required for production databases. For dev databases, if cluster_name is not set, a new cluster will be provisioned.",
+          "type": "string"
+        },
+        "db_name": {
+          "description": "The name of the MySQL or PostgreSQL database to configure.",
+          "type": "string"
+        },
+        "db_user": {
+          "description": "The name of the MySQL or PostgreSQL user to configure.",
+          "type": "string"
+        },
+        "engine": {
+          "type": "string"
+        },
+        "name": {
+          "description": "The database's name. The name must be unique across all components within the same app and cannot use capital letters.",
+          "type": "string"
+        },
+        "num_nodes": {
+          "description": "Deprecated.",
+          "type": "integer"
+        },
+        "production": {
+          "description": "Whether this is a production or dev database.",
+          "type": "boolean"
+        },
+        "size": {
+          "description": "Deprecated.",
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppDomainSpec": {
+      "description": "AppDomainSpec struct for AppDomainSpec",
+      "properties": {
+        "certificate": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "minimum_tls_version": {
+          "description": "Optional. The minimum version of TLS a client application can use to access resources for the domain.  Must be one of the following values wrapped within quotations: `\\\"1.2\\\"` or `\\\"1.3\\\"`.",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "wildcard": {
+          "type": "boolean"
+        },
+        "zone": {
+          "description": "Optional. If the domain uses DigitalOcean DNS and you would like App Platform to automatically manage it for you, set this to the name of the domain on your account.  For example, If the domain you are adding is `app.domain.com`, the zone could be `domain.com`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppEgressSpec": {
+      "description": "AppEgressSpec Specification for app egress configurations.",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppFunctionsSpec": {
+      "description": "AppFunctionsSpec struct for AppFunctionsSpec",
+      "properties": {
+        "alerts": {
+          "description": "A list of configured alerts the user has enabled.",
+          "items": {
+            "$ref": "#/$defs/AppAlertSpec"
+          },
+          "type": "array"
+        },
+        "bitbucket": {
+          "$ref": "#/$defs/BitbucketSourceSpec"
+        },
+        "cors": {
+          "$ref": "#/$defs/AppCORSPolicy"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to the component.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "git": {
+          "$ref": "#/$defs/GitSourceSpec"
+        },
+        "github": {
+          "$ref": "#/$defs/GitHubSourceSpec"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitLabSourceSpec"
+        },
+        "log_destinations": {
+          "description": "A list of configured log forwarding destinations.",
+          "items": {
+            "$ref": "#/$defs/AppLogDestinationSpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "The name. Must be unique across all components within the same app.",
+          "type": "string"
+        },
+        "routes": {
+          "description": "(Deprecated) A list of HTTP routes that should be routed to this component.",
+          "items": {
+            "$ref": "#/$defs/AppRouteSpec"
+          },
+          "type": "array"
+        },
+        "source_dir": {
+          "description": "An optional path to the working directory to use for the build. Must be relative to the root of the repo.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpec": {
+      "description": "AppIngressSpec Specification for app ingress configurations.",
+      "properties": {
+        "load_balancer": {
+          "type": "string"
+        },
+        "load_balancer_size": {
+          "type": "integer"
+        },
+        "rules": {
+          "description": "Rules for configuring HTTP ingress for component routes, CORS, rewrites, and redirects.",
+          "items": {
+            "$ref": "#/$defs/AppIngressSpecRule"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpecRule": {
+      "description": "AppIngressSpecRule A rule that configures component routes, rewrites, redirects and cors.",
+      "properties": {
+        "component": {
+          "$ref": "#/$defs/AppIngressSpecRuleRoutingComponent"
+        },
+        "cors": {
+          "$ref": "#/$defs/AppCORSPolicy"
+        },
+        "match": {
+          "$ref": "#/$defs/AppIngressSpecRuleMatch"
+        },
+        "redirect": {
+          "$ref": "#/$defs/AppIngressSpecRuleRoutingRedirect"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpecRuleMatch": {
+      "description": "AppIngressSpecRuleMatch The match configuration for a rule.",
+      "properties": {
+        "authority": {
+          "$ref": "#/$defs/AppIngressSpecRuleStringMatch"
+        },
+        "path": {
+          "$ref": "#/$defs/AppIngressSpecRuleStringMatch"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpecRuleRoutingComponent": {
+      "description": "AppIngressSpecRuleRoutingComponent The component routing configuration.",
+      "properties": {
+        "name": {
+          "description": "The name of the component to route to.",
+          "type": "string"
+        },
+        "preserve_path_prefix": {
+          "description": "An optional flag to preserve the path that is forwarded to the backend service. By default, the HTTP request path will be trimmed from the left when forwarded to the component. For example, a component with `path=/api` will have requests to `/api/list` trimmed to `/list`. If this value is `true`, the path will remain `/api/list`. Note: this is not applicable for Functions Components and is mutually exclusive with `rewrite`.",
+          "type": "boolean"
+        },
+        "rewrite": {
+          "description": "An optional field that will rewrite the path of the component to be what is specified here. By default, the HTTP request path will be trimmed from the left when forwarded to the component. For example, a component with `path=/api` will have requests to `/api/list` trimmed to `/list`. If you specified the rewrite to be `/v1/`, requests to `/api/list` would be rewritten to `/v1/list`. Note: this is mutually exclusive with `preserve_path_prefix`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpecRuleRoutingRedirect": {
+      "description": "AppIngressSpecRuleRoutingRedirect The redirect routing configuration.",
+      "properties": {
+        "authority": {
+          "description": "The authority/host to redirect to. This can be a hostname or IP address. Note: use `port` to set the port.",
+          "type": "string"
+        },
+        "port": {
+          "description": "The port to redirect to.",
+          "type": "integer"
+        },
+        "redirect_code": {
+          "description": "The redirect code to use. Defaults to `302`. Supported values are 300, 301, 302, 303, 304, 307, 308.",
+          "type": "integer"
+        },
+        "scheme": {
+          "description": "The scheme to redirect to. Supported values are `http` or `https`. Default: `https`.",
+          "type": "string"
+        },
+        "uri": {
+          "description": "An optional URI path to redirect to. Note: if this is specified the whole URI of the original request will be overwritten to this value, irrespective of the original request URI being matched.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppIngressSpecRuleStringMatch": {
+      "description": "AppIngressSpecRuleStringMatch The string match configuration.",
+      "properties": {
+        "exact": {
+          "type": "string"
+        },
+        "prefix": {
+          "description": "Prefix-based match. For example, `/api` will match `/api`, `/api/`, and any nested paths such as `/api/v1/endpoint`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppJobSpec": {
+      "description": "AppJobSpec struct for AppJobSpec",
+      "properties": {
+        "alerts": {
+          "description": "A list of configured alerts which apply to the component.",
+          "items": {
+            "$ref": "#/$defs/AppAlertSpec"
+          },
+          "type": "array"
+        },
+        "bitbucket": {
+          "$ref": "#/$defs/BitbucketSourceSpec"
+        },
+        "build_command": {
+          "description": "An optional build command to run while building this component from source.",
+          "type": "string"
+        },
+        "dockerfile_path": {
+          "description": "The path to the Dockerfile relative to the root of the repo. If set, it will be used to build this component. Otherwise, App Platform will attempt to build it using buildpacks.",
+          "type": "string"
+        },
+        "environment_slug": {
+          "description": "An environment slug describing the type of this app. For a full list, please refer to [the product documentation](https://www.digitalocean.com/docs/app-platform/).",
+          "type": "string"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to the component.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "git": {
+          "$ref": "#/$defs/GitSourceSpec"
+        },
+        "github": {
+          "$ref": "#/$defs/GitHubSourceSpec"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitLabSourceSpec"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageSourceSpec"
+        },
+        "instance_count": {
+          "description": "The amount of instances that this component should be scaled to. Default 1, Minimum 1, Maximum 250. Consider using a larger instance size if your application requires more than 250 instances.",
+          "type": "integer"
+        },
+        "instance_size_slug": {
+          "description": "The instance size to use for this component.",
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "log_destinations": {
+          "description": "A list of configured log forwarding destinations.",
+          "items": {
+            "$ref": "#/$defs/AppLogDestinationSpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "The name. Must be unique across all components within the same app.",
+          "type": "string"
+        },
+        "run_command": {
+          "description": "An optional run command to override the component's default.",
+          "type": "string"
+        },
+        "source_dir": {
+          "description": "An optional path to the working directory to use for the build. For Dockerfile builds, this will be used as the build context. Must be relative to the root of the repo.",
+          "type": "string"
+        },
+        "termination": {
+          "$ref": "#/$defs/AppJobSpecTermination"
+        }
+      },
+      "type": "object"
+    },
+    "AppJobSpecTermination": {
+      "description": "AppJobSpecTermination struct for AppJobSpecTermination",
+      "properties": {
+        "grace_period_seconds": {
+          "description": "The number of seconds to wait between sending a TERM signal to a container and issuing a KILL which causes immediate shutdown. Default: 120, Minimum 1, Maximum 600.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpec": {
+      "description": "AppLogDestinationSpec struct for AppLogDestinationSpec",
+      "properties": {
+        "datadog": {
+          "$ref": "#/$defs/AppLogDestinationSpecDataDog"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "headers": {
+          "items": {
+            "$ref": "#/$defs/AppLogDestinationSpecHeader"
+          },
+          "type": "array"
+        },
+        "logtail": {
+          "$ref": "#/$defs/AppLogDestinationSpecLogtail"
+        },
+        "name": {
+          "description": "Name of the log destination.",
+          "type": "string"
+        },
+        "open_search": {
+          "$ref": "#/$defs/AppLogDestinationSpecOpenSearch"
+        },
+        "papertrail": {
+          "$ref": "#/$defs/AppLogDestinationSpecPapertrail"
+        },
+        "tls_insecure": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpecDataDog": {
+      "description": "AppLogDestinationSpecDataDog DataDog configuration.",
+      "properties": {
+        "api_key": {
+          "description": "Datadog API key.",
+          "type": "string"
+        },
+        "endpoint": {
+          "description": "Datadog HTTP log intake endpoint.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpecHeader": {
+      "description": "AppLogDestinationSpecHeader struct for AppLogDestinationSpecHeader",
+      "properties": {
+        "key": {
+          "description": "The name",
+          "type": "string"
+        },
+        "value": {
+          "description": "The header value.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpecLogtail": {
+      "description": "AppLogDestinationSpecLogtail Logtail configuration.",
+      "properties": {
+        "token": {
+          "description": "Logtail token.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpecOpenSearch": {
+      "description": "AppLogDestinationSpecOpenSearch OpenSearch configuration.",
+      "properties": {
+        "basic_auth": {
+          "$ref": "#/$defs/OpenSearchBasicAuth"
+        },
+        "cluster_name": {
+          "description": "The name of a DigitalOcean DBaaS OpenSearch cluster to use as a log forwarding destination. Cannot be specified if `endpoint` is also specified.",
+          "type": "string"
+        },
+        "endpoint": {
+          "description": "OpenSearch API Endpoint. Only HTTPS is supported. Format: https://\u003chost\u003e:\u003cport\u003e. Cannot be specified if `cluster_name` is also specified.",
+          "type": "string"
+        },
+        "index_name": {
+          "description": "The index name to use for the logs. If not set, the default index name is \\\"logs\\\".",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppLogDestinationSpecPapertrail": {
+      "description": "AppLogDestinationSpecPapertrail Papertrail configuration.",
+      "properties": {
+        "endpoint": {
+          "description": "Papertrail syslog endpoint.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppMaintenanceSpec": {
+      "description": "AppMaintenanceSpec struct for AppMaintenanceSpec",
+      "properties": {
+        "archive": {
+          "description": "Indicates whether the app should be archived. Setting this to true implies that enabled is set to true.",
+          "type": "boolean"
+        },
+        "enabled": {
+          "description": "Indicates whether maintenance mode should be enabled for the app.",
+          "type": "boolean"
+        },
+        "offline_page_url": {
+          "description": "A custom offline page to display when maintenance mode is enabled or the app is archived.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppRouteSpec": {
+      "description": "AppRouteSpec struct for AppRouteSpec",
+      "properties": {
+        "path": {
+          "description": "(Deprecated) An HTTP path prefix. Paths must start with / and must be unique across all components within an app.",
+          "type": "string"
+        },
+        "preserve_path_prefix": {
+          "description": "(Deprecated) An optional flag to preserve the path that is forwarded to the backend service. By default, the HTTP request path will be trimmed from the left when forwarded to the component. For example, a component with `path=/api` will have requests to `/api/list` trimmed to `/list`. If this value is `true`, the path will remain `/api/list`. Note: this is not applicable for Functions Components.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "AppServiceSpec": {
+      "description": "AppServiceSpec struct for AppServiceSpec",
+      "properties": {
+        "alerts": {
+          "description": "A list of configured alerts which apply to the component.",
+          "items": {
+            "$ref": "#/$defs/AppAlertSpec"
+          },
+          "type": "array"
+        },
+        "autoscaling": {
+          "$ref": "#/$defs/AppAutoscalingSpec"
+        },
+        "bitbucket": {
+          "$ref": "#/$defs/BitbucketSourceSpec"
+        },
+        "build_command": {
+          "description": "An optional build command to run while building this component from source.",
+          "type": "string"
+        },
+        "cors": {
+          "$ref": "#/$defs/AppCORSPolicy"
+        },
+        "dockerfile_path": {
+          "description": "The path to the Dockerfile relative to the root of the repo. If set, it will be used to build this component. Otherwise, App Platform will attempt to build it using buildpacks.",
+          "type": "string"
+        },
+        "environment_slug": {
+          "description": "An environment slug describing the type of this app. For a full list, please refer to [the product documentation](https://www.digitalocean.com/docs/app-platform/).",
+          "type": "string"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to the component.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "git": {
+          "$ref": "#/$defs/GitSourceSpec"
+        },
+        "github": {
+          "$ref": "#/$defs/GitHubSourceSpec"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitLabSourceSpec"
+        },
+        "health_check": {
+          "$ref": "#/$defs/AppServiceSpecHealthCheck"
+        },
+        "http_port": {
+          "description": "The internal port on which this service's run command will listen. Default: 8080 If there is not an environment variable with the name `PORT`, one will be automatically added with its value set to the value of this field.",
+          "type": "integer"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageSourceSpec"
+        },
+        "instance_count": {
+          "description": "The amount of instances that this component should be scaled to. Default 1, Minimum 1, Maximum 250. Consider using a larger instance size if your application requires more than 250 instances.",
+          "type": "integer"
+        },
+        "instance_size_slug": {
+          "type": "string"
+        },
+        "internal_ports": {
+          "description": "The ports on which this service will listen for internal traffic.",
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "liveness_health_check": {
+          "$ref": "#/$defs/HealthCheckSpec"
+        },
+        "log_destinations": {
+          "description": "A list of configured log forwarding destinations.",
+          "items": {
+            "$ref": "#/$defs/AppLogDestinationSpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "The name. Must be unique across all components within the same app.",
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "routes": {
+          "description": "(Deprecated) A list of HTTP routes that should be routed to this component.",
+          "items": {
+            "$ref": "#/$defs/AppRouteSpec"
+          },
+          "type": "array"
+        },
+        "run_command": {
+          "description": "An optional run command to override the component's default.",
+          "type": "string"
+        },
+        "source_dir": {
+          "description": "An optional path to the working directory to use for the build. For Dockerfile builds, this will be used as the build context. Must be relative to the root of the repo.",
+          "type": "string"
+        },
+        "termination": {
+          "$ref": "#/$defs/AppServiceSpecTermination"
+        }
+      },
+      "type": "object"
+    },
+    "AppServiceSpecHealthCheck": {
+      "description": "AppServiceSpecHealthCheck struct for AppServiceSpecHealthCheck",
+      "properties": {
+        "failure_threshold": {
+          "description": "The number of failed health checks before considered unhealthy. Default: 9, Minimum 1, Maximum 50. When used in liveness_health_check, Default: 18, Minimum 1, Maximum 50.",
+          "type": "integer"
+        },
+        "http_path": {
+          "description": "The route path used for the HTTP health check ping. If not set, the HTTP health check will be disabled and a TCP health check used instead.",
+          "type": "string"
+        },
+        "initial_delay_seconds": {
+          "description": "The number of seconds to wait before beginning health checks. Default: 0 seconds, Minimum 0, Maximum 3600. When used in liveness_health_check, Default: 5 seconds, Minimum 0, Maximum 3600.",
+          "type": "integer"
+        },
+        "path": {
+          "description": "Deprecated. Use http_path instead.",
+          "type": "string"
+        },
+        "period_seconds": {
+          "description": "The number of seconds to wait between health checks. Default: 10 seconds, Minimum 1, Maximum 300. When used in liveness_health_check, Default: 10 seconds, Minimum 1, Maximum 300.",
+          "type": "integer"
+        },
+        "port": {
+          "description": "The port on which the health check will be performed. If not set, the health check will be performed on the component's http_port.",
+          "type": "integer"
+        },
+        "success_threshold": {
+          "description": "The number of successful health checks before considered healthy. Default: 1, Minimum 1, Maximum 50. When used in liveness_health_check, Default: 1, Minimum 1, Maximum 1.",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "description": "The number of seconds after which the check times out. Default: 1 second, Minimum 1, Maximum 120.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "AppServiceSpecTermination": {
+      "description": "AppServiceSpecTermination struct for AppServiceSpecTermination",
+      "properties": {
+        "drain_seconds": {
+          "description": "The number of seconds to wait between selecting a container instance for termination and issuing the TERM signal. Selecting a container instance for termination begins an asynchronous drain of new requests on upstream load-balancers. Default: 15 seconds, Minimum 1, Maximum 110.",
+          "type": "integer"
+        },
+        "grace_period_seconds": {
+          "description": "The number of seconds to wait between sending a TERM signal to a container and issuing a KILL which causes immediate shutdown. Default: 120, Minimum 1, Maximum 600.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "AppSpec": {
+      "description": "AppSpec The desired configuration of an application.",
+      "properties": {
+        "alerts": {
+          "description": "A list of alerts which apply to the app.",
+          "items": {
+            "$ref": "#/$defs/AppAlertSpec"
+          },
+          "type": "array"
+        },
+        "databases": {
+          "description": "Database instances which can provide persistence to workloads within the application.",
+          "items": {
+            "$ref": "#/$defs/AppDatabaseSpec"
+          },
+          "type": "array"
+        },
+        "disable_edge_cache": {
+          "description": "Specification to disable edge (CDN) cache for all domains of the app. Note that this feature is in private preview.",
+          "type": "boolean"
+        },
+        "disable_email_obfuscation": {
+          "description": "Specification to disable email obfuscation.",
+          "type": "boolean"
+        },
+        "domains": {
+          "description": "A set of hostnames where the application will be available.",
+          "items": {
+            "$ref": "#/$defs/AppDomainSpec"
+          },
+          "type": "array"
+        },
+        "egress": {
+          "$ref": "#/$defs/AppEgressSpec"
+        },
+        "enhanced_threat_control_enabled": {
+          "description": "Specification to enable enhanced threat control mode, which takes necessary steps to prevent layer 7 DDoS for all domains of the app. Note that this feature is in private preview.",
+          "type": "boolean"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to all components in the app.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "functions": {
+          "description": "Workloads which expose publicly-accessible HTTP services via Functions Components.",
+          "items": {
+            "$ref": "#/$defs/AppFunctionsSpec"
+          },
+          "type": "array"
+        },
+        "ingress": {
+          "$ref": "#/$defs/AppIngressSpec"
+        },
+        "jobs": {
+          "description": "Pre and post deployment workloads which do not expose publicly-accessible HTTP routes.",
+          "items": {
+            "$ref": "#/$defs/AppJobSpec"
+          },
+          "type": "array"
+        },
+        "maintenance": {
+          "$ref": "#/$defs/AppMaintenanceSpec"
+        },
+        "name": {
+          "description": "The name of the app. Must be unique across all apps in the same account.",
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "services": {
+          "description": "Workloads which expose publicly-accessible HTTP services.",
+          "items": {
+            "$ref": "#/$defs/AppServiceSpec"
+          },
+          "type": "array"
+        },
+        "static_sites": {
+          "description": "Content which can be rendered to static web assets.",
+          "items": {
+            "$ref": "#/$defs/AppStaticSiteSpec"
+          },
+          "type": "array"
+        },
+        "vpc": {
+          "$ref": "#/$defs/AppVpcSpec"
+        },
+        "workers": {
+          "description": "Workloads which do not expose publicly-accessible HTTP services.",
+          "items": {
+            "$ref": "#/$defs/AppWorkerSpec"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AppStaticSiteSpec": {
+      "description": "AppStaticSiteSpec struct for AppStaticSiteSpec",
+      "properties": {
+        "bitbucket": {
+          "$ref": "#/$defs/BitbucketSourceSpec"
+        },
+        "build_command": {
+          "description": "An optional build command to run while building this component from source.",
+          "type": "string"
+        },
+        "catchall_document": {
+          "description": "The name of the document to use as the fallback for any requests to documents that are not found when serving this static site. Only 1 of `catchall_document` or `error_document` can be set.",
+          "type": "string"
+        },
+        "cors": {
+          "$ref": "#/$defs/AppCORSPolicy"
+        },
+        "dockerfile_path": {
+          "description": "The path to the Dockerfile relative to the root of the repo. If set, it will be used to build this component. Otherwise, App Platform will attempt to build it using buildpacks.",
+          "type": "string"
+        },
+        "environment_slug": {
+          "description": "An environment slug describing the type of this app. For a full list, please refer to [the product documentation](https://www.digitalocean.com/docs/app-platform/).",
+          "type": "string"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to the component.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "error_document": {
+          "description": "The name of the error document to use when serving this static site. Default: 404.html. If no such file exists within the built assets, App Platform will supply one.",
+          "type": "string"
+        },
+        "git": {
+          "$ref": "#/$defs/GitSourceSpec"
+        },
+        "github": {
+          "$ref": "#/$defs/GitHubSourceSpec"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitLabSourceSpec"
+        },
+        "index_document": {
+          "type": "string"
+        },
+        "name": {
+          "description": "The name. Must be unique across all components within the same app.",
+          "type": "string"
+        },
+        "output_dir": {
+          "description": "An optional path to where the built assets will be located, relative to the build context. If not set, App Platform will automatically scan for these directory names: `_static`, `dist`, `public`, `build`.",
+          "type": "string"
+        },
+        "routes": {
+          "description": "(Deprecated) A list of HTTP routes that should be routed to this component.",
+          "items": {
+            "$ref": "#/$defs/AppRouteSpec"
+          },
+          "type": "array"
+        },
+        "source_dir": {
+          "description": "An optional path to the working directory to use for the build. For Dockerfile builds, this will be used as the build context. Must be relative to the root of the repo.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppStringMatch": {
+      "description": "AppStringMatch struct for AppStringMatch",
+      "properties": {
+        "exact": {
+          "description": "Exact string match. Only 1 of `exact`, `prefix`, or `regex` must be set.",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "Prefix-based match. Only 1 of `exact`, `prefix`, or `regex` must be set.",
+          "type": "string"
+        },
+        "regex": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppVariableDefinition": {
+      "description": "AppVariableDefinition struct for AppVariableDefinition",
+      "properties": {
+        "key": {
+          "description": "The name",
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "description": "The value. If the type is `SECRET`, the value will be encrypted on first submission. On following submissions, the encrypted value should be used.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppVpcSpec": {
+      "description": "AppVpcSpec Configuration of VPC.",
+      "properties": {
+        "id": {
+          "description": "The id of the target VPC, in UUID format.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "AppWorkerSpec": {
+      "description": "AppWorkerSpec struct for AppWorkerSpec",
+      "properties": {
+        "alerts": {
+          "description": "A list of configured alerts which apply to the component.",
+          "items": {
+            "$ref": "#/$defs/AppAlertSpec"
+          },
+          "type": "array"
+        },
+        "autoscaling": {
+          "$ref": "#/$defs/AppAutoscalingSpec"
+        },
+        "bitbucket": {
+          "$ref": "#/$defs/BitbucketSourceSpec"
+        },
+        "build_command": {
+          "description": "An optional build command to run while building this component from source.",
+          "type": "string"
+        },
+        "dockerfile_path": {
+          "description": "The path to the Dockerfile relative to the root of the repo. If set, it will be used to build this component. Otherwise, App Platform will attempt to build it using buildpacks.",
+          "type": "string"
+        },
+        "environment_slug": {
+          "description": "An environment slug describing the type of this app. For a full list, please refer to [the product documentation](https://www.digitalocean.com/docs/app-platform/).",
+          "type": "string"
+        },
+        "envs": {
+          "description": "A list of environment variables made available to the component.",
+          "items": {
+            "$ref": "#/$defs/AppVariableDefinition"
+          },
+          "type": "array"
+        },
+        "git": {
+          "$ref": "#/$defs/GitSourceSpec"
+        },
+        "github": {
+          "$ref": "#/$defs/GitHubSourceSpec"
+        },
+        "gitlab": {
+          "$ref": "#/$defs/GitLabSourceSpec"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageSourceSpec"
+        },
+        "instance_count": {
+          "description": "The amount of instances that this component should be scaled to. Default 1, Minimum 1, Maximum 250. Consider using a larger instance size if your application requires more than 250 instances.",
+          "type": "integer"
+        },
+        "instance_size_slug": {
+          "description": "The instance size to use for this component.",
+          "type": "string"
+        },
+        "liveness_health_check": {
+          "$ref": "#/$defs/HealthCheckSpec"
+        },
+        "log_destinations": {
+          "description": "A list of configured log forwarding destinations.",
+          "items": {
+            "$ref": "#/$defs/AppLogDestinationSpec"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "The name. Must be unique across all components within the same app.",
+          "type": "string"
+        },
+        "run_command": {
+          "description": "An optional run command to override the component's default.",
+          "type": "string"
+        },
+        "source_dir": {
+          "description": "An optional path to the working directory to use for the build. For Dockerfile builds, this will be used as the build context. Must be relative to the root of the repo.",
+          "type": "string"
+        },
+        "termination": {
+          "$ref": "#/$defs/AppWorkerSpecTermination"
+        }
+      },
+      "type": "object"
+    },
+    "AppWorkerSpecTermination": {
+      "description": "AppWorkerSpecTermination struct for AppWorkerSpecTermination",
+      "properties": {
+        "grace_period_seconds": {
+          "description": "The number of seconds to wait between sending a TERM signal to a container and issuing a KILL which causes immediate shutdown. Default: 120, Minimum 1, Maximum 600.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "BitbucketSourceSpec": {
+      "description": "BitbucketSourceSpec struct for BitbucketSourceSpec",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "deploy_on_push": {
+          "type": "boolean"
+        },
+        "repo": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GitHubSourceSpec": {
+      "description": "GitHubSourceSpec struct for GitHubSourceSpec",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "deploy_on_push": {
+          "type": "boolean"
+        },
+        "repo": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GitLabSourceSpec": {
+      "description": "GitLabSourceSpec struct for GitLabSourceSpec",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "deploy_on_push": {
+          "type": "boolean"
+        },
+        "repo": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GitSourceSpec": {
+      "description": "GitSourceSpec struct for GitSourceSpec",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "repo_clone_url": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "HealthCheckSpec": {
+      "description": "HealthCheckSpec struct for HealthCheckSpec",
+      "properties": {
+        "failure_threshold": {
+          "description": "The number of failed health checks before considered unhealthy. Default: 18 seconds, Minimum 1, Maximum 50.",
+          "type": "integer"
+        },
+        "http_path": {
+          "description": "The route path used for the HTTP health check ping. If not set, the HTTP health check will be disabled and a TCP health check used instead.",
+          "type": "string"
+        },
+        "initial_delay_seconds": {
+          "description": "The number of seconds to wait before beginning health checks. Default: 5 seconds, Minimum 0, Maximum 3600.",
+          "type": "integer"
+        },
+        "period_seconds": {
+          "description": "The number of seconds to wait between health checks. Default: 10 seconds, Minimum 1, Maximum 300.",
+          "type": "integer"
+        },
+        "port": {
+          "description": "The port on which the health check will be performed.",
+          "type": "integer"
+        },
+        "success_threshold": {
+          "description": "The number of successful health checks before considered healthy. Default: 1 second, Minimum 1, Maximum 1.",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "description": "The number of seconds after which the check times out. Default: 1 second, Minimum 1, Maximum 120.",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ImageSourceSpec": {
+      "description": "ImageSourceSpec struct for ImageSourceSpec",
+      "properties": {
+        "deploy_on_push": {
+          "$ref": "#/$defs/ImageSourceSpecDeployOnPush"
+        },
+        "digest": {
+          "description": "The image digest. Cannot be specified if tag is provided.",
+          "type": "string"
+        },
+        "registry": {
+          "description": "The registry name. Must be left empty for the `DOCR` registry type.  Required for the `DOCKER_HUB` registry type.",
+          "type": "string"
+        },
+        "registry_credentials": {
+          "description": "The credentials to be able to pull the image. The value will be encrypted on first submission. On following submissions, the encrypted value should be used. - \\\"$username:$access_token\\\" for registries of type `DOCKER_HUB`. - \\\"$username:$access_token\\\" for registries of type `GHCR`.",
+          "type": "string"
+        },
+        "registry_type": {
+          "type": "string"
+        },
+        "repository": {
+          "description": "The repository name.",
+          "type": "string"
+        },
+        "tag": {
+          "description": "The repository tag. Defaults to `latest` if not provided and no digest is provided. Cannot be specified if digest is provided.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ImageSourceSpecDeployOnPush": {
+      "description": "ImageSourceSpecDeployOnPush struct for ImageSourceSpecDeployOnPush",
+      "properties": {
+        "enabled": {
+          "description": "Automatically deploy new images. Only for DOCR images. Can't be enabled when a specific digest is specified.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "OpenSearchBasicAuth": {
+      "description": "OpenSearchBasicAuth Configure Username and/or Password for Basic authentication.",
+      "properties": {
+        "password": {
+          "description": "Password for user defined in User. Is required when `endpoint` is set. Cannot be set if using a DigitalOcean DBaaS OpenSearch cluster.",
+          "type": "string"
+        },
+        "user": {
+          "description": "Username to authenticate with. Only required when `endpoint` is set. Defaults to `doadmin` when `cluster_name` is set.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/digitalocean/godo/app-create-request",
+  "$ref": "#/$defs/AppCreateRequest",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -21,6 +21,7 @@ import (
 type MockDropletsService struct {
 	ctrl     *gomock.Controller
 	recorder *MockDropletsServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockDropletsServiceMockRecorder is the mock recorder for MockDropletsService.
@@ -314,6 +315,7 @@ func (mr *MockDropletsServiceMockRecorder) Snapshots(arg0, arg1, arg2 any) *gomo
 type MockDropletActionsService struct {
 	ctrl     *gomock.Controller
 	recorder *MockDropletActionsServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockDropletActionsServiceMockRecorder is the mock recorder for MockDropletActionsService.
@@ -817,6 +819,7 @@ func (mr *MockDropletActionsServiceMockRecorder) SnapshotByTag(arg0, arg1, arg2 
 type MockSizesService struct {
 	ctrl     *gomock.Controller
 	recorder *MockSizesServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockSizesServiceMockRecorder is the mock recorder for MockSizesService.
@@ -856,6 +859,7 @@ func (mr *MockSizesServiceMockRecorder) List(arg0, arg1 any) *gomock.Call {
 type MockImagesService struct {
 	ctrl     *gomock.Controller
 	recorder *MockImagesServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockImagesServiceMockRecorder is the mock recorder for MockImagesService.
@@ -955,9 +959,9 @@ func (mr *MockImagesServiceMockRecorder) List(arg0, arg1 any) *gomock.Call {
 }
 
 // ListApplication mocks base method.
-func (m *MockImagesService) ListApplication(arg0 context.Context, arg1 *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+func (m *MockImagesService) ListApplication(ctx context.Context, opt *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListApplication", arg0, arg1)
+	ret := m.ctrl.Call(m, "ListApplication", ctx, opt)
 	ret0, _ := ret[0].([]godo.Image)
 	ret1, _ := ret[1].(*godo.Response)
 	ret2, _ := ret[2].(error)
@@ -965,15 +969,15 @@ func (m *MockImagesService) ListApplication(arg0 context.Context, arg1 *godo.Lis
 }
 
 // ListApplication indicates an expected call of ListApplication.
-func (mr *MockImagesServiceMockRecorder) ListApplication(arg0, arg1 any) *gomock.Call {
+func (mr *MockImagesServiceMockRecorder) ListApplication(ctx, opt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListApplication", reflect.TypeOf((*MockImagesService)(nil).ListApplication), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListApplication", reflect.TypeOf((*MockImagesService)(nil).ListApplication), ctx, opt)
 }
 
 // ListByTag mocks base method.
-func (m *MockImagesService) ListByTag(arg0 context.Context, arg1 string, arg2 *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+func (m *MockImagesService) ListByTag(ctx context.Context, tag string, opt *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListByTag", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ListByTag", ctx, tag, opt)
 	ret0, _ := ret[0].([]godo.Image)
 	ret1, _ := ret[1].(*godo.Response)
 	ret2, _ := ret[2].(error)
@@ -981,15 +985,15 @@ func (m *MockImagesService) ListByTag(arg0 context.Context, arg1 string, arg2 *g
 }
 
 // ListByTag indicates an expected call of ListByTag.
-func (mr *MockImagesServiceMockRecorder) ListByTag(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockImagesServiceMockRecorder) ListByTag(ctx, tag, opt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByTag", reflect.TypeOf((*MockImagesService)(nil).ListByTag), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByTag", reflect.TypeOf((*MockImagesService)(nil).ListByTag), ctx, tag, opt)
 }
 
 // ListDistribution mocks base method.
-func (m *MockImagesService) ListDistribution(arg0 context.Context, arg1 *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+func (m *MockImagesService) ListDistribution(ctx context.Context, opt *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListDistribution", arg0, arg1)
+	ret := m.ctrl.Call(m, "ListDistribution", ctx, opt)
 	ret0, _ := ret[0].([]godo.Image)
 	ret1, _ := ret[1].(*godo.Response)
 	ret2, _ := ret[2].(error)
@@ -997,15 +1001,15 @@ func (m *MockImagesService) ListDistribution(arg0 context.Context, arg1 *godo.Li
 }
 
 // ListDistribution indicates an expected call of ListDistribution.
-func (mr *MockImagesServiceMockRecorder) ListDistribution(arg0, arg1 any) *gomock.Call {
+func (mr *MockImagesServiceMockRecorder) ListDistribution(ctx, opt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDistribution", reflect.TypeOf((*MockImagesService)(nil).ListDistribution), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDistribution", reflect.TypeOf((*MockImagesService)(nil).ListDistribution), ctx, opt)
 }
 
 // ListUser mocks base method.
-func (m *MockImagesService) ListUser(arg0 context.Context, arg1 *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+func (m *MockImagesService) ListUser(ctx context.Context, opt *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUser", arg0, arg1)
+	ret := m.ctrl.Call(m, "ListUser", ctx, opt)
 	ret0, _ := ret[0].([]godo.Image)
 	ret1, _ := ret[1].(*godo.Response)
 	ret2, _ := ret[2].(error)
@@ -1013,9 +1017,9 @@ func (m *MockImagesService) ListUser(arg0 context.Context, arg1 *godo.ListOption
 }
 
 // ListUser indicates an expected call of ListUser.
-func (mr *MockImagesServiceMockRecorder) ListUser(arg0, arg1 any) *gomock.Call {
+func (mr *MockImagesServiceMockRecorder) ListUser(ctx, opt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUser", reflect.TypeOf((*MockImagesService)(nil).ListUser), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUser", reflect.TypeOf((*MockImagesService)(nil).ListUser), ctx, opt)
 }
 
 // Update mocks base method.

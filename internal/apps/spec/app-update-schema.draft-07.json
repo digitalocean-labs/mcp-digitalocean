@@ -1,0 +1,25 @@
+{
+  "$defs": {
+    "AppUpdate": {
+      "properties": {
+        "update": {
+          "$ref": "#/$defs/AppUpdateRequest"
+        }
+      },
+      "type": "object"
+    },
+    "AppUpdateRequest": {
+      "properties": {
+        "app_id": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/AppUpdateRequest"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$ref": "#/$defs/AppUpdate",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

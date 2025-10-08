@@ -1,0 +1,7 @@
+name: my-test-app
+region: nyc3
+services:
+  - name: web
+    git:
+      repo_clone_url: https://github.com/digitalocean/sample-nodejs.git
+      branch: main

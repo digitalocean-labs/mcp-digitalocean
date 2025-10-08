@@ -21,6 +21,7 @@ import (
 type MockAccountService struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockAccountServiceMockRecorder is the mock recorder for MockAccountService.
@@ -60,6 +61,7 @@ func (mr *MockAccountServiceMockRecorder) Get(arg0 any) *gomock.Call {
 type MockActionsService struct {
 	ctrl     *gomock.Controller
 	recorder *MockActionsServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockActionsServiceMockRecorder is the mock recorder for MockActionsService.
@@ -115,6 +117,7 @@ func (mr *MockActionsServiceMockRecorder) List(arg0, arg1 any) *gomock.Call {
 type MockBalanceService struct {
 	ctrl     *gomock.Controller
 	recorder *MockBalanceServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockBalanceServiceMockRecorder is the mock recorder for MockBalanceService.
@@ -154,6 +157,7 @@ func (mr *MockBalanceServiceMockRecorder) Get(arg0 any) *gomock.Call {
 type MockBillingHistoryService struct {
 	ctrl     *gomock.Controller
 	recorder *MockBillingHistoryServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockBillingHistoryServiceMockRecorder is the mock recorder for MockBillingHistoryService.
@@ -193,6 +197,7 @@ func (mr *MockBillingHistoryServiceMockRecorder) List(arg0, arg1 any) *gomock.Ca
 type MockInvoicesService struct {
 	ctrl     *gomock.Controller
 	recorder *MockInvoicesServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockInvoicesServiceMockRecorder is the mock recorder for MockInvoicesService.
@@ -296,6 +301,7 @@ func (mr *MockInvoicesServiceMockRecorder) List(arg0, arg1 any) *gomock.Call {
 type MockKeysService struct {
 	ctrl     *gomock.Controller
 	recorder *MockKeysServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockKeysServiceMockRecorder is the mock recorder for MockKeysService.

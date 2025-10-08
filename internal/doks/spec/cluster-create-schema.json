@@ -145,6 +145,22 @@
         }
       },
       "type": "object"
+    },
+    "amd_gpu_device_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "amd_gpu_device_metrics_exporter_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
     }
   },
   "type": "object"
