@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 
-const path = require('path')
-const fs = require('fs')
-const childProcess = require('child_process')
-const os = require('os')
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { existsSync } from 'fs'
+import { spawn } from 'child_process'
+import { platform as _platform, arch as _arch } from 'os'
 
 /**
  * Run the platform-specific executable with the given arguments
  * @param {string[]} args Arguments to pass to the executable
  * @returns {Promise<number>} Returns a Promise that resolves to the exit code
  */
-function runExecutable(args = []) {
+export async function runExecutable(args = []) {
     try {
         // Check for verbose flag
         const verbose = args.includes('--verbose')
@@ -22,16 +23,16 @@ function runExecutable(args = []) {
             }
         }
 
-        const packageJson = require('./package.json')
+        const packageJson = await import('./package.json', { with: { type: 'json' } });
 
-        const platform = os.platform()
-        const arch = os.arch()
+        const platform = _platform()
+        const arch = _arch()
 
         verboseLog(`Detected platform: ${platform}`)
         verboseLog(`Detected architecture: ${arch}`)
 
         const binKey = `mcp-digitalocean-${platform}-${arch}`;
-        const execName = packageJson["mcp-server-binaries"][binKey]
+        const execName = packageJson["default"]["mcp-server-binaries"][binKey]
 
         // Some error messages should always show regardless of verbose mode
         if (!execName) {
@@ -42,10 +43,10 @@ function runExecutable(args = []) {
         verboseLog(`Found executable in package.json: ${execName}`)
 
         // The platform-specific executable should be in the same folder
-        const execPath = path.join(__dirname, execName)
+        const execPath = join(dirname(fileURLToPath(import.meta.url)), execName);
         verboseLog(`Executable path: ${execPath}`)
 
-        if (!fs.existsSync(execPath)) {
+        if (!existsSync(execPath)) {
             console.error(`Executable "${execPath}" not found.`)
             return Promise.resolve(1)
         }
@@ -55,7 +56,7 @@ function runExecutable(args = []) {
         // Remove verbose flag before passing args to the child process
         const childArgs = args.filter(arg => arg !== '--verbose')
 
-        const child = childProcess.spawn(execPath, childArgs, {
+        const child = spawn(execPath, childArgs, {
             stdio: 'inherit',
             shell: false
         })
@@ -76,12 +77,5 @@ function runExecutable(args = []) {
     }
 }
 
-// Check if this file is being run directly
-if (require.main === module) {
-    // Run the executable with command line args and exit with its code
-    runExecutable(process.argv.slice(2))
-        .then(code => process.exit(code))
-} else {
-    // Export the function for consumers to use
-    module.exports = { runExecutable }
-}
+runExecutable(process.argv.slice(2))
+    .then(code => process.exit(code))
