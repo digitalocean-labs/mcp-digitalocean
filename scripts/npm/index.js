@@ -23,7 +23,7 @@ export async function runExecutable(args = []) {
             }
         }
 
-        const { default: packageJson } = await import('./package.json', { assert: { type: 'json' } });
+        const { default: packageJson } = await import('./package.json', { with: { type: 'json' } });
 
         const platform = _platform()
         const arch = _arch()
