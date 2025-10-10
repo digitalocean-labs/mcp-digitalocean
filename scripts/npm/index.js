@@ -23,7 +23,7 @@ export async function runExecutable(args = []) {
             }
         }
 
-        const packageJson = await import('./package.json', { with: { type: 'json' } });
+        const { default: packageJson } = await import('./package.json', { assert: { type: 'json' } });
 
         const platform = _platform()
         const arch = _arch()
@@ -32,7 +32,7 @@ export async function runExecutable(args = []) {
         verboseLog(`Detected architecture: ${arch}`)
 
         const binKey = `mcp-digitalocean-${platform}-${arch}`;
-        const execName = packageJson["default"]["mcp-server-binaries"][binKey]
+        const execName = packageJson["mcp-server-binaries"][binKey]
 
         // Some error messages should always show regardless of verbose mode
         if (!execName) {
