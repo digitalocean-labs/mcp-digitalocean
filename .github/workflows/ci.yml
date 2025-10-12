@@ -7,11 +7,15 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  GO_VERSION: "1.25.1"
+
 jobs:
-  build:
+  test:
+    name: Test
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Project
@@ -22,28 +26,125 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.1"
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Dependencies
+        run: go mod download
+
+      - name: Verify Dependencies
+        run: make deps-verify
+
+      - name: Check Code Formatting
+        run: make format-check
+
+      - name: Run Tests
+        run: make test
+
+      - name: Run Race Tests
+        run: make test-race
+
+      - name: Generate Coverage Report
+        run: make test-coverage
+
+      - name: Upload Coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Install Linters
-        run: |
-          go install github.com/mgechev/revive@latest
-          go install honnef.co/go/tools/cmd/staticcheck@latest
+        run: make install-tools
+
+      - name: Run Linting
+        run: make lint
+
+      - name: Run Static Analysis
+        uses: dominikh/staticcheck-action@v1.3.1
+        with:
+          version: "2024.1.1"
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run Security Scan
+        run: make security-scan
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build:
+    name: Build
+    needs: [test, lint, security]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Set up Goreleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
 
-      - name: Lint
-        run: make lint
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './scripts/npm/package-lock.json'
 
-      - name: Check Code Formatting
-        run: make format-check
-
-      - name: Test
-        run: make test
-
-      - name: Build Dist
+      - name: Build Distribution
         run: make build-dist-snapshot
 
       - name: Run Platform Tests
@@ -57,3 +158,53 @@ jobs:
           OUTPUT=$(npx ./scripts/npm --log-level debug test-key 2>&1 || true)
           echo "$OUTPUT"
           echo "$OUTPUT" | grep -q "starting MCP server"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.os }}
+          path: |
+            dist/
+            scripts/npm/dist/
+          retention-days: 7
+
+  docker:
+    name: Docker Build
+    needs: [test, lint, security]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: make docker-build
+
+      - name: Test Docker Image
+        run: make docker-test
+
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run Benchmarks
+        run: make benchmark
+
+      - name: Store Benchmark Results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'go'
+          output-file-path: benchmark.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true

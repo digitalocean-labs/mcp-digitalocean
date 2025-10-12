@@ -4,13 +4,30 @@ MCP DigitalOcean Integration is an open-source project that provides a comprehen
 
 > **DISCLAIMER:** "Use of MCP technology to interact with your DigitalOcean account [can come with risks](https://www.wiz.io/blog/mcp-security-research-briefing)"
 
+## 🚀 What's New in v1.0.12
+
+### Performance & Reliability
+- **In-memory Caching**: Configurable caching layer with TTL support for improved response times
+- **Rate Limiting**: Token bucket rate limiter to prevent API abuse and respect rate limits
+- **Enhanced Configuration**: Comprehensive configuration management with environment variables
+- **Health Checks**: Built-in health monitoring for API connectivity and component status
+
+### Observability
+- **Metrics Collection**: Request/response metrics, success rates, and performance monitoring
+- **Structured Logging**: Enhanced JSON logging with contextual information
+- **Error Handling**: Improved error categorization and retry logic
+
+### Code Quality
+- **Better Architecture**: Modular design with dependency injection
+- **Comprehensive Testing**: Enhanced test coverage for new components
+- **Documentation**: Improved inline documentation and examples
+
 ## Prerequisites
 
 - Node.js (v18 or later)
 - NPM (v8 or later)
 
 You can find installation guides at [https://nodejs.org/en/download](https://nodejs.org/en/download)
-
 
 Verify your installation:
 ```bash
@@ -23,6 +40,45 @@ npm --version
 To verify the MCP server works correctly, you can test it directly from the command line:
 ```bash
 npx @digitalocean/mcp --services apps
+```
+
+## Configuration
+
+### Environment Variables
+
+The MCP server supports extensive configuration through environment variables:
+
+#### Required
+- `DIGITALOCEAN_API_TOKEN`: Your DigitalOcean API token
+
+#### Optional
+- `SERVICES`: Comma-separated list of services to enable (default: all)
+- `LOG_LEVEL`: Logging level (debug, info, warn, error) (default: info)
+- `DIGITALOCEAN_API_ENDPOINT`: API endpoint URL (default: https://api.digitalocean.com)
+
+#### Performance & Reliability
+- `REQUEST_TIMEOUT`: API request timeout (default: 30s)
+- `MAX_RETRIES`: Maximum retry attempts (default: 4)
+- `RETRY_WAIT_MIN`: Minimum retry wait time (default: 1s)
+- `RETRY_WAIT_MAX`: Maximum retry wait time (default: 30s)
+
+#### Caching
+- `CACHE_ENABLED`: Enable/disable caching (default: true)
+- `CACHE_TTL`: Cache time-to-live (default: 5m)
+
+#### Rate Limiting
+- `RATE_LIMIT_ENABLED`: Enable/disable rate limiting (default: true)
+- `RATE_LIMIT_RPS`: Requests per second limit (default: 100)
+
+### Example Configuration
+
+```bash
+export DIGITALOCEAN_API_TOKEN="your_token_here"
+export SERVICES="apps,droplets,networking"
+export LOG_LEVEL="debug"
+export CACHE_ENABLED="true"
+export CACHE_TTL="10m"
+export RATE_LIMIT_RPS="50"
 ```
 
 ## Installation
