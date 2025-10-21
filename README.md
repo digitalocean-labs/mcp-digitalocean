@@ -129,7 +129,7 @@ Add the following to your Cursor settings file located at `~/.cursor/config.json
 3. Select "View: Open MCP Settings"
 4. Select "Tools & Integrations" from the left sidebar
 5. You should see "digitalocean" listed under Available MCP Servers
-6. Click on "N tools enabled" (N is the number of tools currently enabled). 
+6. Click on "N tools enabled" (N is the number of tools currently enabled).
 
 #### Debugging in Cursor
 
@@ -179,7 +179,7 @@ Add the following to your VS Code MCP configuration file:
 
 To see what tools are available from the MCP server:
 1. Open the Command Palette (⌘+Shift+P on Mac or Ctrl+Shift+P on Windows/Linux)
-2. Select "Agent" mode in the chatbox, 
+2. Select "Agent" mode in the chatbox,
 3. Click "Configure tools" on the right, and check for digitalocean related tools under `MCP Server: mcpDigitalocean`. You should be able to list available tools like `app-create`, `app-list`, `app-delete`, etc.
 
 #### Debugging in VS Code
@@ -210,7 +210,7 @@ The MCP DigitalOcean Integration supports the following services, allowing users
 | apps         | Manage DigitalOcean App Platform applications, including deployments and configurations. |
 | droplets     | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
 | accounts     | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
-| networking   | Manage domains, DNS records, certificates, firewalls, reserved IPs, VPCs, and CDNs. |
+| networking   | Manage domains, DNS records, certificates, firewalls, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
 | insights     | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
 | spaces       | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
 | databases    | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
