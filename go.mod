@@ -5,7 +5,7 @@ go 1.25.1
 require (
 	github.com/digitalocean/godo v1.167.0
 	github.com/invopop/jsonschema v0.13.0
-	github.com/mark3labs/mcp-go v0.39.1
+	github.com/mark3labs/mcp-go v0.42.0
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.39.0
 	go.uber.org/mock v0.6.0
