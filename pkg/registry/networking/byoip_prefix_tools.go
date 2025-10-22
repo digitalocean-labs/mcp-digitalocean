@@ -23,8 +23,8 @@ func NewBYOIPPrefixTool(client func(ctx context.Context) (*godo.Client, error)) 
 
 // getBYOIPPrefix fetches BYOIP prefix information by prefix UUID
 func (t *BYOIPPrefixTool) getBYOIPPrefix(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	prefiUUID, ok := req.GetArguments()["UUID"].(string)
-	if !ok || prefiUUID == "" {
+	prefixUUID, ok := req.GetArguments()["UUID"].(string)
+	if !ok || prefixUUID == "" {
 		return mcp.NewToolResultError("UUID is required"), nil
 	}
 
@@ -33,7 +33,7 @@ func (t *BYOIPPrefixTool) getBYOIPPrefix(ctx context.Context, req mcp.CallToolRe
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	byoipPrefix, _, err := client.BYOIPPrefixes.Get(ctx, prefiUUID)
+	byoipPrefix, _, err := client.BYOIPPrefixes.Get(ctx, prefixUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
@@ -198,9 +198,9 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 			Handler: t.createBYOIPPrefix,
 			Tool: mcp.NewTool("byoip-prefix-create",
 				mcp.WithDescription("Create a new BYOIP prefix"),
-				mcp.WithString("prefix", mcp.Required(), mcp.Description("The CIDR of the BYOIP prefix")),
-				mcp.WithString("signature", mcp.Required(), mcp.Description("The signature for the prefix")),
-				mcp.WithString("region", mcp.Required(), mcp.Description("The region for the prefix")),
+				mcp.WithString("Prefix", mcp.Required(), mcp.Description("The CIDR of the BYOIP prefix")),
+				mcp.WithString("Signature", mcp.Required(), mcp.Description("The signature for the prefix")),
+				mcp.WithString("Region", mcp.Required(), mcp.Description("The region for the prefix")),
 			),
 		},
 		{
