@@ -90,7 +90,6 @@ func TestListTools(t *testing.T) {
 func initializeClient(ctx context.Context, t *testing.T) *client.Client {
 	c, err := newClient(
 		mcpServerURL,
-		transport.WithContinuousListening(),
 		transport.WithHTTPHeaders(map[string]string{"Authorization": fmt.Sprintf("Bearer %s", apiToken)}),
 	)
 
@@ -120,10 +119,6 @@ func newClient(baseURL string, options ...transport.StreamableHTTPCOption) (*cli
 		return nil, fmt.Errorf("failed to create streamable HTTP transport: %w", err)
 	}
 	clientOptions := make([]client.ClientOption, 0)
-	sessionID := trans.GetSessionId()
-	if sessionID != "" {
-		clientOptions = append(clientOptions, client.WithSession())
-	}
 
 	return client.NewClient(trans, clientOptions...), nil
 }
