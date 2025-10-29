@@ -68,3 +68,9 @@ func NewHandler(out io.Writer, opts *slog.HandlerOptions) *Handler {
 
 	return h
 }
+
+// Enabled reports whether the handler handles records at the given level.
+// It delegates to the fallback handler's Enabled method.
+func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.fallbackHandler.Enabled(ctx, level)
+}
