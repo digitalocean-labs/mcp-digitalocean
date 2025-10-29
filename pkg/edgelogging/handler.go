@@ -5,6 +5,7 @@ package edgelogging
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -90,8 +91,23 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		return h.fallbackHandler.Handle(ctx, r)
 	}
 
-	// TODO: implement websocket logging logic here
-	return nil
+	// Build log entry as JSON for WebSocket
+	entry := h.buildLogEntry(r)
+
+	// Marshal to JSON
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal log entry: %w", err)
+	}
+
+	// Try to send to buffer (non-blocking)
+	select {
+	case h.wsBuffer <- data:
+		return nil
+	default:
+		// Buffer is full, drop the message
+		return fmt.Errorf("log buffer full, message dropped")
+	}
 }
 
 // WithAttrs returns a new Handler with the given attributes added.
@@ -203,4 +219,84 @@ func (h *Handler) Close() error {
 		}
 	})
 	return err
+}
+
+// buildLogEntry constructs a map representing the log entry for WebSocket transmission.
+func (h *Handler) buildLogEntry(r slog.Record) map[string]interface{} {
+	entry := make(map[string]interface{})
+
+	// Add timestamp
+	if !r.Time.IsZero() {
+		entry["timestamp"] = r.Time.Format(time.RFC3339Nano)
+	}
+
+	// Add level
+	entry["level"] = r.Level.String()
+
+	// Add message
+	entry["message"] = r.Message
+
+	// Add standard context fields
+	entry["hostname"] = h.hostname
+	entry["process_id"] = h.processID
+
+	// Add attributes from WithAttrs
+	for _, attr := range h.attrs {
+		h.addAttrToMap(entry, attr, h.groups)
+	}
+
+	// Add attributes from the record
+	r.Attrs(func(attr slog.Attr) bool {
+		h.addAttrToMap(entry, attr, h.groups)
+		return true
+	})
+
+	return entry
+}
+
+// addAttrToMap adds an attribute to the map, handling groups and nested attributes.
+func (h *Handler) addAttrToMap(entry map[string]interface{}, attr slog.Attr, groups []string) {
+	attr.Value = attr.Value.Resolve()
+
+	// Ignore empty attributes
+	if attr.Equal(slog.Attr{}) {
+		return
+	}
+
+	key := attr.Key
+
+	// Navigate to the correct nested map for groups
+	current := entry
+	for _, group := range groups {
+		if _, exists := current[group]; !exists {
+			current[group] = make(map[string]interface{})
+		}
+		if nested, ok := current[group].(map[string]interface{}); ok {
+			current = nested
+		}
+	}
+
+	// Handle different value kinds
+	switch attr.Value.Kind() {
+	case slog.KindGroup:
+		groupAttrs := attr.Value.Group()
+		if len(groupAttrs) == 0 {
+			return
+		}
+		if attr.Key != "" {
+			current[key] = make(map[string]interface{})
+			if nested, ok := current[key].(map[string]interface{}); ok {
+				for _, ga := range groupAttrs {
+					h.addAttrToMap(nested, ga, nil)
+				}
+			}
+		} else {
+			// Inline group
+			for _, ga := range groupAttrs {
+				h.addAttrToMap(current, ga, nil)
+			}
+		}
+	default:
+		current[key] = attr.Value.Any()
+	}
 }
