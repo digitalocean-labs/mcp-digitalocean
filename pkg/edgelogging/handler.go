@@ -177,3 +177,30 @@ func (h *Handler) ConfigureWebSocket(url, token string) error {
 	// TODO: Start connection manager and log writer goroutines in next commits
 	return nil
 }
+
+// Close gracefully shuts down the handler and closes the WebSocket connection if open.
+// It should be called when the application is shutting down.
+// This method is safe to call multiple times.
+func (h *Handler) Close() error {
+	var err error
+	h.closeOnce.Do(func() {
+		h.closed = true
+
+		// Close the buffer channel if it exists
+		if h.wsBuffer != nil {
+			close(h.wsBuffer)
+		}
+
+		// Close WebSocket connection if open
+		h.wsMu.Lock()
+		defer h.wsMu.Unlock()
+
+		if h.wsConn != nil {
+			// Send close message
+			_ = h.wsConn.WriteMessage(websocket.CloseMessage, []byte{})
+			err = h.wsConn.Close()
+			h.wsConn = nil
+		}
+	})
+	return err
+}
