@@ -5,6 +5,7 @@ package edgelogging
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -155,4 +156,24 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 	}
 
 	return newHandler
+}
+
+// ConfigureWebSocket enables WebSocket logging with the given URL and token.
+// This method should be called after creating the handler to enable remote logging.
+// If url is empty, it returns an error.
+func (h *Handler) ConfigureWebSocket(url, token string) error {
+	if url == "" {
+		return fmt.Errorf("WebSocket URL cannot be empty")
+	}
+
+	h.wsMu.Lock()
+	defer h.wsMu.Unlock()
+
+	h.wsURL = url
+	h.wsToken = token
+	h.wsEnabled = true
+	h.wsBuffer = make(chan []byte, 1000) // Buffer for 1000 messages
+
+	// TODO: Start connection manager and log writer goroutines in next commits
+	return nil
 }
