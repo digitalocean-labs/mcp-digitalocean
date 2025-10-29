@@ -13,6 +13,7 @@ import (
 	"time"
 
 	middleware "mcp-digitalocean/internal"
+	"mcp-digitalocean/pkg/edgelogging"
 	"mcp-digitalocean/pkg/registry"
 
 	"github.com/digitalocean/godo"
@@ -41,6 +42,8 @@ func main() {
 	endpointFlag := flag.String("digitalocean-api-endpoint", getEnv("DIGITALOCEAN_API_ENDPOINT", "https://api.digitalocean.com"), "DigitalOcean API endpoint")
 	transport := flag.String("transport", getEnv("TRANSPORT", "stdio"), "The transport protocol to use (http or stdio). Default is stdio.")
 	bindAddr := flag.String("bind-addr", getEnv("BIND_ADDR", "127.0.0.1:8080"), "Bind address to bind to. Only used for http transport.")
+	edgeLoggingURL := flag.String("edge-logging-url", getEnv("EDGE_LOGGING_URL", ""), "WebSocket URL for edge logging (optional)")
+	edgeLoggingToken := flag.String("edge-logging-token", getEnv("EDGE_LOGGING_TOKEN", ""), "Authentication token for edge logging (optional)")
 	flag.Parse()
 
 	var level slog.Level
@@ -57,7 +60,19 @@ func main() {
 		level = slog.LevelInfo
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	// Create edge logging handler (drop-in replacement for slog.NewJSONHandler)
+	handler := edgelogging.NewHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+
+	// Configure WebSocket logging if URL is provided
+	if *edgeLoggingURL != "" {
+		if err := handler.ConfigureWebSocket(*edgeLoggingURL, *edgeLoggingToken); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to configure edge logging: %v\n", err)
+			os.Exit(1)
+		}
+		defer handler.Close()
+	}
+
+	logger := slog.New(handler)
 	token := *tokenFlag
 	if token == "" && *transport == "stdio" {
 		logger.Error("DigitalOcean API token not provided. Use --digitalocean-api-token flag or set DIGITALOCEAN_API_TOKEN environment variable")
