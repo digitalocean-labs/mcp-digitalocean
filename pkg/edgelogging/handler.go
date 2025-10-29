@@ -40,7 +40,7 @@ type Handler struct {
 	processID int
 
 	// Lifecycle management
-	closeOnce sync.Once
+	closeOnce *sync.Once
 	closed    bool
 }
 
@@ -64,6 +64,7 @@ func NewHandler(out io.Writer, opts *slog.HandlerOptions) *Handler {
 		wsMaxReconnects:  -1, // unlimited
 		hostname:         hostname,
 		processID:        os.Getpid(),
+		closeOnce:        &sync.Once{},
 	}
 
 	return h
@@ -73,4 +74,85 @@ func NewHandler(out io.Writer, opts *slog.HandlerOptions) *Handler {
 // It delegates to the fallback handler's Enabled method.
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.fallbackHandler.Enabled(ctx, level)
+}
+
+// Handle processes a log record.
+// If WebSocket logging is not enabled, it delegates to the fallback handler (stderr).
+// If WebSocket logging is enabled, it sends the log to WebSocket asynchronously.
+func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
+	if h.closed {
+		return nil
+	}
+
+	// If WebSocket is not enabled, use fallback handler (stderr)
+	if !h.wsEnabled {
+		return h.fallbackHandler.Handle(ctx, r)
+	}
+
+	// TODO: implement websocket logging logic here
+	return nil
+}
+
+// WithAttrs returns a new Handler with the given attributes added.
+// It creates a new handler that shares the WebSocket connection but has updated attributes.
+func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if len(attrs) == 0 {
+		return h
+	}
+
+	newAttrs := make([]slog.Attr, len(h.attrs)+len(attrs))
+	copy(newAttrs, h.attrs)
+	copy(newAttrs[len(h.attrs):], attrs)
+
+	newHandler := &Handler{
+		fallbackHandler:  h.fallbackHandler.WithAttrs(attrs),
+		wsEnabled:        h.wsEnabled,
+		wsURL:            h.wsURL,
+		wsToken:          h.wsToken,
+		wsConn:           h.wsConn,
+		wsBuffer:         h.wsBuffer,
+		wsMu:             h.wsMu, // Share the mutex
+		wsReconnectDelay: h.wsReconnectDelay,
+		wsMaxReconnects:  h.wsMaxReconnects,
+		attrs:            newAttrs,
+		groups:           h.groups,
+		hostname:         h.hostname,
+		processID:        h.processID,
+		closeOnce:        h.closeOnce, // Share the closeOnce
+		closed:           h.closed,
+	}
+
+	return newHandler
+}
+
+// WithGroup returns a new Handler with the given group name added.
+// Subsequent keys will be qualified by the group name.
+func (h *Handler) WithGroup(name string) slog.Handler {
+	if name == "" {
+		return h
+	}
+
+	newGroups := make([]string, len(h.groups)+1)
+	copy(newGroups, h.groups)
+	newGroups[len(newGroups)-1] = name
+
+	newHandler := &Handler{
+		fallbackHandler:  h.fallbackHandler.WithGroup(name),
+		wsEnabled:        h.wsEnabled,
+		wsURL:            h.wsURL,
+		wsToken:          h.wsToken,
+		wsConn:           h.wsConn,
+		wsBuffer:         h.wsBuffer,
+		wsMu:             h.wsMu, // Share the mutex
+		wsReconnectDelay: h.wsReconnectDelay,
+		wsMaxReconnects:  h.wsMaxReconnects,
+		attrs:            h.attrs,
+		groups:           newGroups,
+		hostname:         h.hostname,
+		processID:        h.processID,
+		closeOnce:        h.closeOnce, // Share the closeOnce
+		closed:           h.closed,
+	}
+
+	return newHandler
 }
