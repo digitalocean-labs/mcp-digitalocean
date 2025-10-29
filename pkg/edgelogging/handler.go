@@ -190,7 +190,12 @@ func (h *Handler) ConfigureWebSocket(url, token string) error {
 	h.wsEnabled = true
 	h.wsBuffer = make(chan []byte, 1000) // Buffer for 1000 messages
 
-	// TODO: Start connection manager and log writer goroutines in next commits
+	// Start log writer goroutine
+	h.startLogWriter()
+
+	// Start connection manager goroutine
+	h.startConnectionManager()
+
 	return nil
 }
 
@@ -299,4 +304,131 @@ func (h *Handler) addAttrToMap(entry map[string]interface{}, attr slog.Attr, gro
 	default:
 		current[key] = attr.Value.Any()
 	}
+}
+
+// startLogWriter starts a background goroutine that reads from the buffer and writes to WebSocket.
+func (h *Handler) startLogWriter() {
+	go func() {
+		for data := range h.wsBuffer {
+			if h.closed {
+				return
+			}
+
+			// Try to write to WebSocket
+			h.wsMu.Lock()
+			conn := h.wsConn
+			h.wsMu.Unlock()
+
+			if conn != nil {
+				err := conn.WriteMessage(websocket.TextMessage, data)
+				if err != nil {
+					// Connection error, will be handled by connectionManager
+					// Silently continue to avoid log loops
+					continue
+				}
+			}
+			// If no connection, message is dropped silently
+		}
+	}()
+}
+
+// startConnectionManager starts a background goroutine that manages the WebSocket connection.
+// It handles initial connection, reconnection on failure, and monitors connection health.
+func (h *Handler) startConnectionManager() {
+	go func() {
+		var reconnectAttempts int
+
+		for {
+			// Check if handler is closed
+			if h.closed {
+				return
+			}
+
+			// Attempt to connect
+			conn, err := h.connect()
+			if err != nil {
+				// Connection failed
+				reconnectAttempts++
+
+				// Check if we've exceeded max reconnects (-1 means unlimited)
+				if h.wsMaxReconnects >= 0 && reconnectAttempts > h.wsMaxReconnects {
+					// Give up on reconnecting
+					return
+				}
+
+				// Wait before retrying
+				time.Sleep(h.wsReconnectDelay)
+				continue
+			}
+
+			// Connection successful - reset retry counter
+			reconnectAttempts = 0
+
+			// Store the connection
+			h.wsMu.Lock()
+			h.wsConn = conn
+			h.wsMu.Unlock()
+
+			// Monitor the connection by trying to read
+			// WebSocket servers may send ping/pong frames
+			// This will block until the connection is lost
+			for {
+				if h.closed {
+					return
+				}
+
+				// Set read deadline to detect broken connections
+				_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+
+				// Try to read a message (we don't expect any, but this detects disconnection)
+				_, _, err := conn.ReadMessage()
+				if err != nil {
+					// Connection lost
+					h.wsMu.Lock()
+					h.wsConn = nil
+					h.wsMu.Unlock()
+
+					// Close the old connection
+					_ = conn.Close()
+
+					// Break out to reconnect
+					break
+				}
+			}
+
+			// Wait a bit before attempting to reconnect
+			time.Sleep(h.wsReconnectDelay)
+		}
+	}()
+}
+
+// connect establishes a new WebSocket connection with authentication.
+func (h *Handler) connect() (*websocket.Conn, error) {
+	dialer := &websocket.Dialer{
+		HandshakeTimeout: 10 * time.Second,
+		ReadBufferSize:   4096,
+		WriteBufferSize:  4096,
+	}
+
+	// Prepare authentication header
+	headers := make(map[string][]string)
+	if h.wsToken != "" {
+		headers["Authorization"] = []string{fmt.Sprintf("Bearer %s", h.wsToken)}
+	}
+
+	// Attempt connection
+	conn, resp, err := dialer.Dial(h.wsURL, headers)
+	if err != nil {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return nil, fmt.Errorf("failed to connect to WebSocket: %w", err)
+	}
+
+	// Close response body
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+
+	return conn, nil
 }
