@@ -3,7 +3,7 @@ module mcp-digitalocean
 go 1.25.3
 
 require (
-	github.com/digitalocean/godo v1.167.0
+	github.com/digitalocean/godo v1.168.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mark3labs/mcp-go v0.43.0
