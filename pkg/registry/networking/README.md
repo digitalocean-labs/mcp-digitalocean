@@ -1,6 +1,6 @@
 # Networking MCP Tools
 
-This directory contains tools and resources for managing DigitalOcean networking features via the MCP Server. These tools enable you to create, modify, and query networking resources such as domains, certificates, firewalls, load balancers, reserved IPs, VPCs, and CDNs.
+This directory contains tools and resources for managing DigitalOcean networking features via the MCP Server. These tools enable you to create, modify, and query networking resources such as domains, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs.
 
 ---
 
@@ -311,6 +311,35 @@ This directory contains tools and resources for managing DigitalOcean networking
   List VPC Peering connections with pagination.  
   - `Page` (number, default: 1): Page number  
   - `PerPage` (number, default: 20): Items per page
+
+---
+
+### BYOIP Prefixes
+
+- **byoip-prefix-create**
+  Create a new BYOIP prefix.
+  - `Prefix` (string, required): The CIDR of the BYOIP prefix
+  - `Signature` (string, required): The signature for the prefix
+  - `Region` (string, required): The region for the prefix
+
+- **byoip-prefix-delete**
+  Delete a BYOIP prefix.
+  - `UUID` (string, required): The UUID of the BYOIP prefix
+
+- **byoip-prefix-get**
+  Get BYOIP prefix information by UUID.
+  - `UUID` (string, required): The UUID of the BYOIP prefix
+
+- **byoip-prefix-list**
+  List BYOIP prefixes.
+  - `Page` (number, default: 1): Page number
+  - `PerPage` (number, default: 20): Number of items per page
+
+- **byoip-prefix-resources-get**
+  Get all resources for a BYOIP prefix.
+  - `UUID` (string, required): The UUID of the BYOIP prefix
+  - `Page` (number, default: 1): Page number
+  - `PerPage` (number, default: 20): Number of items per page
 
 ---
 
