@@ -1,0 +1,51 @@
+{
+  "name": "@digitalocean/mcp",
+  "version": "1.0.22",
+  "description": "DigitalOcean MCP Implementation,",
+  "author": "DigitalOcean",
+  "homepage": "https://github.com/digitalocean-labs/mcp-digitalocean?tab=readme-ov-file#mcp-digitalocean-integration",
+  "license": "MIT",
+  "keywords": [
+    "digitalocean",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "bin": "./index.js",
+  "files": [
+    "index.js",
+    "dist/",
+    "apps/",
+    "README.md"
+  ],
+  "scripts": {
+    "mcp-golang": "node ./index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/digitalocean-labs/mcp-digitalocean?tab=readme-ov-file#mcp-digitalocean-integration"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:digitalocean-labs/mcp-digitalocean.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "mcp-server-binaries": {
+    "mcp-digitalocean-darwin-arm64": "./dist/mcp-digitalocean-darwin-arm64",
+    "mcp-digitalocean-darwin-x64": "./dist/mcp-digitalocean-darwin-amd64",
+    "mcp-digitalocean-linux-arm64": "./dist/mcp-digitalocean-linux-arm64",
+    "mcp-digitalocean-linux-x64": "./dist/mcp-digitalocean-linux-amd64",
+    "mcp-digitalocean-win32-arm64": "./dist/mcp-digitalocean-windows-arm64.exe",
+    "mcp-digitalocean-win32-x64": "./dist/mcp-digitalocean-windows-amd64.exe"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "optionalDependencies": {}
+}

@@ -1,0 +1,64 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+*
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.3"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Build dist
+        run: make dist
+
+      - name: Publish to npm
+        run: |
+          cd scripts/npm
+          npm config set //registry.npmjs.org/:_authToken=${NPM_TOKEN}
+          npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_PREVIEW_TOKEN }}
+
+      - name: Build and Push Docker Image (preview)
+        run: |
+          doctl registry login -t ${{ secrets.DIGITALOCEAN_PREVIEW_TOKEN }}
+          docker build -t ${{ secrets.DOCR_PREVIEW_REGISTRY }}/mcp-digitalocean:${{ github.ref_name }} .
+          docker push ${{ secrets.DOCR_PREVIEW_REGISTRY }}/mcp-digitalocean:${{ github.ref_name }}
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          doctl registry login -t ${{ secrets.DIGITALOCEAN_TOKEN }}
+          docker build -t ${{ secrets.DOCR_REGISTRY }}/mcp-digitalocean:${{ github.ref_name }} .
+          docker push ${{ secrets.DOCR_REGISTRY }}/mcp-digitalocean:${{ github.ref_name }}
