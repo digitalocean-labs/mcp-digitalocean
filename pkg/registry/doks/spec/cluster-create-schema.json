@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "vpc_uuid": {
+      "type": "string"
+    },
+    "cluster_subnet": {
+      "type": "string"
+    },
+    "service_subnet": {
+      "type": "string"
+    },
+    "ha": {
+      "type": "boolean"
+    },
+    "node_pools": {
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "taints": {
+            "items": {
+              "properties": {
+                "Key": {
+                  "type": "string"
+                },
+                "Value": {
+                  "type": "string"
+                },
+                "Effect": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "minItems": 1
+          },
+          "auto_scale": {
+            "type": "boolean"
+          },
+          "min_nodes": {
+            "type": "integer"
+          },
+          "max_nodes": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array",
+      "minItems": 1
+    },
+    "maintenance_policy": {
+      "properties": {
+        "start_time": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "day": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "auto_upgrade": {
+      "type": "boolean"
+    },
+    "surge_upgrade": {
+      "type": "boolean"
+    },
+    "control_plane_firewall": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "allowed_addresses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "type": "object"
+    },
+    "cluster_autoscaler_configuration": {
+      "properties": {
+        "scale_down_utilization_threshold": {
+          "type": "number"
+        },
+        "scale_down_unneeded_time": {
+          "type": "string"
+        },
+        "expanders": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "type": "object"
+    },
+    "routing_agent": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "amd_gpu_device_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "amd_gpu_device_metrics_exporter_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "object"
+}

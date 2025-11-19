@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+env:
+  - CGO_ENABLED=0
+builds:
+  - id: "mcp-digitalocean"
+    main: "./cmd/mcp-digitalocean/"
+    binary: "mcp-digitalocean-{{ .Os }}-{{ .Arch }}"
+    flags:
+      - "-trimpath"
+    ldflags:
+      -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - "linux"
+      - "darwin"
+      - "windows"
+    goarch:
+      - "amd64"
+      - "386"
+      - "arm"
+      - "arm64"
