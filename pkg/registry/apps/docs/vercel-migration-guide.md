@@ -1206,7 +1206,7 @@ services:
 **Connection string formats:**
 - **PostgreSQL**: `postgresql://username:password@host:port/database?sslmode=require`
 - **Redis/ValKey**: `redis://username:password@host:port`
-- SSL is always enabled for security
+- SSL/TLS is enforced for all connections to managed databases and cannot be disabled
 - Credentials are automatically generated and rotated
 
 **Database tiers:**
