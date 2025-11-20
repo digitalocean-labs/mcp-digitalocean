@@ -1273,7 +1273,6 @@ Common migration commands:
 1. **Add custom domains to the App Platform app:**
    - Run: `doctl apps create-domain <app-id> --domain <domain-name>`
    - For each domain that was in Vercel (if migrating), add it to App Platform
-   - For each domain that was in Vercel, add it to the App Platform app
    - App Platform will provide DNS configuration details
    - Both apex domains (example.com) and subdomains (www.example.com) are supported
    - App Platform will automatically provision SSL certificates
