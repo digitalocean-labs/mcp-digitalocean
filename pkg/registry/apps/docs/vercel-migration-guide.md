@@ -10,10 +10,13 @@
 
 This guide helps AI coding assistants (Claude Code, Cursor, Gemini, etc.) collaborate with you to deploy applications to DigitalOcean App Platform.
 
+**Constants:**
+- **RETRY_LIMIT:** 3
+
 **What this guide IS:**
 - A structured workflow for AI-assisted deployment and migration
 - A comprehensive checklist of steps and considerations
-- Assisted error detection with fix suggestions (up to 3 retry attempts)
+- Assisted error detection with fix suggestions (up to **RETRY_LIMIT** retry attempts)
 - Truthful about limitations and manual steps required
 - A starting point that handles common scenarios
 
