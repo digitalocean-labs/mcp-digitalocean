@@ -263,6 +263,68 @@ func WaitForDropletActive(ctx context.Context, c *client.Client, t *testing.T, d
 	return WaitForResult(ctx, t, poll, done, timeout)
 }
 
+func createDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, name string, engine string, version string, region string, size string, numNodes int) godo.Database {
+	resp, err := c.CallTool(context.Background(), mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-create",
+			Arguments: map[string]interface{}{
+				"name":      name,
+				"engine":    engine,
+				"version":   version,
+				"region":    region,
+				"size":      size,
+				"num_nodes": numNodes,
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	if resp.IsError {
+		t.Fatalf("Tool call returned error: %v", resp.Content)
+	}
+
+	var cluster godo.Database
+	clusterJSON := resp.Content[0].(mcp.TextContent).Text
+	err = json.Unmarshal([]byte(clusterJSON), &cluster)
+	require.NoError(t, err)
+	t.Logf("Created cluster: %v", cluster)
+
+	return cluster
+}
+
+func deleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id string) {
+	resp, err := c.CallTool(context.Background(), mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-delete",
+			Arguments: map[string]interface{}{
+				"id": id,
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	if resp.IsError {
+		t.Fatalf("Tool call returned error: %v", resp.Content)
+	}
+
+	t.Logf("Deleted cluster with ID: %s", id)
+}
+
+func waitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing.T, clusterID string, timeout time.Duration) godo.Database {
+	poll := func() (godo.Database, string, error) {
+		d, _, err := callToolUnmarshal[godo.Database](ctx, c, t, "db-cluster-get", map[string]interface{}{"id": clusterID})
+		if err != nil {
+			return godo.Database{}, "", err
+		}
+		return d, d.Status, nil
+	}
+
+	done := func(d godo.Database, status string) bool { return status == "online" }
+	return WaitForResult(ctx, t, poll, done, timeout)
+}
+
 func WaitForDropletActiveDefault(ctx context.Context, c *client.Client, t *testing.T, dropletID int) godo.Droplet {
 	return WaitForDropletActive(ctx, c, t, dropletID, 2*time.Minute)
 }
