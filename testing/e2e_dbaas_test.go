@@ -23,7 +23,7 @@ func TestDbaasClusterLifecycle(t *testing.T) {
 	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Get cluster list
-	resp, err := c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-list",
 			Arguments: map[string]interface{}{
@@ -71,7 +71,7 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	_ = waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
 
 	// Create a topic
-	resp, err := c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-create-topic",
 			Arguments: map[string]interface{}{
@@ -94,7 +94,7 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	t.Logf("Created Kafka Topic with name: %s", topicName)
 
 	// List topics
-	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-list-topics",
 			Arguments: map[string]interface{}{
@@ -128,7 +128,7 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	require.Truef(t, foundTargetTopic, "Kafka Topic with name %s not found in list", topicName)
 
 	// Delete the topic
-	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-delete-topic",
 			Arguments: map[string]interface{}{
@@ -161,7 +161,7 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	_ = waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
 
 	// Create a user
-	resp, err := c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-create-user",
 			Arguments: map[string]interface{}{
@@ -183,7 +183,7 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	t.Logf("Created user with username: %s", userName)
 
 	// List users
-	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-list-users",
 			Arguments: map[string]interface{}{
@@ -217,7 +217,7 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	require.Truef(t, foundTargetUser, "User with name %s not found in list", userName)
 
 	// Delete the user
-	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
+	resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-delete-user",
 			Arguments: map[string]interface{}{
