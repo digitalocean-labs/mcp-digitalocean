@@ -187,6 +187,55 @@ func ListResources(ctx context.Context, c *client.Client, t *testing.T, resource
 	})
 }
 
+func CreateDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, name string, engine string, version string, region string, size string, numNodes int) godo.Database {
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-create",
+			Arguments: map[string]interface{}{
+				"name":      name,
+				"engine":    engine,
+				"version":   version,
+				"region":    region,
+				"size":      size,
+				"num_nodes": numNodes,
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	if resp.IsError {
+		t.Fatalf("Tool call returned error: %v", resp.Content)
+	}
+
+	var cluster godo.Database
+	clusterJSON := resp.Content[0].(mcp.TextContent).Text
+	err = json.Unmarshal([]byte(clusterJSON), &cluster)
+	require.NoError(t, err)
+	t.Logf("Created cluster: %v", cluster)
+
+	return cluster
+}
+
+func DeleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id string) {
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-delete",
+			Arguments: map[string]interface{}{
+				"id": id,
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	if resp.IsError {
+		t.Fatalf("Tool call returned error: %v", resp.Content)
+	}
+
+	t.Logf("Deleted cluster with ID: %s", id)
+}
+
 // --- Prerequisite Helpers ---
 
 func getSSHKeys(ctx context.Context, c *client.Client, t *testing.T) []interface{} {
@@ -281,6 +330,39 @@ func WaitForImageActionComplete(ctx context.Context, c *client.Client, t *testin
 	final, err := testhelpers.WaitForImageAction(ctx, gclient, imageID, actionID, 2*time.Second, timeout)
 	require.NoError(t, err, "WaitForImageActionComplete failed")
 	return *final
+}
+
+func WaitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing.T, clusterID string, timeout time.Duration) (godo.Database, error) {
+	start := time.Now()
+	var last *godo.Database
+
+	for {
+		// Exit if timeout passed
+		if time.Since(start) > timeout {
+			return godo.Database{}, fmt.Errorf("timed out waiting for cluster %s to become active", clusterID)
+		}
+
+		// Fetch the cluster status
+		db := callTool[godo.Database](ctx, c, t, "db-cluster-get", map[string]interface{}{
+			"id": clusterID,
+		})
+
+		if last == nil {
+			t.Logf("Cluster %s initial status: %s", clusterID, db.Status)
+		} else if last.Status != db.Status {
+			t.Logf("Cluster %s status changed: %s → %s", clusterID, last.Status, db.Status)
+		}
+
+		// Stop polling when status becomes online
+		if db.Status == "online" {
+			return db, nil
+		}
+
+		last = &db
+
+		// Wait before next retry
+		time.Sleep(2 * time.Second)
+	}
 }
 
 // --- Cleanup & Logging ---
