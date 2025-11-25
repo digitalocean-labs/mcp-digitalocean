@@ -7,53 +7,50 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
 )
 
+var dbaasEngines = []struct {
+	name       string
+	engine     string
+	version    string
+	region     string
+	size       string
+	nodeCount  int
+}{
+	{"postgres", "pg", "14", "nyc3", "db-s-2vcpu-4gb", 1},
+	{"mysql", "mysql", "8", "nyc3", "db-s-2vcpu-4gb", 1},
+	{"mongodb", "mongodb", "8", "nyc3", "db-s-1vcpu-1gb", 1},
+	{"valkey", "valkey", "8", "nyc3", "db-s-1vcpu-1gb", 1},
+	{"kafka", "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3},
+	{"opensearch", "opensearch", "2", "nyc3", "db-s-1vcpu-2gb", 1},
+}
+
 func TestDbaasClusterLifecycle(t *testing.T) {
 	ctx := context.Background()
 	c := initializeClient(ctx, t)
 	defer c.Close()
 
-	// Create a cluster
-	cluster := CreateDbaasCluster(ctx, t, c, "mcp-e2e-test-cluster", "pg", "14", "nyc3", "db-s-2vcpu-4gb", 1)
-	defer DeleteDbaasCluster(ctx, t, c, cluster.ID)
+	for _, tc := range dbaasEngines {
+		tc := tc // capture range variable
 
-	// Get cluster list
-	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
-		Params: mcp.CallToolParams{
-			Name: "db-cluster-list",
-			Arguments: map[string]interface{}{
-				"page":     "1",
-				"per_page": 10,
-			},
-		},
-	})
+		t.Run(tc.name, func(t *testing.T) {
 
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	if resp.IsError {
-		t.Fatalf("Tool call returned error: %v", resp.Content)
+			// Create cluster
+			cluster := CreateDbaasCluster(ctx, t, c, 
+				fmt.Sprintf("mcp-e2e-test-%s", tc.name),
+				tc.engine, tc.version, tc.region, tc.size, tc.nodeCount,
+			)
+			defer DeleteDbaasCluster(ctx, t, c, cluster.ID)
+
+			// Validate cluster appears in list
+			DbaasAssertClusterExists(ctx, t, c, cluster.ID)
+		})
 	}
-
-	var clusters []godo.Database
-	clustersJSON := resp.Content[0].(mcp.TextContent).Text
-	err = json.Unmarshal([]byte(clustersJSON), &clusters)
-	require.NoError(t, err)
-	t.Logf("Found %d clusters", len(clusters))
-
-	foundTargetCluster := false
-	for _, targetCluster := range clusters {
-		if targetCluster.ID == cluster.ID {
-			foundTargetCluster = true
-			t.Logf("Cluster with ID %s found in list", cluster.ID)
-			break
-		}
-	}
-	require.Truef(t, foundTargetCluster, "Cluster with ID %s not found in list", cluster.ID)
 }
 
 func TestDbaasKafkaLifecycle(t *testing.T) {

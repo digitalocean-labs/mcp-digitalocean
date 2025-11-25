@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const DbaasClusterStatusOnline = "online"
+
 // setupTest initializes context, MCP client (via Docker/HTTP), and Godo client.
 func setupTest(t *testing.T) (context.Context, *client.Client, *godo.Client, func()) {
 	ctx := context.Background()
@@ -204,6 +206,7 @@ func CreateDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, nam
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+
 	if resp.IsError {
 		t.Fatalf("Tool call returned error: %v", resp.Content)
 	}
@@ -234,6 +237,35 @@ func DeleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id 
 	}
 
 	t.Logf("Deleted cluster with ID: %s", id)
+}
+
+func DbaasAssertClusterExists(ctx context.Context, t *testing.T, c *client.Client, clusterID string) {
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-list",
+			Arguments: map[string]interface{}{
+				"page":     1,
+				"per_page": 50,
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+	var clusters []godo.Database
+	err = json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &clusters)
+	require.NoError(t, err)
+
+	for _, cl := range clusters {
+		if cl.ID == clusterID {
+			t.Logf("Cluster %s found in list", clusterID)
+			return
+		}
+	}
+
+	t.Fatalf("Cluster %s not found in list", clusterID)
 }
 
 // --- Prerequisite Helpers ---
@@ -343,9 +375,21 @@ func WaitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing
 		}
 
 		// Fetch the cluster status
-		db := callTool[godo.Database](ctx, c, t, "db-cluster-get", map[string]interface{}{
-			"id": clusterID,
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "db-cluster-get",
+				Arguments: map[string]interface{}{
+					"id": clusterID,
+				},
+			},
 		})
+		require.NoError(t, err)
+		require.False(t, resp.IsError, "db-cluster-get returned an error: %v", resp.Content)
+
+		var db godo.Database
+		dbJSON := resp.Content[0].(mcp.TextContent).Text
+		err = json.Unmarshal([]byte(dbJSON), &db)
+		require.NoError(t, err)
 
 		if last == nil {
 			t.Logf("Cluster %s initial status: %s", clusterID, db.Status)
@@ -354,7 +398,7 @@ func WaitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing
 		}
 
 		// Stop polling when status becomes online
-		if db.Status == "online" {
+		if db.Status == DbaasClusterStatusOnline {
 			return db, nil
 		}
 
