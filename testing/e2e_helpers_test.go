@@ -215,7 +215,7 @@ func createDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, nam
 	clusterJSON := resp.Content[0].(mcp.TextContent).Text
 	err = json.Unmarshal([]byte(clusterJSON), &cluster)
 	require.NoError(t, err)
-	t.Logf("Created cluster: %v", cluster)
+	t.Logf("Created cluster: %v", cluster.Name)
 
 	return cluster
 }
