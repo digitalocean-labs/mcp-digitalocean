@@ -5,9 +5,9 @@ package testing
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -15,15 +15,15 @@ import (
 )
 
 var dbaasEngines = []struct {
-	name       string
-	engine     string
-	version    string
-	region     string
-	size       string
-	nodeCount  int
+	name      string
+	engine    string
+	version   string
+	region    string
+	size      string
+	nodeCount int
 }{
-	{"postgres", "pg", "14", "nyc3", "db-s-2vcpu-4gb", 1},
-	{"mysql", "mysql", "8", "nyc3", "db-s-2vcpu-4gb", 1},
+	{"postgres", "pg", "14", "nyc3", "db-s-1vcpu-1gb", 1},
+	{"mysql", "mysql", "8", "nyc3", "db-s-1vcpu-1gb", 1},
 	{"mongodb", "mongodb", "8", "nyc3", "db-s-1vcpu-1gb", 1},
 	{"valkey", "valkey", "8", "nyc3", "db-s-1vcpu-1gb", 1},
 	{"kafka", "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3},
@@ -31,29 +31,36 @@ var dbaasEngines = []struct {
 }
 
 func TestDbaasClusterLifecycle(t *testing.T) {
-	ctx := context.Background()
-	c := initializeClient(ctx, t)
-	defer c.Close()
-
 	for _, tc := range dbaasEngines {
-		tc := tc // capture range variable
+		tc := tc // capture the range variable
 
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-			// Create cluster
-			cluster := CreateDbaasCluster(ctx, t, c, 
-				fmt.Sprintf("mcp-e2e-test-%s", tc.name),
+			// Each test needs its own ctx and client
+			ctx := context.Background()
+			c := initializeClient(ctx, t)
+			defer c.Close()
+
+			// Create cluster with unique name
+			clusterName := fmt.Sprintf("mcp-e2e-test-%s", tc.name)
+
+			cluster := createDbaasCluster(ctx, t, c,
+				clusterName,
 				tc.engine, tc.version, tc.region, tc.size, tc.nodeCount,
 			)
-			defer DeleteDbaasCluster(ctx, t, c, cluster.ID)
+			defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 			// Validate cluster appears in list
-			DbaasAssertClusterExists(ctx, t, c, cluster.ID)
+			dbaasAssertClusterExists(ctx, t, c, cluster.ID)
 		})
 	}
 }
 
+
 func TestDbaasKafkaLifecycle(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	c := initializeClient(ctx, t)
 	defer c.Close()
@@ -61,11 +68,11 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	topicName := "mcp-e2e-test-topic"
 
 	// Create a Kafka cluster
-	cluster := CreateDbaasCluster(ctx, t, c, "mcp-e2e-test-kafka", "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3)
-	defer DeleteDbaasCluster(ctx, t, c, cluster.ID)
+	cluster := createDbaasCluster(ctx, t, c, "mcp-e2e-test-kafka-lifecycle", "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3)
+	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for kafka Cluster to become online
-	WaitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
+	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
 
 	// Create a topic
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
@@ -144,6 +151,8 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 }
 
 func TestDbaasUserLifecycle(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	c := initializeClient(ctx, t)
 	defer c.Close()
@@ -151,11 +160,11 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	userName := "mcp-e2e-test-user"
 
 	// Create a cluster
-	cluster := CreateDbaasCluster(ctx, t, c, "mcp-e2e-test-cluster", "pg", "14", "nyc3", "db-s-1vcpu-1gb", 1)
-	defer DeleteDbaasCluster(ctx, t, c, cluster.ID)
+	cluster := createDbaasCluster(ctx, t, c, "mcp-e2e-test-user-lifecycle", "pg", "14", "nyc3", "db-s-1vcpu-1gb", 1)
+	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for Db Cluster to become online
-	WaitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
+	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
 
 	// Create a user
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{

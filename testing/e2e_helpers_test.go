@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const DbaasClusterStatusOnline = "online"
+const dbaasClusterStatusOnline = "online"
 
 // setupTest initializes context, MCP client (via Docker/HTTP), and Godo client.
 func setupTest(t *testing.T) (context.Context, *client.Client, *godo.Client, func()) {
@@ -189,7 +189,7 @@ func ListResources(ctx context.Context, c *client.Client, t *testing.T, resource
 	})
 }
 
-func CreateDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, name string, engine string, version string, region string, size string, numNodes int) godo.Database {
+func createDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, name string, engine string, version string, region string, size string, numNodes int) godo.Database {
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-create",
@@ -220,7 +220,7 @@ func CreateDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, nam
 	return cluster
 }
 
-func DeleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id string) {
+func deleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id string) {
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-delete",
@@ -239,7 +239,7 @@ func DeleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id 
 	t.Logf("Deleted cluster with ID: %s", id)
 }
 
-func DbaasAssertClusterExists(ctx context.Context, t *testing.T, c *client.Client, clusterID string) {
+func dbaasAssertClusterExists(ctx context.Context, t *testing.T, c *client.Client, clusterID string) {
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "db-cluster-list",
@@ -364,17 +364,11 @@ func WaitForImageActionComplete(ctx context.Context, c *client.Client, t *testin
 	return *final
 }
 
-func WaitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing.T, clusterID string, timeout time.Duration) (godo.Database, error) {
-	start := time.Now()
-	var last *godo.Database
+func waitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing.T, clusterID string, timeout time.Duration) (godo.Database, error) {
+	var result godo.Database
 
-	for {
-		// Exit if timeout passed
-		if time.Since(start) > timeout {
-			return godo.Database{}, fmt.Errorf("timed out waiting for cluster %s to become active", clusterID)
-		}
-
-		// Fetch the cluster status
+	require.Eventually(t, func() bool {
+		// Call MCP tool
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
 				Name: "db-cluster-get",
@@ -383,30 +377,29 @@ func WaitForDbaasClusterActive(ctx context.Context, c *client.Client, t *testing
 				},
 			},
 		})
-		require.NoError(t, err)
-		require.False(t, resp.IsError, "db-cluster-get returned an error: %v", resp.Content)
+
+		if err != nil || resp.IsError {
+			// Keep retrying — do NOT fail inside Eventually
+			return false
+		}
 
 		var db godo.Database
 		dbJSON := resp.Content[0].(mcp.TextContent).Text
-		err = json.Unmarshal([]byte(dbJSON), &db)
-		require.NoError(t, err)
-
-		if last == nil {
-			t.Logf("Cluster %s initial status: %s", clusterID, db.Status)
-		} else if last.Status != db.Status {
-			t.Logf("Cluster %s status changed: %s → %s", clusterID, last.Status, db.Status)
+		if json.Unmarshal([]byte(dbJSON), &db) != nil {
+			return false
 		}
 
-		// Stop polling when status becomes online
-		if db.Status == DbaasClusterStatusOnline {
-			return db, nil
+		// Log only when status changes
+		if result.Status != db.Status {
+			t.Logf("Cluster %s status changed: %s → %s", clusterID, result.Status, db.Status)
 		}
 
-		last = &db
+		result = db
+		return db.Status == dbaasClusterStatusOnline
 
-		// Wait before next retry
-		time.Sleep(2 * time.Second)
-	}
+	}, timeout, 2*time.Second, "cluster did not become active in time")
+
+	return result, nil
 }
 
 // --- Cleanup & Logging ---
