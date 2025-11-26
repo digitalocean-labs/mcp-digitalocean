@@ -57,7 +57,6 @@ func TestDbaasClusterLifecycle(t *testing.T) {
 	}
 }
 
-
 func TestDbaasKafkaLifecycle(t *testing.T) {
 	t.Parallel()
 
