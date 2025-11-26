@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
 )
@@ -65,9 +66,11 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	defer c.Close()
 
 	topicName := "mcp-e2e-test-topic"
+	// Create cluster with unique name
+	clusterName := fmt.Sprintf("mcp-e2e-test-kafka-%s", uuid.New().String())
 
 	// Create a Kafka cluster
-	cluster := createDbaasCluster(ctx, t, c, "mcp-e2e-test-kafka-lifecycle", "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3)
+	cluster := createDbaasCluster(ctx, t, c, clusterName, "kafka", "3.8", "nyc3", "db-s-2vcpu-4gb", 3)
 	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for kafka Cluster to become online
@@ -157,9 +160,11 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	defer c.Close()
 
 	userName := "mcp-e2e-test-user"
+	// Create cluster with unique name
+	clusterName := fmt.Sprintf("mcp-e2e-test-user-%s", uuid.New().String())
 
 	// Create a cluster
-	cluster := createDbaasCluster(ctx, t, c, "mcp-e2e-test-user-lifecycle", "pg", "14", "nyc3", "db-s-1vcpu-1gb", 1)
+	cluster := createDbaasCluster(ctx, t, c, clusterName, "pg", "14", "nyc3", "db-s-1vcpu-1gb", 1)
 	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for Db Cluster to become online
