@@ -74,7 +74,7 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for kafka Cluster to become online
-	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
+	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 30*time.Minute)
 
 	// Create a topic
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
@@ -168,7 +168,7 @@ func TestDbaasUserLifecycle(t *testing.T) {
 	defer deleteDbaasCluster(ctx, t, c, cluster.ID)
 
 	// Wait for Db Cluster to become online
-	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 15*time.Minute)
+	waitForDbaasClusterActive(ctx, c, t, cluster.ID, 30*time.Minute)
 
 	// Create a user
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
