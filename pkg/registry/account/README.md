@@ -1,4 +1,4 @@
-# DigitalOcean Account Tools
+## DigitalOcean Account Tools
 
 This directory provides tool-based handlers for interacting with DigitalOcean account-related features via the MCP Server. All account operations are exposed as tools that accept structured arguments—no resource URIs are used. Pagination and filtering are supported where applicable.
 

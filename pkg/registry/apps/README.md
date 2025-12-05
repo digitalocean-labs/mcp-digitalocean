@@ -1,4 +1,4 @@
-# App Platform MCP Tools
+## App Platform MCP Tools
 
 This directory contains tools for the App Platform MCP Server. These tools are used to interact with the App Platform API and perform various operations on App Platform resources.
 
@@ -12,7 +12,7 @@ This directory contains tools for the App Platform MCP Server. These tools are u
 - `apps-get-deployment-status`: Check the status of a specific deployment for an App Platform app. This is useful for monitoring and verifying deployments.
 - `apps-list`: List all App Platform apps in the account. This allows an agent to see what apps are available and their current status.
 
-# Example queries using App Platform MCP Tools
+## Example queries using App Platform MCP Tools
 
 - Can you deploy this app from this git repository?
 - Show me all of my apps in app platform.

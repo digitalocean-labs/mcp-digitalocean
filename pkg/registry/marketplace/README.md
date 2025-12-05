@@ -1,4 +1,4 @@
-# Marketplace MCP Tools
+## Marketplace MCP Tools
 
 This directory contains tools for managing DigitalOcean Marketplace services via the MCP Server. All operations are exposed as tools with argument-based input—no resource URIs are used.
 

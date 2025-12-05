@@ -1,4 +1,4 @@
-# DigitalOcean Kubernetes (DOKS) Tools
+## DigitalOcean Kubernetes (DOKS) Tools
 
 This directory provides tools for managing DigitalOcean Kubernetes clusters and node pools via the MCP Server. All operations are exposed as tools with argument-based input—no resource URIs are used. Pagination and filtering are supported where applicable.
 

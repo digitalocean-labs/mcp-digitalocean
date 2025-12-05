@@ -1,4 +1,4 @@
-# DBaaS MCP Tools
+## DBaaS MCP Tools
 
 This directory contains tools and resources for managing DigitalOcean managed database resources via the MCP Server. These tools enable you to create, modify, and query clusters, users, firewalls, configuration, topics, and other database-related resources.
 
