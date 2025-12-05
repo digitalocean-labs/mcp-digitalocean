@@ -362,6 +362,40 @@ func deleteDbaasCluster(ctx context.Context, t *testing.T, c *client.Client, id 
 	t.Logf("Deleted cluster with ID: %s", id)
 }
 
+// cleanupClusters removes any clusters created during testing.
+func cleanupClusters(ctx context.Context, t *testing.T, c *client.Client) {
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "db-cluster-list",
+		},
+	})
+	if err != nil || resp == nil || len(resp.Content) == 0 {
+		t.Logf("Error listing clusters for cleanup: %v", err)
+		return // nothing to clean up or error listing clusters
+	}
+
+	var clusters []godo.Database
+	err = json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &clusters)
+
+	if err != nil {
+		return
+	}
+
+	for _, cl := range clusters {
+		deleteDbaasCluster(ctx, t, c, cl.ID)
+	}
+}
+
+func registerClusterCleanup(t *testing.T) {
+	t.Cleanup(func() {
+		ctx := context.Background()
+		c := initializeClient(ctx, t)
+
+		cleanupClusters(ctx, t, c)
+		c.Close()
+	})
+}
+
 func dbaasAssertClusterExists(ctx context.Context, t *testing.T, c *client.Client, clusterID string) {
 	t.Helper()
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
