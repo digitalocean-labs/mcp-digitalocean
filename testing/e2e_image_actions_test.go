@@ -13,33 +13,25 @@ import (
 func TestImageTransfer(t *testing.T) {
 	t.Parallel()
 
-	ctx, c, gclient, teardown := setupTest(t)
-	defer teardown()
-
-	// 1. Create a user image (snapshot)
-	image := CreateTestSnapshotImage(ctx, c, t, "mcp-e2e-img-transfer")
-	defer deferCleanupImage(ctx, c, t, float64(image.ID))()
+	image := CreateTestSnapshotImage(t, "mcp-e2e-img-transfer")
 
 	require.NotEmpty(t, image.Regions)
 
 	// Determine a target region different from current
 	currentRegion := image.Regions[0]
-	targetRegion := "nyc1"
-	if currentRegion == "nyc1" {
-		targetRegion = "nyc3"
+	targetRegion := testRegionNYC1
+	if currentRegion == testRegionNYC1 {
+		targetRegion = testRegionNYC3
 	}
 
 	t.Logf("Transferring image %d from %s to %s...", image.ID, currentRegion, targetRegion)
 
-	// 2. Trigger Transfer Action
-	// Use helper to ensure standard logging of action ID and status
-	triggerImageActionAndWait(t, ctx, c, gclient, "image-action-transfer", map[string]any{
+	triggerImageActionAndWait(t, "image-action-transfer", map[string]any{
 		"ID":     float64(image.ID),
 		"Region": targetRegion,
 	}, image.ID)
 
-	// 3. Verify image has new region
-	refreshedImage := callTool[godo.Image](ctx, c, t, "image-get", map[string]any{
+	refreshedImage := callTool[godo.Image](t, "image-get", map[string]any{
 		"ID": float64(image.ID),
 	})
 

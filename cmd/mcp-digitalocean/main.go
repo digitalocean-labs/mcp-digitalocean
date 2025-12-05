@@ -23,7 +23,7 @@ import (
 
 const (
 	mcpName                 = "mcp-digitalocean"
-	mcpVersion              = "1.0.27"
+	mcpVersion              = "1.0.30"
 	wsLoggingContextTimeout = 15 * time.Second
 )
 
@@ -106,6 +106,10 @@ func main() {
 	if *serviceFlag != "" {
 		wsLoggingHandler = wsLoggingHandler.WithAttrs([]slog.Attr{
 			slog.String("enabled_services", *serviceFlag),
+		}).(*wslogging.Handler)
+	} else {
+		wsLoggingHandler = wsLoggingHandler.WithAttrs([]slog.Attr{
+			slog.String("enabled_services", "all"),
 		}).(*wslogging.Handler)
 	}
 

@@ -5,9 +5,6 @@ package testing
 import (
 	"fmt"
 	"testing"
-	"time"
-
-	"mcp-digitalocean/internal/testhelpers"
 
 	"github.com/digitalocean/godo"
 	"github.com/stretchr/testify/require"
@@ -16,20 +13,14 @@ import (
 func TestImageList(t *testing.T) {
 	t.Parallel()
 
-	ctx, c, _, teardown := setupTest(t)
-	defer teardown()
+	t.Logf("[List] Requesting distribution images (PerPage: %d)...", imageListPerPage)
 
-	perPage := 20
-	t.Logf("[List] Requesting distribution images (PerPage: %d)...", perPage)
-
-	// List distribution images
-	images := callTool[[]map[string]any](ctx, c, t, "image-list", map[string]any{
+	images := callTool[[]map[string]any](t, "image-list", map[string]any{
 		"Type":    "distribution",
-		"PerPage": perPage,
+		"PerPage": imageListPerPage,
 	})
 
 	require.NotEmpty(t, images)
-	// DigitalOcean API returns "base" for distribution images now
 	require.Equal(t, "base", images[0]["type"])
 
 	t.Logf("[List] Successfully listed %d distribution images:", len(images))
@@ -44,15 +35,11 @@ func TestImageList(t *testing.T) {
 func TestImageGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, c, _, teardown := setupTest(t)
-	defer teardown()
-
-	// Get a distribution image ID first
-	id, slug := getTestImage(ctx, c, t)
+	id, slug := getTestImage(t)
 
 	t.Logf("[Get] Requesting details for Image ID: %.0f (Slug: %s)...", id, slug)
 
-	image := callTool[godo.Image](ctx, c, t, "image-get", map[string]any{
+	image := callTool[godo.Image](t, "image-get", map[string]any{
 		"ID": id,
 	})
 
@@ -70,19 +57,12 @@ func TestImageGet(t *testing.T) {
 
 func TestImageLifecycle(t *testing.T) {
 	t.Parallel()
+	image := CreateTestSnapshotImage(t, "mcp-e2e-image-lifecycle")
 
-	ctx, c, gclient, teardown := setupTest(t)
-	defer teardown()
-
-	// 1. Create a user image (via snapshot of a droplet)
-	image := CreateTestSnapshotImage(ctx, c, t, "mcp-e2e-image-lifecycle")
-	defer deferCleanupImage(ctx, c, t, float64(image.ID))()
-
-	// 2. Update Image (Rename)
 	newName := fmt.Sprintf("%s-renamed", image.Name)
 	t.Logf("[Update] Renaming image %d to %s...", image.ID, newName)
 
-	updatedImage := callTool[godo.Image](ctx, c, t, "image-update", map[string]any{
+	updatedImage := callTool[godo.Image](t, "image-update", map[string]any{
 		"ID":   float64(image.ID),
 		"Name": newName,
 	})
@@ -90,13 +70,10 @@ func TestImageLifecycle(t *testing.T) {
 	require.Equal(t, newName, updatedImage.Name)
 	t.Logf("[Update] Success. New Name: %s", updatedImage.Name)
 
-	// 3. Delete Image
-	// Using "image" resource type maps to "image-delete" tool via e2e_helpers logic
-	DeleteResource(ctx, c, t, "image", float64(image.ID))
+	DeleteResource(t, "image", float64(image.ID))
 
-	// 4. Verify Deletion
 	t.Logf("[Verify] Waiting for image %d deletion...", image.ID)
-	err := testhelpers.WaitForImageDeleted(ctx, gclient, image.ID, 2*time.Second, 1*time.Minute)
+	err := WaitForImageDeletion(t, image.ID, defaultPollInterval, imageDeleteTimeout)
 	require.NoError(t, err, "Image was not deleted")
 	t.Logf("[Verify] Confirmed image %d deletion", image.ID)
 }

@@ -4,30 +4,54 @@ MCP DigitalOcean Integration is an open-source project that provides a comprehen
 
 > **DISCLAIMER:** "Use of MCP technology to interact with your DigitalOcean account [can come with risks](https://www.wiz.io/blog/mcp-security-research-briefing)"
 
-## Prerequisites
-
-- Node.js (v18 or later)
-- NPM (v8 or later)
-
-You can find installation guides at [https://nodejs.org/en/download](https://nodejs.org/en/download)
-
-
-Verify your installation:
-```bash
-node --version
-npm --version
-```
-
-## Quick Test
-
-To verify the MCP server works correctly, you can test it directly from the command line:
-```bash
-npx @digitalocean/mcp --services apps
-```
-
 ## Installation
 
+### Remote MCP (Recommended)
+
+The easiest way to get started is to use DigitalOcean's hosted MCP services. Each service is deployed as a standalone MCP server accessible via HTTPS, allowing you to connect without running any local server. You can connect to multiple endpoints simultaneously by adding multiple entries to your configuration.
+
+#### Available Services
+
+| Service      | Remote MCP URL                              | Description                                                                             |
+|--------------|---------------------------------------------|-----------------------------------------------------------------------------------------|
+| apps         | https://apps.mcp.digitalocean.com/mcp       | Manage DigitalOcean App Platform applications, including deployments and configurations. |
+| accounts     | https://accounts.mcp.digitalocean.com/mcp   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
+| databases    | https://databases.mcp.digitalocean.com/mcp  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
+| doks         | https://doks.mcp.digitalocean.com/mcp       | Manage DigitalOcean Kubernetes clusters and node pools. |
+| droplets     | https://droplets.mcp.digitalocean.com/mcp   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
+| insights     | https://insights.mcp.digitalocean.com/mcp   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
+| marketplace  | https://marketplace.mcp.digitalocean.com/mcp| Discover and manage DigitalOcean Marketplace applications. |
+| networking   | https://networking.mcp.digitalocean.com/mcp | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
+| spaces       | https://spaces.mcp.digitalocean.com/mcp     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
+
+---
+
 ### Claude Code
+
+#### Remote MCP (Recommended)
+
+To add a remote DigitalOcean MCP server to [Claude Code](https://www.anthropic.com/claude-code), run the following command in your terminal:
+
+```bash
+claude mcp add --transport http digitalocean-apps https://apps.mcp.digitalocean.com/mcp \
+  --header "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+Replace `YOUR_API_TOKEN` with your actual DigitalOcean API token.
+
+You can add multiple services by running the command for each endpoint:
+
+```bash
+claude mcp add --transport http digitalocean-databases https://databases.mcp.digitalocean.com/mcp \
+  --header "Authorization: Bearer YOUR_API_TOKEN"
+
+claude mcp add --transport http digitalocean-droplets https://droplets.mcp.digitalocean.com/mcp \
+  --header "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+See the [Available Services](#available-services) section for the complete list of available endpoints.
+
+#### Local Installation
 
 To add the DigitalOcean MCP server to [Claude Code](https://www.anthropic.com/claude-code), run the following command in your terminal:
 
@@ -62,25 +86,7 @@ To remove it:
 claude mcp remove digitalocean-mcp
 ```
 
-### Claude Desktop
-
-Alternatively, add the following to your claude_desktop_config.json file.
-
-```json
-{
-  "mcpServers": {
-    "digitalocean": {
-      "command": "npx",
-      "args": ["@digitalocean/mcp", "--services apps"],
-      "env": {
-        "DIGITALOCEAN_API_TOKEN": "YOUR_API_TOKEN"
-      }
-    }
-  }
-}
-```
-
-### Claude Code (User Scope)
+##### User Scope
 
 Local scope is great when you're testing or only using the server in one project. User scope is better if you want it available everywhere.
 
@@ -102,7 +108,83 @@ To remove it:
 claude mcp remove -s user digitalocean-mcp-user-scope
 ```
 
+---
+
+### Claude Desktop
+
+#### Remote MCP (Recommended)
+
+Add the remote MCP servers to your `claude_desktop_config.json` file:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean-apps": {
+      "url": "https://apps.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    },
+    "digitalocean-databases": {
+      "url": "https://databases.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+You can add any of the endpoints listed in the [Available Services](#available-services) section.
+
+#### Local Installation
+
+Add the following to your `claude_desktop_config.json` file:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean": {
+      "command": "npx",
+      "args": ["@digitalocean/mcp", "--services", "apps"],
+      "env": {
+        "DIGITALOCEAN_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+---
+
 ### Cursor
+
+#### Remote MCP (Recommended)
+
+Add the remote MCP servers to your Cursor settings file located at `~/.cursor/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean-apps": {
+      "url": "https://apps.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    },
+    "digitalocean-databases": {
+      "url": "https://databases.mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+You can add any of the endpoints listed in the [Available Services](#available-services) section.
+
+#### Local Installation
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=digitalocean&config=eyJjb21tYW5kIjoibnB4IEBkaWdpdGFsb2NlYW4vbWNwIC0tc2VydmljZXMgYXBwcyIsImVudiI6eyJESUdJVEFMT0NFQU5fQVBJX1RPS0VOIjoiWU9VUl9BUElfVE9LRU4ifX0%3D)
 
@@ -122,7 +204,7 @@ Add the following to your Cursor settings file located at `~/.cursor/config.json
 }
 ```
 
-#### Verify Installation in Cursor
+##### Verify Installation
 
 1. Open Cursor and open Command Pallet ( `Shift + ⌘ + P` on Mac or `Ctrl+ Shift + P` on Windows/Linux )
 2. Search for "MCP" in the command pallet search bar
@@ -131,7 +213,7 @@ Add the following to your Cursor settings file located at `~/.cursor/config.json
 5. You should see "digitalocean" listed under Available MCP Servers
 6. Click on "N tools enabled" (N is the number of tools currently enabled).
 
-#### Debugging in Cursor
+##### Debugging
 
 To check MCP server logs and debug issues:
 1. Open the Command Palette (⌘+Shift+P on Mac or Ctrl+Shift+P on Windows/Linux)
@@ -139,11 +221,43 @@ To check MCP server logs and debug issues:
 3. Navigate to the Console tab to view MCP server logs
 4. You'll find MCP related logs as you interact with the MCP server
 
-#### Testing the Connection
+##### Testing the Connection
 
 In Cursor's chat, try asking: "List all my DigitalOcean apps" - this should trigger the MCP server to fetch your apps if properly configured. If you are getting an 401 error or authentication related errors, it is likely due to misconfiguring your access token.
 
+---
+
 ### VS Code
+
+#### Remote MCP (Recommended)
+
+Add the remote MCP servers to your VS Code MCP configuration file:
+
+```json
+{
+  "mcp": {
+    "inputs": [],
+    "servers": {
+      "digitalocean-apps": {
+        "url": "https://apps.mcp.digitalocean.com/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_TOKEN"
+        }
+      },
+      "digitalocean-databases": {
+        "url": "https://databases.mcp.digitalocean.com/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_API_TOKEN"
+        }
+      }
+    }
+  }
+}
+```
+
+You can add any of the endpoints listed in the [Available Services](#available-services) section.
+
+#### Local Installation
 
 Add the following to your VS Code MCP configuration file:
 
@@ -168,21 +282,21 @@ Add the following to your VS Code MCP configuration file:
 }
 ```
 
-#### Verify Installation in VS Code
+##### Verify Installation
 
-1. Open Cursor and open Command Pallet ( `Shift + ⌘ + P` on Mac or `Ctrl+ Shift + P` on Windows/Linux )
+1. Open VS Code and open Command Pallet ( `Shift + ⌘ + P` on Mac or `Ctrl+ Shift + P` on Windows/Linux )
 2. Search for "MCP" in the command pallet search bar
 3. Select "MCP: List Servers"
 4. Verify that "mcpDigitalOcean" appears in the list of configured servers
 
-#### Viewing Available Tools
+##### Viewing Available Tools
 
 To see what tools are available from the MCP server:
 1. Open the Command Palette (⌘+Shift+P on Mac or Ctrl+Shift+P on Windows/Linux)
 2. Select "Agent" mode in the chatbox,
 3. Click "Configure tools" on the right, and check for digitalocean related tools under `MCP Server: mcpDigitalocean`. You should be able to list available tools like `app-create`, `app-list`, `app-delete`, etc.
 
-#### Debugging in VS Code
+##### Debugging
 
 To troubleshoot MCP connections:
 1. Open the Command Palette (⌘+Shift+P on Mac or Ctrl+Shift+P on Windows/Linux)
@@ -192,30 +306,41 @@ To troubleshoot MCP connections:
 
 If you are getting an 401 error or authentication related errors, it is likely due to misconfiguring your access token.
 
+---
+
+## Prerequisites for Local Installation
+
+If you're using the local installation method (not Remote MCP), you'll need:
+
+- Node.js (v18 or later)
+- NPM (v8 or later)
+
+You can find installation guides at [https://nodejs.org/en/download](https://nodejs.org/en/download)
+
+Verify your installation:
+```bash
+node --version
+npm --version
+```
+
+### Quick Test
+
+To verify the local MCP server works correctly, you can test it directly from the command line:
+```bash
+npx @digitalocean/mcp --services apps
+```
+
+---
+
 ## Configuration
 
-To configure tools, you use the `--services` flag to specify which service you want to enable. It is highly recommended to only
-enable the services you need to reduce context size and improve accuracy. See list of supported services below.
+### Local Installation Configuration
+
+When using the local installation, you use the `--services` flag to specify which service you want to enable. It is highly recommended to only enable the services you need to reduce context size and improve accuracy. See list of supported services below.
 
 ```bash
 npx @digitalocean/mcp --services apps,droplets
 ```
-
-## Supported Services
-
-The MCP DigitalOcean Integration supports the following services, allowing users to manage their DigitalOcean infrastructure effectively
-
-| Service      | Description                                                                             |
-|--------------|-----------------------------------------------------------------------------------------|
-| apps         | Manage DigitalOcean App Platform applications, including deployments and configurations. |
-| droplets     | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
-| accounts     | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
-| networking   | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
-| insights     | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
-| spaces       | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
-| databases    | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
-| marketplace  | Discover and manage DigitalOcean Marketplace applications. |
-| doks         | Manage DigitalOcean Kubernetes clusters and node pools. |
 
 ## Documentation
 
