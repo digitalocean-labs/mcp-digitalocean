@@ -113,7 +113,7 @@ func TestDbaasKafkaLifecycle(t *testing.T) {
 			},
 		})
 
-		if err != nil || resp == nil || resp.IsError {
+		if err != nil || resp == nil || (resp != nil && resp.IsError) {
 			return false
 		}
 
@@ -203,7 +203,7 @@ func TestDbaasUserLifecycle(t *testing.T) {
 				},
 			},
 		})
-		if err != nil || resp == nil || resp.IsError {
+		if err != nil || resp == nil || (resp != nil && resp.IsError) {
 			return false
 		}
 
