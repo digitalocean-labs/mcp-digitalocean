@@ -131,7 +131,7 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("1-click-kubernetes-app-install",
 				mcp.WithDescription("Install 1-click applications on a Kubernetes cluster"),
 				mcp.WithString("ClusterUUID", mcp.Required(), mcp.Description("UUID of the Kubernetes cluster to install apps on")),
-				mcp.WithArray("AppSlugs", mcp.Required(), mcp.Description("Array of app slugs to install")),
+				mcp.WithArray("AppSlugs", mcp.Required(), mcp.Description("Array of app slugs to install"), mcp.Items(map[string]any{"type": "string"})),
 			),
 		},
 	}
