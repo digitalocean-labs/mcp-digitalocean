@@ -12,7 +12,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.47.0
-	golang.org/x/oauth2 v0.33.0
+	golang.org/x/oauth2 v0.34.0
 )
 
 require (
