@@ -161,6 +161,22 @@
         }
       },
       "type": "object"
+    },
+    "nvidia_gpu_device_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "rdma_shared_dev_plugin": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
     }
   },
   "type": "object"
