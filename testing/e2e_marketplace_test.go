@@ -92,7 +92,7 @@ func TestInstallKubernetesApps(t *testing.T) {
 
 	createClusterReq := godo.KubernetesClusterCreateRequest{
 		Name:        clusterName,
-		RegionSlug:  "sfo3",
+		RegionSlug:  "tor1",
 		VersionSlug: "latest",
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
 			{
