@@ -319,8 +319,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Slug of the region (e.g., nyc3)")),
 				mcp.WithBoolean("Backup", mcp.DefaultBool(false), mcp.Description("Whether to enable backups")),
 				mcp.WithBoolean("Monitoring", mcp.DefaultBool(false), mcp.Description("Whether to enable monitoring")),
-				mcp.WithArray("SSHKeys", mcp.Description("Array of SSH key IDs (numbers) or fingerprints (strings) to add to the droplet")),
-				mcp.WithArray("Tags", mcp.Description("Array of tag names to apply to the droplet")),
+				mcp.WithArray("SSHKeys", mcp.Description("Array of SSH key IDs (numbers) or fingerprints (strings) to add to the droplet"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("Tags", mcp.Description("Array of tag names to apply to the droplet"), mcp.Items(map[string]any{"type": "string"})),
 			),
 		},
 		{
