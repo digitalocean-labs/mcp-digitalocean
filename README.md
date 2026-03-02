@@ -342,6 +342,20 @@ When using the local installation, you use the `--services` flag to specify whic
 npx @digitalocean/mcp --services apps,droplets
 ```
 
+### Read-only Mode
+
+Use read-only mode to prevent mutating operations (create, update, delete, resize, etc.) while still allowing read/list/get tools.
+
+```bash
+npx @digitalocean/mcp --services apps,droplets --read-only
+```
+
+You can also enable it through environment variable configuration:
+
+```bash
+READ_ONLY=true npx @digitalocean/mcp --services apps,droplets
+```
+
 ## Documentation
 
 Each service provides a detailed README describing all available tools, resources, arguments, and example queries. See the following files for full documentation:
