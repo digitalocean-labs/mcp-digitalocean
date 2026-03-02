@@ -46,6 +46,7 @@ func main() {
 	wsLoggingURL := flag.String("ws-logging-url", getEnv("WS_LOGGING_URL", ""), "WebSocket URL for WebSocket logging (optional)")
 	wsLoggingToken := flag.String("ws-logging-token", getEnv("WS_LOGGING_TOKEN", ""), "Authentication token for WebSocket logging (optional)")
 	enableToolErrorLogging := flag.Bool("enable-tool-error-logging", getEnv("ENABLE_TOOL_ERROR_LOGGING", "false") == "true", "Enable logging of tool errors")
+	readOnlyFlag := flag.Bool("read-only", getEnv("READ_ONLY", "false") == "true", "Enable read-only mode")
 	flag.Parse()
 
 	var level slog.Level
@@ -106,10 +107,12 @@ func main() {
 	if *serviceFlag != "" {
 		wsLoggingHandler = wsLoggingHandler.WithAttrs([]slog.Attr{
 			slog.String("enabled_services", *serviceFlag),
+			slog.Bool("read_only", *readOnlyFlag),
 		}).(*wslogging.Handler)
 	} else {
 		wsLoggingHandler = wsLoggingHandler.WithAttrs([]slog.Attr{
 			slog.String("enabled_services", "all"),
+			slog.Bool("read_only", *readOnlyFlag),
 		}).(*wslogging.Handler)
 	}
 
@@ -125,6 +128,13 @@ func main() {
 	if *enableToolErrorLogging {
 		toolLoggingMiddleware := middleware.ToolLoggingMiddleware{Logger: logger}
 		opts = append(opts, server.WithToolHandlerMiddleware(toolLoggingMiddleware.ToolMiddleware))
+	}
+
+	if *readOnlyFlag {
+		readOnlyMiddleware := middleware.ReadOnlyMiddleware{
+			Logger: logger,
+		}
+		opts = append(opts, server.WithToolHandlerMiddleware(readOnlyMiddleware.ToolMiddleware))
 	}
 
 	svr := server.NewMCPServer(mcpName, mcpVersion, opts...)
@@ -153,6 +163,10 @@ func main() {
 		getClientFn,
 		services...,
 	)
+	if err != nil {
+		logger.Error("Failed to register tools: " + err.Error())
+		os.Exit(1)
+	}
 
 	// start our server.
 	err = runServer(ctx, svr, logger, *bindAddr, transport)
