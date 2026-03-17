@@ -15,6 +15,7 @@ import (
 )
 
 func TestCreateCluster(t *testing.T) {
+	t.Skip("Skipping because of vpc subnet range overlap issue with e2e_marketplace_test. Will re-enable after fix is in place.")
 	ctx := context.Background()
 	c := initializeClient(ctx, t)
 	defer c.Close()

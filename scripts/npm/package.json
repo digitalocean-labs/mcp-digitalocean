@@ -1,6 +1,6 @@
 {
   "name": "@digitalocean/mcp",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "description": "DigitalOcean MCP Implementation,",
   "author": "DigitalOcean",
   "homepage": "https://github.com/digitalocean-labs/mcp-digitalocean?tab=readme-ov-file#mcp-digitalocean-integration",
