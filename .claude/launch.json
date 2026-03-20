@@ -15,9 +15,10 @@
     },
     {
       "name": "docker-compose (all services)",
-      "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up"],
-      "port": 8080
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "--build"],
+      "port": 8080,
+      "autoPort": false
     },
     {
       "name": "websocket-echo-server",
