@@ -13,6 +13,7 @@ import (
 	"mcp-digitalocean/pkg/registry/docr"
 	"mcp-digitalocean/pkg/registry/doks"
 	"mcp-digitalocean/pkg/registry/droplet"
+	"mcp-digitalocean/pkg/registry/functions"
 	"mcp-digitalocean/pkg/registry/insights"
 	"mcp-digitalocean/pkg/registry/marketplace"
 	"mcp-digitalocean/pkg/registry/networking"
@@ -36,6 +37,7 @@ var supportedServices = map[string]struct{}{
 	"insights":    {},
 	"doks":        {},
 	"docr":        {},
+	"functions":   {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -131,6 +133,16 @@ func registerDOCRTools(s *server.MCPServer, getClient getClientFn) error {
 	return nil
 }
 
+func registerFunctionsTools(s *server.MCPServer, getClient getClientFn) error {
+	resolver := functions.NewOWResolver(getClient)
+	s.AddTools(functions.NewNamespaceTool(getClient).Tools()...)
+	s.AddTools(functions.NewTriggerTool(getClient).Tools()...)
+	s.AddTools(functions.NewActionTool(resolver).Tools()...)
+	s.AddTools(functions.NewPackageTool(resolver).Tools()...)
+	s.AddTools(functions.NewActivationTool(resolver).Tools()...)
+	return nil
+}
+
 func registerDatabasesTools(s *server.MCPServer, getClient getClientFn) error {
 	s.AddTools(dbaas.NewClusterTool(getClient).Tools()...)
 	s.AddTools(dbaas.NewFirewallTool(getClient).Tools()...)
@@ -196,6 +208,10 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		case "docr":
 			if err := registerDOCRTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register DOCR tools: %w", err)
+			}
+		case "functions":
+			if err := registerFunctionsTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register functions tools: %w", err)
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
