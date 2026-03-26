@@ -174,6 +174,7 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 | docr         | https://docr.mcp.digitalocean.com/mcp       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | insights     | https://insights.mcp.digitalocean.com/mcp   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
 | marketplace  | https://marketplace.mcp.digitalocean.com/mcp| Discover and manage DigitalOcean Marketplace applications. |
+| genai-modelcatalog | https://genai-modelcatalog.mcp.digitalocean.com/mcp| Search and discover AI models available on DigitalOcean Gradient AI platform. |
 | networking   | https://networking.mcp.digitalocean.com/mcp | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
 | spaces       | https://spaces.mcp.digitalocean.com/mcp     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
 
@@ -591,6 +592,7 @@ Each service provides a detailed README describing all available tools, resource
 - [Insights Service](pkg/registry/insights/README.md)
 - [Spaces Service](pkg/registry/spaces/README.md)
 - [Marketplace Service](pkg/registry/marketplace/README.md)
+- [Model Catalog Service](pkg/registry/genai-modelcatalog/README.md)
 - [DOKS Service](pkg/registry/doks/README.md)
 
 ## Example Tools
@@ -603,6 +605,8 @@ Each service provides a detailed README describing all available tools, resource
 - Flush a CDN cache: `cdn-flush-cache`
 - Create a VPC peering connection: `vpc-peering-create`
 - Delete a VPC peering connection: `vpc-peering-delete`
+- Search for AI models: `genai-model-catalog-search`
+- Get model metadata: `genai-model-catalog-get-card`
 
 ## Contributing
 
