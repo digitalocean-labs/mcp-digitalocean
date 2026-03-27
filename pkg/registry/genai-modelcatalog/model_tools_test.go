@@ -128,12 +128,13 @@ func TestModelTool_getModelCard(t *testing.T) {
 	defer ctrl.Finish()
 
 	testModel := &godo.Model{
-		Uuid:          "12345678-1234-1234-1234-123456789012",
-		InferenceName: "llama3.3-70b-instruct",
-		Name:          "Llama 3.3 Instruct (70B)",
-		Provider:      "Meta",
-		Url:           "https://example.com/model",
-		Usecases:      []string{"chat", "completion"},
+		Uuid:              "12345678-1234-1234-1234-123456789012",
+		InferenceName:     "llama3.3-70b-instruct",
+		Name:              "Llama 3.3 Instruct (70B)",
+		Provider:          "Meta",
+		Url:               "https://example.com/model",
+		Usecases:          []string{"chat", "completion"},
+		ModelAvailability: "serverless",
 		Agreement: &godo.Agreement{
 			Name:        "Meta Llama 3.3 License",
 			Description: "License for Llama 3.3",
@@ -219,14 +220,16 @@ func TestModelTool_getModelCard(t *testing.T) {
 
 			if tc.checkModel {
 				var result struct {
-					UUID      string          `json:"uuid"`
-					Name      string          `json:"name"`
-					Agreement *godo.Agreement `json:"agreement,omitempty"`
+					UUID              string          `json:"uuid"`
+					Name              string          `json:"name"`
+					Agreement         *godo.Agreement `json:"agreement,omitempty"`
+					ModelAvailability string          `json:"model_availability,omitempty"`
 				}
 				err := json.Unmarshal([]byte(textContent.Text), &result)
 				require.NoError(t, err)
 				require.Equal(t, testModel.Uuid, result.UUID, "should return exact UUID")
 				require.Equal(t, testModel.Name, result.Name, "should return exact name")
+				require.Equal(t, testModel.ModelAvailability, result.ModelAvailability, "should return exact model availability")
 				require.NotNil(t, result.Agreement, "should include agreement")
 				require.Equal(t, testModel.Agreement.Name, result.Agreement.Name, "should return exact agreement name")
 				require.Equal(t, testModel.Agreement.Description, result.Agreement.Description, "should return exact agreement description")

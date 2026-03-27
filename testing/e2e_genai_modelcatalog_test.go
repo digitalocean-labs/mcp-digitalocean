@@ -94,9 +94,10 @@ func TestModelCatalogGetCard(t *testing.T) {
 	t.Logf("getting model card for UUID: %s", testUUID)
 
 	model := callTool[struct {
-		UUID      string          `json:"uuid"`
-		Name      string          `json:"name"`
-		Agreement *godo.Agreement `json:"agreement,omitempty"`
+		UUID              string          `json:"uuid"`
+		Name              string          `json:"name"`
+		Agreement         *godo.Agreement `json:"agreement,omitempty"`
+		ModelAvailability string          `json:"model_availability,omitempty"`
 	}](t, "genai-model-catalog-get-card", map[string]interface{}{
 		"ModelUUID": testUUID,
 	})
@@ -105,6 +106,9 @@ func TestModelCatalogGetCard(t *testing.T) {
 	require.NotEmpty(t, model.Name, "model should have a name")
 	require.Contains(t, strings.ToLower(model.Name), strings.ToLower(searchQuery), "model name should contain the search query")
 	t.Logf("successfully retrieved model card: %s", model.Name)
+	if model.ModelAvailability != "" {
+		t.Logf("model availability: %s", model.ModelAvailability)
+	}
 
 	// Verify model metadata structure
 	if model.Agreement != nil {
@@ -173,16 +177,21 @@ func TestModelCatalogWorkflow(t *testing.T) {
 		}
 
 		model := callTool[struct {
-			UUID      string          `json:"uuid"`
-			Name      string          `json:"name"`
-			Agreement *godo.Agreement `json:"agreement,omitempty"`
+			UUID              string          `json:"uuid"`
+			Name              string          `json:"name"`
+			Agreement         *godo.Agreement `json:"agreement,omitempty"`
+			ModelAvailability string          `json:"model_availability,omitempty"`
 		}](t, "genai-model-catalog-get-card", map[string]interface{}{
 			"ModelUUID": uuid,
 		})
 
 		require.Equal(t, uuid, model.UUID)
 		require.Contains(t, strings.ToLower(model.Name), strings.ToLower(searchQuery), "model name should contain the search query")
-		t.Logf("  - %s", model.Name)
+		if model.ModelAvailability != "" {
+			t.Logf("  - %s (availability: %s)", model.Name, model.ModelAvailability)
+		} else {
+			t.Logf("  - %s", model.Name)
+		}
 	}
 
 	t.Log("workflow completed successfully")
