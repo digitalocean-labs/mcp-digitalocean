@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"container/list"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -21,6 +22,9 @@ const (
 	// Refresh the cached key when it has less than this duration remaining,
 	// so we never hand out a key that expires mid-request.
 	keyRefreshBuffer = time.Hour
+	// Maximum entries in the auth cache. Prevents unbounded memory growth
+	// under high-cardinality workloads (many users × namespaces).
+	maxCacheEntries = 1024
 )
 
 // cachedAuth holds a resolved OW client and the metadata needed to clean up
@@ -33,23 +37,34 @@ type cachedAuth struct {
 	validUntil time.Time
 }
 
+// lruEntry pairs a cachedAuth with its map key so the LRU list element can
+// remove the corresponding map entry in O(1).
+type lruEntry struct {
+	key  string
+	auth *cachedAuth
+}
+
 // OWResolver lazily provisions short-lived access keys for the OpenWhisk data
-// plane and caches them in memory. On first use for a given namespace it:
+// plane and caches them in a bounded LRU cache with TTL expiration. On first
+// use for a given namespace it:
 //  1. Fetches namespace metadata (api_host, namespace name).
 //  2. Lists existing access keys and deletes any with the "mcp-do-" prefix
 //     (orphans from previous sessions).
 //  3. Creates a new 24h access key.
-//  4. Caches the result for the process lifetime (or until near-expiry).
+//  4. Caches the result until near-expiry, evicting least-recently-used entries
+//     when the cache is full.
 type OWResolver struct {
 	client func(ctx context.Context) (*godo.Client, error)
 	mu     sync.Mutex
-	cache  map[string]*cachedAuth
+	items  map[string]*list.Element // cache key → list element
+	order  *list.List               // front = most recently used
 }
 
 func NewOWResolver(client func(ctx context.Context) (*godo.Client, error)) *OWResolver {
 	return &OWResolver{
 		client: client,
-		cache:  make(map[string]*cachedAuth),
+		items:  make(map[string]*list.Element),
+		order:  list.New(),
 	}
 }
 
@@ -73,9 +88,15 @@ func (r *OWResolver) Resolve(ctx context.Context, namespaceID string) (*owClient
 	ck := cacheKey(ctx, namespaceID)
 
 	r.mu.Lock()
-	if cached, ok := r.cache[ck]; ok && time.Now().Before(cached.validUntil) {
-		r.mu.Unlock()
-		return cached.ow, cached.nsName, nil
+	if elem, ok := r.items[ck]; ok {
+		entry := elem.Value.(*lruEntry)
+		if time.Now().Before(entry.auth.validUntil) {
+			r.order.MoveToFront(elem)
+			r.mu.Unlock()
+			return entry.auth.ow, entry.auth.nsName, nil
+		}
+		r.order.Remove(elem)
+		delete(r.items, ck)
 	}
 	r.mu.Unlock()
 
@@ -113,21 +134,62 @@ func (r *OWResolver) Resolve(ctx context.Context, namespaceID string) (*owClient
 	}
 
 	r.mu.Lock()
-	r.cache[ck] = entry
+	r.putLocked(ck, entry)
 	r.mu.Unlock()
 
 	return ow, ns.Namespace, nil
+}
+
+// putLocked inserts or replaces a cache entry, evicts expired entries, and
+// removes the least-recently-used entry if the cache is at capacity.
+// Must be called with r.mu held.
+func (r *OWResolver) putLocked(key string, auth *cachedAuth) {
+	if elem, ok := r.items[key]; ok {
+		r.order.Remove(elem)
+		delete(r.items, key)
+	}
+
+	r.sweepExpiredLocked()
+
+	for r.order.Len() >= maxCacheEntries {
+		back := r.order.Back()
+		if back == nil {
+			break
+		}
+		e := back.Value.(*lruEntry)
+		r.order.Remove(back)
+		delete(r.items, e.key)
+	}
+
+	elem := r.order.PushFront(&lruEntry{key: key, auth: auth})
+	r.items[key] = elem
+}
+
+// sweepExpiredLocked removes all entries whose validUntil has passed.
+// Must be called with r.mu held.
+func (r *OWResolver) sweepExpiredLocked() {
+	now := time.Now()
+	for elem := r.order.Back(); elem != nil; {
+		prev := elem.Prev()
+		if now.After(elem.Value.(*lruEntry).auth.validUntil) {
+			e := elem.Value.(*lruEntry)
+			r.order.Remove(elem)
+			delete(r.items, e.key)
+		}
+		elem = prev
+	}
 }
 
 // Cleanup makes a best-effort attempt to delete all access keys created by
 // this session. Call during process shutdown.
 func (r *OWResolver) Cleanup(ctx context.Context) {
 	r.mu.Lock()
-	entries := make([]*cachedAuth, 0, len(r.cache))
-	for _, e := range r.cache {
-		entries = append(entries, e)
+	entries := make([]*cachedAuth, 0, r.order.Len())
+	for elem := r.order.Front(); elem != nil; elem = elem.Next() {
+		entries = append(entries, elem.Value.(*lruEntry).auth)
 	}
-	r.cache = make(map[string]*cachedAuth)
+	r.items = make(map[string]*list.Element)
+	r.order.Init()
 	r.mu.Unlock()
 
 	for _, entry := range entries {
