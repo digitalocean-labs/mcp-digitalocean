@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -197,61 +196,35 @@ func (r *OWResolver) Cleanup(ctx context.Context) {
 		if err != nil {
 			continue
 		}
-		path := fmt.Sprintf("/v2/functions/namespaces/%s/keys/%s", entry.nsID, entry.keyID)
-		req, err := gc.NewRequest(ctx, http.MethodDelete, path, nil)
-		if err != nil {
-			continue
-		}
-		gc.Do(ctx, req, nil) //nolint:errcheck
+		gc.Functions.DeleteAccessKey(ctx, entry.nsID, entry.keyID) //nolint:errcheck
 	}
 }
 
 func (r *OWResolver) cleanupOrphanedKeys(ctx context.Context, gc *godo.Client, namespaceID string) {
-	path := fmt.Sprintf("/v2/functions/namespaces/%s/keys", namespaceID)
-	req, err := gc.NewRequest(ctx, http.MethodGet, path, nil)
+	keys, _, err := gc.Functions.ListAccessKeys(ctx, namespaceID)
 	if err != nil {
 		return
 	}
 
-	root := new(accessKeysRoot)
-	_, err = gc.Do(ctx, req, root)
-	if err != nil {
-		return
-	}
-
-	for _, k := range root.AccessKeys {
+	for _, k := range keys {
 		if strings.HasPrefix(k.Name, mcpKeyPrefix) {
-			delPath := fmt.Sprintf("/v2/functions/namespaces/%s/keys/%s", namespaceID, k.ID)
-			delReq, err := gc.NewRequest(ctx, http.MethodDelete, delPath, nil)
-			if err != nil {
-				continue
-			}
-			gc.Do(ctx, delReq, nil) //nolint:errcheck
+			gc.Functions.DeleteAccessKey(ctx, namespaceID, k.ID) //nolint:errcheck
 		}
 	}
 }
 
-func (r *OWResolver) createKey(ctx context.Context, gc *godo.Client, namespaceID string) (*AccessKey, error) {
+func (r *OWResolver) createKey(ctx context.Context, gc *godo.Client, namespaceID string) (*godo.FunctionsAccessKey, error) {
 	name := mcpKeyPrefix + fmt.Sprintf("%d", time.Now().UnixMilli())
-	body := &accessKeyCreateRequest{
+	key, _, err := gc.Functions.CreateAccessKey(ctx, namespaceID, &godo.FunctionsAccessKeyCreateRequest{
 		Name:      name,
 		ExpiresIn: keyTTL,
-	}
-
-	path := fmt.Sprintf("/v2/functions/namespaces/%s/keys", namespaceID)
-	req, err := gc.NewRequest(ctx, http.MethodPost, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-
-	root := new(accessKeyRoot)
-	_, err = gc.Do(ctx, req, root)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create key API call: %w", err)
 	}
-	if root.AccessKey == nil {
+	if key == nil {
 		return nil, fmt.Errorf("empty response from create key")
 	}
 
-	return root.AccessKey, nil
+	return key, nil
 }

@@ -4,42 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
-
-// Access key types not present in godo.
-
-type AccessKey struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Secret    string     `json:"secret,omitempty"`
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-}
-
-type accessKeysRoot struct {
-	AccessKeys []AccessKey `json:"access_keys"`
-	Count      int         `json:"count"`
-}
-
-type accessKeyRoot struct {
-	AccessKey *AccessKey `json:"access_key"`
-}
-
-type accessKeyCreateRequest struct {
-	Name      string `json:"name"`
-	ExpiresIn string `json:"expires_in,omitempty"`
-}
-
-type accessKeyUpdateRequest struct {
-	Name string `json:"name"`
-}
 
 type NamespaceTool struct {
 	client func(ctx context.Context) (*godo.Client, error)
@@ -141,9 +110,6 @@ func (t *NamespaceTool) deleteNamespace(ctx context.Context, req mcp.CallToolReq
 	return mcp.NewToolResultText(fmt.Sprintf("Namespace %s deleted successfully", nsID)), nil
 }
 
-// Access key operations use godo's generic request methods since godo
-// does not have first-class access key support.
-
 func (t *NamespaceTool) listAccessKeys(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	nsID, ok := req.GetArguments()["NamespaceID"].(string)
 	if !ok {
@@ -155,19 +121,12 @@ func (t *NamespaceTool) listAccessKeys(ctx context.Context, req mcp.CallToolRequ
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	path := fmt.Sprintf("/v2/functions/namespaces/%s/keys", nsID)
-	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("create request", err), nil
-	}
-
-	root := new(accessKeysRoot)
-	_, err = client.Do(ctx, apiReq, root)
+	keys, _, err := client.Functions.ListAccessKeys(ctx, nsID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("list access keys", err), nil
 	}
 
-	out, err := json.MarshalIndent(root, "", "  ")
+	out, err := json.MarshalIndent(keys, "", "  ")
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
 	}
@@ -186,9 +145,9 @@ func (t *NamespaceTool) createAccessKey(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultError("Name is required and must be a string"), nil
 	}
 
-	body := &accessKeyCreateRequest{Name: name}
+	createReq := &godo.FunctionsAccessKeyCreateRequest{Name: name}
 	if expiresIn, ok := args["ExpiresIn"].(string); ok && expiresIn != "" {
-		body.ExpiresIn = expiresIn
+		createReq.ExpiresIn = expiresIn
 	}
 
 	client, err := t.client(ctx)
@@ -196,19 +155,12 @@ func (t *NamespaceTool) createAccessKey(ctx context.Context, req mcp.CallToolReq
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	path := fmt.Sprintf("/v2/functions/namespaces/%s/keys", nsID)
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, body)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("create request", err), nil
-	}
-
-	root := new(accessKeyRoot)
-	_, err = client.Do(ctx, apiReq, root)
+	key, _, err := client.Functions.CreateAccessKey(ctx, nsID, createReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("create access key", err), nil
 	}
 
-	out, err := json.MarshalIndent(root.AccessKey, "", "  ")
+	out, err := json.MarshalIndent(key, "", "  ")
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
 	}
@@ -232,13 +184,7 @@ func (t *NamespaceTool) deleteAccessKey(ctx context.Context, req mcp.CallToolReq
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	path := fmt.Sprintf("/v2/functions/namespaces/%s/keys/%s", nsID, keyID)
-	apiReq, err := client.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("create request", err), nil
-	}
-
-	_, err = client.Do(ctx, apiReq, nil)
+	_, err = client.Functions.DeleteAccessKey(ctx, nsID, keyID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("delete access key", err), nil
 	}
