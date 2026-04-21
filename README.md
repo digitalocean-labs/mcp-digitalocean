@@ -164,21 +164,22 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 
 #### Available Services
 
-| Service      | Remote MCP URL                              | Description                                                                             |
-|--------------|---------------------------------------------|-----------------------------------------------------------------------------------------|
-| apps         | https://apps.mcp.digitalocean.com/mcp       | Manage DigitalOcean App Platform applications, including deployments and configurations. |
-| accounts     | https://accounts.mcp.digitalocean.com/mcp   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
-| databases    | https://databases.mcp.digitalocean.com/mcp  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
-| doks         | https://doks.mcp.digitalocean.com/mcp       | Manage DigitalOcean Kubernetes clusters and node pools. |
-| droplets     | https://droplets.mcp.digitalocean.com/mcp   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
-| docr         | https://docr.mcp.digitalocean.com/mcp       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
-| gradient-ai  | https://gradient-ai.mcp.digitalocean.com/mcp | Manage Dedicated Inference instances for GPU-accelerated model serving. |
-| insights     | https://insights.mcp.digitalocean.com/mcp   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
-| marketplace  | https://marketplace.mcp.digitalocean.com/mcp| Discover and manage DigitalOcean Marketplace applications. |
-| networking   | https://networking.mcp.digitalocean.com/mcp | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
-| functions    | https://functions.mcp.digitalocean.com/mcp  | Manage serverless function namespaces, actions, packages, triggers, and activations.  |
-| spaces       | https://spaces.mcp.digitalocean.com/mcp     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
-| docs         | https://docs.mcp.digitalocean.com/mcp       | Search and retrieve DigitalOcean public documentation. No API token required. |
+| Service                  | Remote MCP URL                                              | Description                                                                             |
+|--------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| apps                     | https://apps.mcp.digitalocean.com/mcp                       | Manage DigitalOcean App Platform applications, including deployments and configurations. |
+| accounts                 | https://accounts.mcp.digitalocean.com/mcp                   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
+| databases                | https://databases.mcp.digitalocean.com/mcp                  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
+| doks                     | https://doks.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Kubernetes clusters and node pools. |
+| droplets                 | https://droplets.mcp.digitalocean.com/mcp                   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
+| docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
+| gradient-ai              | https://gradient-ai.mcp.digitalocean.com/mcp                | Manage Dedicated Inference instances for GPU-accelerated model serving. |
+| inference-modelcatalog   | https://inference-modelcatalog.mcp.digitalocean.com/mcp     | Browse the DigitalOcean Inference model catalog, search for models, and get model cards. |
+| insights                 | https://insights.mcp.digitalocean.com/mcp                   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
+| marketplace              | https://marketplace.mcp.digitalocean.com/mcp                | Discover and manage DigitalOcean Marketplace applications. |
+| networking               | https://networking.mcp.digitalocean.com/mcp                 | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
+| functions                | https://functions.mcp.digitalocean.com/mcp                  | Manage serverless function namespaces, actions, packages, triggers, and activations.  |
+| spaces                   | https://spaces.mcp.digitalocean.com/mcp                     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
+| docs                     | https://docs.mcp.digitalocean.com/mcp                       | Search and retrieve DigitalOcean public documentation. No API token required. |
 
 ---
 
@@ -598,10 +599,13 @@ Each service provides a detailed README describing all available tools, resource
 - [DOKS Service](pkg/registry/doks/README.md)
 - [DOCR Service](pkg/registry/docr/README.md)
 - [Gradient AI Service](pkg/registry/gradient-ai/README.md)
+- [Inference Model Catalog Service](pkg/registry/inference-modelcatalog/README.md)
 - [Docs Service](pkg/registry/docs/README.md)
 
 ## Example Tools
 
+- Search Catalog models by name: `inference-model-catalog-search`
+- Open full metadata for one catalog model: `inference-model-catalog-get-card`
 - Deploy an app from a GitHub repo: `create-app-from-spec`
 - Resize a droplet: `droplet-resize`
 - Add a new SSH key: `key-create`
