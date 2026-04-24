@@ -178,9 +178,11 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 | insights                 | https://insights.mcp.digitalocean.com/mcp                   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
 | marketplace              | https://marketplace.mcp.digitalocean.com/mcp                | Discover and manage DigitalOcean Marketplace applications. |
 | networking               | https://networking.mcp.digitalocean.com/mcp                 | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
+| nfs                      | https://nfs.mcp.digitalocean.com/mcp                        | Manage DigitalOcean NFS file shares and file share snapshots. |
 | functions                | https://functions.mcp.digitalocean.com/mcp                  | Manage serverless function namespaces, actions, packages, triggers, and activations.  |
 | spaces                   | https://spaces.mcp.digitalocean.com/mcp                     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
 | docs                     | https://docs.mcp.digitalocean.com/mcp                       | Search and retrieve DigitalOcean public documentation. No API token required. |
+| volumes                  | https://volumes.mcp.digitalocean.com/mcp                    | Manage DigitalOcean block storage volumes and volume snapshots. |
 
 ---
 
@@ -604,6 +606,8 @@ Each service provides a detailed README describing all available tools, resource
 - [Docs Service](pkg/registry/docs/README.md)
 - [GenAI evaluation](pkg/registry/genai/README.md)
 - [GenAI Batch Inference Service](pkg/registry/genai-batchinference/README.md)
+- [NFS Service](pkg/registry/nfs/README.md)
+- [Volumes Service](pkg/registry/volumes/README.md)
 
 ## Example Tools
 
