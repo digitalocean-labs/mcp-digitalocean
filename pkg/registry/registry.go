@@ -24,6 +24,7 @@ import (
 	"mcp-digitalocean/pkg/registry/marketplace"
 	"mcp-digitalocean/pkg/registry/networking"
 	"mcp-digitalocean/pkg/registry/nfs"
+	"mcp-digitalocean/pkg/registry/openapi"
 	"mcp-digitalocean/pkg/registry/spaces"
 	"mcp-digitalocean/pkg/registry/volumes"
 
@@ -32,6 +33,12 @@ import (
 )
 
 type getClientFn func(ctx context.Context) (*godo.Client, error)
+
+// Options configures cross-cutting registry behavior (beyond the service list).
+type Options struct {
+	// OpenAPIDisableDeletes, when true, skips registration of openapi-execute-delete for the openapi service.
+	OpenAPIDisableDeletes bool
+}
 
 // supportedServices is a set of services that we support in this MCP server.
 var supportedServices = map[string]struct{}{
@@ -54,6 +61,7 @@ var supportedServices = map[string]struct{}{
 	"volumes":                {},
 	"functions":              {},
 	"nfs":                    {},
+	"openapi":                {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -227,9 +235,21 @@ func registerNfsTools(s *server.MCPServer, getClient getClientFn) error {
 	return nil
 }
 
+// registerOpenAPITools registers openapi-search, openapi-get-operation, openapi-execute, and
+// openapi-execute-delete unless disableDeletes is true (then the delete tool is omitted).
+func registerOpenAPITools(s *server.MCPServer, getClient getClientFn, disableDeletes bool) error {
+	tool, err := openapi.NewOpenAPITool(getClient, openapi.Options{DisableDeletes: disableDeletes})
+	if err != nil {
+		return fmt.Errorf("failed to create openapi tool: %w", err)
+	}
+	s.AddTools(tool.Tools()...)
+	return nil
+}
+
 // Register registers the set of tools for the specified services with the MCP server.
-// We either register a subset of tools of the services are specified, or we register all tools if no services are specified.
-func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, servicesToActivate ...string) error {
+// If servicesToActivate is empty, all supported services are loaded. opts configures
+// cross-cutting behavior (for example OpenAPIDisableDeletes for the openapi service).
+func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, opts Options, servicesToActivate ...string) error {
 	if len(servicesToActivate) == 0 {
 		logger.Warn("no services specified, loading all supported services")
 		for k := range supportedServices {
@@ -316,17 +336,32 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 			if err := registerNfsTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register nfs tools: %w", err)
 			}
+		case "openapi":
+			if err := registerOpenAPITools(s, getClient, opts.OpenAPIDisableDeletes); err != nil {
+				return fmt.Errorf("failed to register openapi tools: %w", err)
+			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
 		}
 	}
 
-	// Common tools are always registered because they provide common functionality for all services such as region resources
-	if err := registerCommonTools(s, getClient); err != nil {
-		return fmt.Errorf("failed to register common tools: %w", err)
+	// Common tools (e.g. region-list) are registered for typical multi-service setups.
+	// OpenAPI-only mode skips them so the tool surface matches the embedded spec workflow.
+	if !isOpenAPIOnlyServices(servicesToActivate) {
+		if err := registerCommonTools(s, getClient); err != nil {
+			return fmt.Errorf("failed to register common tools: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// isOpenAPIOnlyServices is true when exactly one service is enabled and it is openapi.
+func isOpenAPIOnlyServices(services []string) bool {
+	if len(services) != 1 {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(services[0]), "openapi")
 }
 
 func setToString(set map[string]struct{}) string {

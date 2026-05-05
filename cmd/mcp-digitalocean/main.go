@@ -47,6 +47,7 @@ func main() {
 	wsLoggingToken := flag.String("ws-logging-token", getEnv("WS_LOGGING_TOKEN", ""), "Authentication token for WebSocket logging (optional)")
 	enableToolErrorLogging := flag.Bool("enable-tool-error-logging", getEnv("ENABLE_TOOL_ERROR_LOGGING", "false") == "true", "Enable logging of tool errors")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
+	openAPIDisableDeletes := flag.Bool("openapi-disable-deletes", getEnv("OPENAPI_DISABLE_DELETES", "false") == "true", "When true, the openapi-execute-delete tool is not registered (OPENAPI_DISABLE_DELETES)")
 	flag.Parse()
 
 	var level slog.Level
@@ -153,6 +154,7 @@ func main() {
 		logger,
 		svr,
 		getClientFn,
+		registry.Options{OpenAPIDisableDeletes: *openAPIDisableDeletes},
 		services...,
 	)
 	if err != nil {

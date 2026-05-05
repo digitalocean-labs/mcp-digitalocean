@@ -43,3 +43,8 @@ format-check:
 
 gen:
 	go generate ./...
+
+.PHONY: update-openapi-spec
+update-openapi-spec:
+	curl -fsSL https://api-engineering.nyc3.digitaloceanspaces.com/spec-ci/DigitalOcean-public.v2.yaml \
+	  -o pkg/registry/openapi/spec/DigitalOcean-public.v2.yaml
