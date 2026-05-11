@@ -50,6 +50,8 @@ const (
 	argDescExecuteParameters = "Maps OpenAPI parameter names to values from openapi-get-operation. Values may be string, boolean, number, or an array of those for repeated query parameters. Each path parameter must resolve to a single value. Header, query, and path parameters share this one object; placement follows the spec. Omit optional parameters you are not setting."
 
 	argDescExecuteBody = "JSON object for the request body when the operation defines one; omit this argument entirely when there is no body. Shape must match the schema described by openapi-get-operation."
+
+	argDescExecuteSelect = "Optional dotted path to narrow a JSON response body after the request succeeds (only when Content-Type is application/json). Examples: droplets[*].id for an array of ids, links.pages.next for a nested string. Leave empty to return the full body (still subject to the 1 MiB cap)."
 )
 
 // GodoClientFn resolves the DigitalOcean API client for the current MCP request
@@ -202,10 +204,10 @@ func formatOperation(op *Operation) string {
 	return strings.TrimSpace(b.String())
 }
 
-func parseExecuteArgs(args map[string]any) (id string, params map[string]any, body map[string]any, err error) {
+func parseExecuteArgs(args map[string]any) (id string, params map[string]any, body map[string]any, selectPath string, err error) {
 	idRaw, ok := args["OperationID"].(string)
 	if !ok || strings.TrimSpace(idRaw) == "" {
-		return "", nil, nil, errors.New("OperationID is required and must be a non-empty string")
+		return "", nil, nil, "", errors.New("OperationID is required and must be a non-empty string")
 	}
 	id = strings.TrimSpace(idRaw)
 
@@ -215,14 +217,17 @@ func parseExecuteArgs(args map[string]any) (id string, params map[string]any, bo
 	if raw, ok := args["Body"].(map[string]any); ok && raw != nil {
 		body = raw
 	}
-	return id, params, body, nil
+	if s, ok := args["Select"].(string); ok {
+		selectPath = strings.TrimSpace(s)
+	}
+	return id, params, body, selectPath, nil
 }
 
 // execute implements openapi-execute: kin-openapi request validation against the spec's
 // first server URL, then godo.Client.Do against the client's configured API base URL.
 // DELETE operations are rejected; use openapi-execute-delete.
 func (t *OpenAPITool) execute(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id, params, body, err := parseExecuteArgs(req.GetArguments())
+	id, params, body, selectPath, err := parseExecuteArgs(req.GetArguments())
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
@@ -237,13 +242,13 @@ func (t *OpenAPITool) execute(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultError(errDeleteUseOtherTool), nil
 	}
 
-	return t.runOperation(ctx, idx, params, body)
+	return t.runOperation(ctx, idx, params, body, selectPath)
 }
 
 // executeDelete implements openapi-execute-delete: same validation and execution as
 // openapi-execute but only for DELETE operations (destructiveHint in tool metadata).
 func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id, params, body, err := parseExecuteArgs(req.GetArguments())
+	id, params, body, selectPath, err := parseExecuteArgs(req.GetArguments())
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
@@ -258,7 +263,7 @@ func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultError(fmt.Sprintf(errNonDeleteUseOther, method)), nil
 	}
 
-	return t.runOperation(ctx, idx, params, body)
+	return t.runOperation(ctx, idx, params, body, selectPath)
 }
 
 // errIfJSONBodyUnsupported returns an error when the caller supplied a JSON body but the
@@ -432,7 +437,7 @@ func formatExecuteResponseBody(contentType string, raw []byte) string {
 	return string(raw)
 }
 
-func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client, method, execBase, resolvedPath string, queryVals url.Values, jsonBody []byte, headerVals http.Header) (*mcp.CallToolResult, error) {
+func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client, method, execBase, resolvedPath string, queryVals url.Values, jsonBody []byte, headerVals http.Header, selectPath string) (*mcp.CallToolResult, error) {
 	execReq, err := buildHTTPRequest(method, execBase, resolvedPath, queryVals, jsonBody, headerVals)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to build API request", err), nil
@@ -448,16 +453,40 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 		return mcp.NewToolResultError("empty response from API client"), nil
 	}
 
-	var b strings.Builder
-	fmt.Fprintf(&b, "status: %d\n", resp.StatusCode)
-	appendForwardedResponseHeaders(&b, resp.Header)
-	b.WriteByte('\n')
-
 	ct := ""
 	if resp.Response != nil {
 		ct = resp.Header.Get("Content-Type")
 	}
-	b.WriteString(formatExecuteResponseBody(ct, respBuf.Bytes()))
+
+	bodyBytes := respBuf.Bytes()
+	bodyStr := formatExecuteResponseBody(ct, bodyBytes)
+	if strings.TrimSpace(selectPath) != "" {
+		ctLower := strings.ToLower(strings.TrimSpace(ct))
+		if strings.HasPrefix(ctLower, "application/json") {
+			var parsed any
+			if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
+				return mcp.NewToolResultErrorFromErr("response body is not valid JSON for Select", err), nil
+			}
+			shaped, err := selectJSON(selectPath, parsed)
+			if err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			enc, err := json.MarshalIndent(shaped, "", "  ")
+			if err != nil {
+				return mcp.NewToolResultErrorFromErr("failed to encode selected JSON", err), nil
+			}
+			bodyStr = string(enc)
+		}
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "status: %d\n", resp.StatusCode)
+	appendForwardedResponseHeaders(&b, resp.Header)
+	if strings.TrimSpace(selectPath) != "" && !strings.HasPrefix(strings.ToLower(strings.TrimSpace(ct)), "application/json") {
+		fmt.Fprintf(&b, "select-not-applied: response Content-Type is not JSON\n")
+	}
+	b.WriteByte('\n')
+	b.WriteString(bodyStr)
 	if lw.truncated {
 		b.WriteString("\n\n[truncated: response exceeded 1 MiB; tighten parameters or use Select]")
 	}
@@ -465,7 +494,7 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 	return mcp.NewToolResultText(strings.TrimRight(b.String(), "\n")), nil
 }
 
-func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any) (*mcp.CallToolResult, error) {
+func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any, selectPath string) (*mcp.CallToolResult, error) {
 	method := strings.ToUpper(idx.method)
 
 	doc, err := t.api.document()
@@ -515,7 +544,7 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 	}
 
 	execBase := strings.TrimSuffix(strings.TrimSpace(client.BaseURL.String()), "/")
-	return t.executeAndFormat(ctx, client, method, execBase, resolvedPath, queryVals, jsonBody, headerVals)
+	return t.executeAndFormat(ctx, client, method, execBase, resolvedPath, queryVals, jsonBody, headerVals, selectPath)
 }
 
 // Tools returns openapi-search, openapi-get-operation, openapi-execute, and
@@ -565,6 +594,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 		mcp.WithString("OperationID", mcp.Required(), mcp.Description(argDescOperationIDForExecute)),
 		mcp.WithObject("Parameters", mcp.Description(argDescExecuteParameters)),
 		mcp.WithObject("Body", mcp.Description(argDescExecuteBody)),
+		mcp.WithString("Select", mcp.Description(argDescExecuteSelect)),
 	)
 
 	out := []server.ServerTool{
@@ -582,6 +612,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 			mcp.WithString("OperationID", mcp.Required(), mcp.Description(argDescOperationIDForExecute)),
 			mcp.WithObject("Parameters", mcp.Description(argDescExecuteParameters)),
 			mcp.WithObject("Body", mcp.Description(argDescExecuteBody)),
+			mcp.WithString("Select", mcp.Description(argDescExecuteSelect)),
 		)
 		out = append(out, server.ServerTool{
 			Handler: t.executeDelete,
