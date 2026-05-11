@@ -22,6 +22,7 @@ import (
 
 const (
 	defaultSearchLimit = 10
+	maxSearchLimit     = 50
 
 	// maxResponseBodyBytes caps bytes read from the API response body into memory for openapi execute tools.
 	maxResponseBodyBytes = 1 << 20
@@ -41,7 +42,7 @@ const (
 
 	argDescSearchTag = "If non-empty, only operations whose OpenAPI tags contain this exact string (case-sensitive). Leave empty to search all tags."
 
-	argDescSearchLimit = "Maximum operations to return (default 10). Increase if results are truncated or you need more choices."
+	argDescSearchLimit = "Maximum operations to return (default 10, maximum 50). Increase if results are truncated or you need more choices."
 
 	argDescOperationIDFromSearch = "The operationId string exactly as shown in openapi-search results (or from DigitalOcean API documentation)."
 
@@ -97,6 +98,12 @@ func (t *OpenAPITool) search(_ context.Context, req mcp.CallToolRequest) (*mcp.C
 	limit := defaultSearchLimit
 	if lim, ok := args["Limit"].(float64); ok && lim > 0 {
 		limit = int(lim)
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
+	}
+	if limit < 1 {
+		limit = defaultSearchLimit
 	}
 
 	tag := ""
@@ -331,7 +338,7 @@ func collectParams(idx *indexedOp, params map[string]any) (pathParams map[string
 				headerVals.Add(p.Name, s)
 			}
 		case openapi3.ParameterInCookie:
-			return nil, nil, nil, fmt.Errorf("cookie parameter %q is not supported by openapi execute tools", p.Name)
+			return nil, nil, nil, fmt.Errorf("internal error: cookie parameter %q should have been excluded when loading the OpenAPI spec", p.Name)
 		default:
 			return nil, nil, nil, fmt.Errorf("unsupported parameter location %q for %q", p.In, p.Name)
 		}
@@ -599,7 +606,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 	searchOpts = append(searchOpts,
 		mcp.WithString("Query", mcp.Required(), mcp.Description(argDescSearchQuery)),
 		mcp.WithString("Tag", mcp.Description(argDescSearchTag)),
-		mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Description(argDescSearchLimit)),
+		mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Min(1), mcp.Max(maxSearchLimit), mcp.Description(argDescSearchLimit)),
 		mcp.WithOutputSchema[SearchToolResult](),
 	)
 

@@ -16,7 +16,7 @@ npx @digitalocean/mcp --services openapi --digitalocean-api-token "$DIGITALOCEAN
 
 | Tool | Purpose |
 |------|---------|
-| `openapi-search` | Keyword search over `operationId`, summary, path, HTTP method, and tags. Optional `Tag` filters to operations that list that exact tag. Annotated `readOnlyHint: true` (embedded spec only). |
+| `openapi-search` | Keyword search over `operationId`, summary, path, HTTP method, and tags. Optional `Tag` filters to operations that list that exact tag. **`Limit` is clamped between 1 and 50.** Annotated `readOnlyHint: true` (embedded spec only). |
 | `openapi-get-operation` | Full text description for one `operationId`: parameters, request body outline, response codes. Annotated `readOnlyHint: true`. |
 | `openapi-execute` | Non-**DELETE** operations only. Build a request from `Parameters` (path/query/header by name), optional JSON `Body`, run [openapi3filter.ValidateRequest](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3filter), then `godo.Client.Do`. Responses include HTTP status, selected headers (rate limits, pagination `Link`, etc.), then the body (JSON/text bodies are trimmed for display). Large bodies are truncated at **1 MiB** with a clear marker. Annotated `openWorldHint: true`; rejects DELETE (use `openapi-execute-delete`). |
 | `openapi-execute-delete` | **DELETE** operations only. Same validation and execution path as `openapi-execute`. Annotated `destructiveHint: true` so MCP hosts can require explicit user approval per call. Not registered when deletes are disabled server-side (see below). |
@@ -58,6 +58,7 @@ Then commit `pkg/registry/openapi/spec/DigitalOcean-public.v2.yaml` when you int
 
 ## Implementation notes
 
+- Operations that declare **cookie parameters** are skipped when the embedded spec is loaded (they cannot be executed by these tools); a warning is logged once per skipped operation.
 - Tools declare **`outputSchema`** via `mcp.WithOutputSchema` and return **`structuredContent`** plus human-readable fallback text (`NewToolResultStructured`) so clients that support structured results get typed payloads while others still receive plain text.
 - Parsing and `$ref` resolution: [`github.com/getkin/kin-openapi/openapi3`](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3).
 - Request validation: [`openapi3filter`](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3filter) with `AuthenticationFunc` set to noop (Bearer auth is enforced by godo, not duplicated in the validation request).

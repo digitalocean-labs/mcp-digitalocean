@@ -3,6 +3,7 @@ package openapi
 import (
 	_ "embed"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"sort"
 	"strconv"
@@ -128,6 +129,23 @@ func (c *OpenAPIClient) load() error {
 			if id == "" {
 				continue
 			}
+
+			allParams := mergeParameters(pathItem, op)
+			hasCookie := false
+			for _, p := range allParams {
+				if p != nil && p.In == openapi3.ParameterInCookie {
+					hasCookie = true
+					break
+				}
+			}
+			if hasCookie {
+				slog.Default().Warn("skipping OpenAPI operation with cookie parameter",
+					"operationId", id,
+					"path", path,
+				)
+				continue
+			}
+
 			idx := &indexedOp{
 				method:   method,
 				path:     path,
@@ -340,6 +358,9 @@ func (c *OpenAPIClient) SearchOperations(query, tag string, limit int) ([]*Opera
 	}
 	if limit <= 0 {
 		limit = 10
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
 	}
 
 	tag = strings.TrimSpace(tag)
