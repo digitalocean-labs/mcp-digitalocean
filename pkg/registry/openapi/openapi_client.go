@@ -24,36 +24,36 @@ type OpenAPIService interface {
 
 // OperationSummary is one ranked hit from SearchOperations (openapi-search).
 type OperationSummary struct {
-	OperationID string
-	Method      string
-	Path        string
-	Summary     string
-	Tags        []string
+	OperationID string   `json:"operationId"`
+	Method      string   `json:"method"`
+	Path        string   `json:"path"`
+	Summary     string   `json:"summary,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
 }
 
 // ParameterDetail is a flattened parameter row for display in openapi-get-operation.
 type ParameterDetail struct {
-	Name        string
-	In          string // path, query, header, or cookie (cookie unsupported in execute)
-	Required    bool
-	Description string
-	Schema      string // short type/format summary for the agent
+	Name        string `json:"name"`
+	In          string `json:"in"` // path, query, header, or cookie (cookie unsupported in execute)
+	Required    bool   `json:"required"`
+	Description string `json:"description,omitempty"`
+	Schema      string `json:"schema,omitempty"` // short type/format summary for the agent
 }
 
 // Operation is a stable, tool-friendly view of one OpenAPI operation. The
 // kin-openapi types are kept unexported; same-package code uses them for
 // validation in openapi-execute.
 type Operation struct {
-	OperationID string
-	Method      string
-	Path        string
-	Summary     string
-	Description string
-	Tags        []string
-	Parameters  []ParameterDetail
+	OperationID string            `json:"operationId"`
+	Method      string            `json:"method"`
+	Path        string            `json:"path"`
+	Summary     string            `json:"summary,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Tags        []string          `json:"tags,omitempty"`
+	Parameters  []ParameterDetail `json:"parameters,omitempty"`
 	// RequestBody is a rendered text summary (content types and schema outline), not raw YAML.
-	RequestBody string
-	Responses   map[string]string // HTTP status or name (e.g. default) → description
+	RequestBody string            `json:"requestBody,omitempty"`
+	Responses   map[string]string `json:"responses,omitempty"` // HTTP status or name (e.g. default) → description
 }
 
 // indexedOp holds resolved path/method plus pointers needed for validation and routing.

@@ -58,6 +58,7 @@ Then commit `pkg/registry/openapi/spec/DigitalOcean-public.v2.yaml` when you int
 
 ## Implementation notes
 
+- Tools declare **`outputSchema`** via `mcp.WithOutputSchema` and return **`structuredContent`** plus human-readable fallback text (`NewToolResultStructured`) so clients that support structured results get typed payloads while others still receive plain text.
 - Parsing and `$ref` resolution: [`github.com/getkin/kin-openapi/openapi3`](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3).
 - Request validation: [`openapi3filter`](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3filter) with `AuthenticationFunc` set to noop (Bearer auth is enforced by godo, not duplicated in the validation request).
 - Validation uses the spec's **first** `servers[].URL`; execution uses **`godo.Client`'s** configured base URL so custom `DIGITALOCEAN_API_ENDPOINT` continues to work.

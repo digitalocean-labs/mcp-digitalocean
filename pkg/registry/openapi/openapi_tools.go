@@ -110,11 +110,13 @@ func (t *OpenAPITool) search(_ context.Context, req mcp.CallToolRequest) (*mcp.C
 	}
 
 	if len(results) == 0 {
-		return mcp.NewToolResultText(fmt.Sprintf("No operations matched %q.", query)), nil
+		fallback := fmt.Sprintf("No operations matched %q.", query)
+		return mcp.NewToolResultStructured(SearchToolResult{Hits: []OperationSummary{}}, fallback), nil
 	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "Found %d operation(s) matching %q:\n\n", len(results), query)
+	hits := make([]OperationSummary, 0, len(results))
 	for i, r := range results {
 		fmt.Fprintf(&b, "%d. %s %s  [%s]\n", i+1, r.Method, r.Path, r.OperationID)
 		if r.Summary != "" {
@@ -124,9 +126,11 @@ func (t *OpenAPITool) search(_ context.Context, req mcp.CallToolRequest) (*mcp.C
 			fmt.Fprintf(&b, "   tags: %s\n", strings.Join(r.Tags, ", "))
 		}
 		b.WriteByte('\n')
+		hits = append(hits, *r)
 	}
 
-	return mcp.NewToolResultText(strings.TrimSpace(b.String())), nil
+	payload := SearchToolResult{Hits: hits}
+	return mcp.NewToolResultStructured(payload, strings.TrimSpace(b.String())), nil
 }
 
 // getOperation implements the openapi-get-operation tool handler.
@@ -142,7 +146,9 @@ func (t *OpenAPITool) getOperation(_ context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("failed to load operation", err), nil
 	}
 
-	return mcp.NewToolResultText(formatOperation(op)), nil
+	fallback := formatOperation(op)
+	payload := GetOperationToolResult{Operation: *op}
+	return mcp.NewToolResultStructured(payload, fallback), nil
 }
 
 // formatOperation renders Operation as markdown-style text for the model.
@@ -460,29 +466,45 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 
 	bodyBytes := respBuf.Bytes()
 	bodyStr := formatExecuteResponseBody(ct, bodyBytes)
-	if strings.TrimSpace(selectPath) != "" {
-		ctLower := strings.ToLower(strings.TrimSpace(ct))
-		if strings.HasPrefix(ctLower, "application/json") {
-			var parsed any
-			if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
+	bodyAny := any(bodyStr)
+	ctLower := strings.ToLower(strings.TrimSpace(ct))
+	selectNA := strings.TrimSpace(selectPath) != "" && !strings.HasPrefix(ctLower, "application/json")
+
+	if strings.HasPrefix(ctLower, "application/json") {
+		var parsed any
+		if err := json.Unmarshal(bodyBytes, &parsed); err != nil {
+			if strings.TrimSpace(selectPath) != "" {
 				return mcp.NewToolResultErrorFromErr("response body is not valid JSON for Select", err), nil
 			}
-			shaped, err := selectJSON(selectPath, parsed)
-			if err != nil {
-				return mcp.NewToolResultError(err.Error()), nil
+		} else {
+			bodyAny = parsed
+			if strings.TrimSpace(selectPath) != "" {
+				shaped, err := selectJSON(selectPath, parsed)
+				if err != nil {
+					return mcp.NewToolResultError(err.Error()), nil
+				}
+				bodyAny = shaped
+				enc, err := json.MarshalIndent(shaped, "", "  ")
+				if err != nil {
+					return mcp.NewToolResultErrorFromErr("failed to encode selected JSON", err), nil
+				}
+				bodyStr = string(enc)
 			}
-			enc, err := json.MarshalIndent(shaped, "", "  ")
-			if err != nil {
-				return mcp.NewToolResultErrorFromErr("failed to encode selected JSON", err), nil
-			}
-			bodyStr = string(enc)
 		}
+	}
+
+	payload := ExecuteToolResult{
+		Status:           resp.StatusCode,
+		ResponseHeaders:  forwardedHeadersMap(resp.Header),
+		Body:             bodyAny,
+		Truncated:        lw.truncated,
+		SelectNotApplied: selectNA,
 	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "status: %d\n", resp.StatusCode)
 	appendForwardedResponseHeaders(&b, resp.Header)
-	if strings.TrimSpace(selectPath) != "" && !strings.HasPrefix(strings.ToLower(strings.TrimSpace(ct)), "application/json") {
+	if selectNA {
 		fmt.Fprintf(&b, "select-not-applied: response Content-Type is not JSON\n")
 	}
 	b.WriteByte('\n')
@@ -491,7 +513,8 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 		b.WriteString("\n\n[truncated: response exceeded 1 MiB; tighten parameters or use Select]")
 	}
 
-	return mcp.NewToolResultText(strings.TrimRight(b.String(), "\n")), nil
+	fallback := strings.TrimRight(b.String(), "\n")
+	return mcp.NewToolResultStructured(payload, fallback), nil
 }
 
 func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any, selectPath string) (*mcp.CallToolResult, error) {
@@ -576,6 +599,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 		mcp.WithString("Query", mcp.Required(), mcp.Description(argDescSearchQuery)),
 		mcp.WithString("Tag", mcp.Description(argDescSearchTag)),
 		mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Description(argDescSearchLimit)),
+		mcp.WithOutputSchema[SearchToolResult](),
 	)
 
 	getOpOpts := append([]mcp.ToolOption{
@@ -584,6 +608,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 	}, readOnlyMeta...)
 	getOpOpts = append(getOpOpts,
 		mcp.WithString("OperationID", mcp.Required(), mcp.Description(argDescOperationIDFromSearch)),
+		mcp.WithOutputSchema[GetOperationToolResult](),
 	)
 
 	execOpts := append([]mcp.ToolOption{
@@ -595,6 +620,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 		mcp.WithObject("Parameters", mcp.Description(argDescExecuteParameters)),
 		mcp.WithObject("Body", mcp.Description(argDescExecuteBody)),
 		mcp.WithString("Select", mcp.Description(argDescExecuteSelect)),
+		mcp.WithOutputSchema[ExecuteToolResult](),
 	)
 
 	out := []server.ServerTool{
@@ -613,6 +639,7 @@ func (t *OpenAPITool) Tools() []server.ServerTool {
 			mcp.WithObject("Parameters", mcp.Description(argDescExecuteParameters)),
 			mcp.WithObject("Body", mcp.Description(argDescExecuteBody)),
 			mcp.WithString("Select", mcp.Description(argDescExecuteSelect)),
+			mcp.WithOutputSchema[ExecuteToolResult](),
 		)
 		out = append(out, server.ServerTool{
 			Handler: t.executeDelete,
