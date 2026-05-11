@@ -511,7 +511,7 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 	}
 
 	if err := validateAgainstSpec(ctx, doc, idx, method, validationReq, pathParams, queryVals); err != nil {
-		return mcp.NewToolResultErrorFromErr("request validation failed against OpenAPI spec", err), nil
+		return mcp.NewToolResultError(humanizeRequestValidationError(err)), nil
 	}
 
 	execBase := strings.TrimSuffix(strings.TrimSpace(client.BaseURL.String()), "/")
