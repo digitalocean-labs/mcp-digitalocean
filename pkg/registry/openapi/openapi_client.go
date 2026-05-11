@@ -73,6 +73,9 @@ type OpenAPIClient struct {
 	byID map[string]*indexedOp // operationId → operation
 	idx  []*OperationSummary   // sorted by operationId for stable search
 	err  error
+
+	// embedOverride replaces the compiled-in OpenAPI document when non-nil (tests only).
+	embedOverride []byte
 }
 
 // NewOpenAPIClient returns a client; the spec is not loaded until the first method call.
@@ -88,10 +91,14 @@ func (c *OpenAPIClient) ensure() error {
 	return c.err
 }
 
-// load parses embeddedSpec with openapi3.Loader (ResolveRefsIn) and builds indexes.
+// load parses embeddedSpec (or embedOverride in tests) with openapi3.Loader (ResolveRefsIn) and builds indexes.
 func (c *OpenAPIClient) load() error {
+	data := embeddedSpec
+	if len(c.embedOverride) > 0 {
+		data = c.embedOverride
+	}
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromData(embeddedSpec)
+	doc, err := loader.LoadFromData(data)
 	if err != nil {
 		return fmt.Errorf("load openapi spec: %w", err)
 	}

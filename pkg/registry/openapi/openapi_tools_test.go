@@ -3,15 +3,12 @@ package openapi
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/oauth2"
 )
 
 func TestExecute_DELETE_redirectsToDeleteTool(t *testing.T) {
@@ -97,7 +94,7 @@ func TestSearch_requiresQuery(t *testing.T) {
 }
 
 func TestExecute_GET_droplets_list_smoke(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newTestGodoClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v2/droplets" {
 			http.NotFound(w, r)
 			return
@@ -105,16 +102,7 @@ func TestExecute_GET_droplets_list_smoke(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"droplets":[]}`))
-	}))
-	defer srv.Close()
-
-	base, err := url.Parse(srv.URL)
-	require.NoError(t, err)
-
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"})
-	oauthCli := oauth2.NewClient(context.Background(), ts)
-	client, err := godo.New(oauthCli, godo.SetBaseURL(base.String()))
-	require.NoError(t, err)
+	})
 
 	tool, err := NewOpenAPITool(func(context.Context) (*godo.Client, error) {
 		return client, nil
@@ -133,22 +121,13 @@ func TestExecute_GET_droplets_list_smoke(t *testing.T) {
 }
 
 func TestExecuteDelete_DELETE_droplets_destroy_smoke(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newTestGodoClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete || r.URL.Path != "/v2/droplets/42" {
 			http.NotFound(w, r)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer srv.Close()
-
-	base, err := url.Parse(srv.URL)
-	require.NoError(t, err)
-
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "test-token"})
-	oauthCli := oauth2.NewClient(context.Background(), ts)
-	client, err := godo.New(oauthCli, godo.SetBaseURL(base.String()))
-	require.NoError(t, err)
+	})
 
 	tool, err := NewOpenAPITool(func(context.Context) (*godo.Client, error) {
 		return client, nil
