@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/digitalocean/godo"
@@ -179,7 +181,13 @@ func formatOperation(op *Operation) string {
 
 	if len(op.Responses) > 0 {
 		b.WriteString("### Responses\n\n")
-		for code, desc := range op.Responses {
+		codes := make([]string, 0, len(op.Responses))
+		for code := range op.Responses {
+			codes = append(codes, code)
+		}
+		sort.Strings(codes)
+		for _, code := range codes {
+			desc := op.Responses[code]
 			line := desc
 			if strings.TrimSpace(line) == "" {
 				line = "(no description)"
@@ -191,29 +199,29 @@ func formatOperation(op *Operation) string {
 	return strings.TrimSpace(b.String())
 }
 
-func parseExecuteArgs(args map[string]interface{}) (id string, params map[string]interface{}, body map[string]interface{}, errMsg string) {
+func parseExecuteArgs(args map[string]any) (id string, params map[string]any, body map[string]any, err error) {
 	idRaw, ok := args["OperationID"].(string)
 	if !ok || strings.TrimSpace(idRaw) == "" {
-		return "", nil, nil, "OperationID is required and must be a non-empty string"
+		return "", nil, nil, errors.New("OperationID is required and must be a non-empty string")
 	}
 	id = strings.TrimSpace(idRaw)
 
-	if raw, ok := args["Parameters"].(map[string]interface{}); ok && raw != nil {
+	if raw, ok := args["Parameters"].(map[string]any); ok && raw != nil {
 		params = raw
 	}
-	if raw, ok := args["Body"].(map[string]interface{}); ok && raw != nil {
+	if raw, ok := args["Body"].(map[string]any); ok && raw != nil {
 		body = raw
 	}
-	return id, params, body, ""
+	return id, params, body, nil
 }
 
 // execute implements openapi-execute: kin-openapi request validation against the spec's
 // first server URL, then godo.Client.Do against the client's configured API base URL.
 // DELETE operations are rejected; use openapi-execute-delete.
 func (t *OpenAPITool) execute(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id, params, body, errMsg := parseExecuteArgs(req.GetArguments())
-	if errMsg != "" {
-		return mcp.NewToolResultError(errMsg), nil
+	id, params, body, err := parseExecuteArgs(req.GetArguments())
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	idx, err := t.api.getIndexed(id)
@@ -232,9 +240,9 @@ func (t *OpenAPITool) execute(ctx context.Context, req mcp.CallToolRequest) (*mc
 // executeDelete implements openapi-execute-delete: same validation and execution as
 // openapi-execute but only for DELETE operations (destructiveHint in tool metadata).
 func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	id, params, body, errMsg := parseExecuteArgs(req.GetArguments())
-	if errMsg != "" {
-		return mcp.NewToolResultError(errMsg), nil
+	id, params, body, err := parseExecuteArgs(req.GetArguments())
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	idx, err := t.api.getIndexed(id)
@@ -250,7 +258,7 @@ func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest
 	return t.runOperation(ctx, idx, params, body)
 }
 
-func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]interface{}, body map[string]interface{}) (*mcp.CallToolResult, error) {
+func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any) (*mcp.CallToolResult, error) {
 	method := strings.ToUpper(idx.method)
 
 	doc, err := t.api.document()

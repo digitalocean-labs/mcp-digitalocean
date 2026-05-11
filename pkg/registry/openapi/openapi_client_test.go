@@ -24,7 +24,7 @@ func TestParamToStrings(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"42"}, s)
 
-	s, err = paramToStrings("x", []interface{}{"a", float64(2)})
+	s, err = paramToStrings("x", []any{"a", float64(2)})
 	require.NoError(t, err)
 	require.Equal(t, []string{"a", "2"}, s)
 }
@@ -45,5 +45,4 @@ func TestGetOperation_droplets_list(t *testing.T) {
 	require.Equal(t, "droplets_list", op.OperationID)
 	require.Equal(t, "GET", op.Method)
 	require.Contains(t, op.Path, "/droplets")
-	require.NotNil(t, op.raw)
 }

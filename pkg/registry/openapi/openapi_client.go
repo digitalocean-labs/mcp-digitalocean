@@ -54,10 +54,6 @@ type Operation struct {
 	// RequestBody is a rendered text summary (content types and schema outline), not raw YAML.
 	RequestBody string
 	Responses   map[string]string // HTTP status or name (e.g. default) → description
-
-	raw      *openapi3.Operation
-	pathItem *openapi3.PathItem
-	doc      *openapi3.T
 }
 
 // indexedOp holds resolved path/method plus pointers needed for validation and routing.
@@ -98,7 +94,7 @@ func (c *OpenAPIClient) load() error {
 	if err != nil {
 		return fmt.Errorf("load openapi spec: %w", err)
 	}
-	if doc.Servers == nil || len(doc.Servers) == 0 {
+	if len(doc.Servers) == 0 {
 		return fmt.Errorf("openapi spec has no servers")
 	}
 
@@ -111,7 +107,15 @@ func (c *OpenAPIClient) load() error {
 		return fmt.Errorf("openapi spec has no paths")
 	}
 
-	for path, pathItem := range paths.Map() {
+	pathMap := paths.Map()
+	pathKeys := make([]string, 0, len(pathMap))
+	for p := range pathMap {
+		pathKeys = append(pathKeys, p)
+	}
+	sort.Strings(pathKeys)
+
+	for _, path := range pathKeys {
+		pathItem := pathMap[path]
 		if pathItem == nil {
 			continue
 		}
@@ -163,11 +167,11 @@ func (c *OpenAPIClient) GetOperation(id string) (*Operation, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown operationId %q", id)
 	}
-	return projectionFromIndexed(c.doc, idx), nil
+	return projectionFromIndexed(idx), nil
 }
 
 // projectionFromIndexed builds an Operation for MCP text output.
-func projectionFromIndexed(doc *openapi3.T, idx *indexedOp) *Operation {
+func projectionFromIndexed(idx *indexedOp) *Operation {
 	op := idx.op
 	resp := make(map[string]string)
 	if op.Responses != nil {
@@ -212,9 +216,6 @@ func projectionFromIndexed(doc *openapi3.T, idx *indexedOp) *Operation {
 		Parameters:  details,
 		RequestBody: bodyDesc,
 		Responses:   resp,
-		raw:         op,
-		pathItem:    idx.pathItem,
-		doc:         doc,
 	}
 }
 
@@ -259,7 +260,9 @@ func briefSchema(s *openapi3.Schema) string {
 		return ""
 	}
 	if len(s.Type.Slice()) > 0 {
-		t := strings.Join(s.Type.Slice(), "|")
+		types := append([]string(nil), s.Type.Slice()...)
+		sort.Strings(types)
+		t := strings.Join(types, "|")
 		if s.Format != "" {
 			t += " (" + s.Format + ")"
 		}
@@ -475,7 +478,7 @@ func substitutePath(pathTemplate string, pathValues map[string]string) (string, 
 // paramToStrings turns JSON-decoded MCP argument values into strings for path,
 // query, and header parameters. Supports string, bool, float64 (including
 // integers from JSON), and []interface{} for repeated query values.
-func paramToStrings(name string, v interface{}) ([]string, error) {
+func paramToStrings(name string, v any) ([]string, error) {
 	if v == nil {
 		return nil, fmt.Errorf("parameter %q is null", name)
 	}
@@ -489,7 +492,7 @@ func paramToStrings(name string, v interface{}) ([]string, error) {
 			return []string{strconv.FormatInt(int64(t), 10)}, nil
 		}
 		return []string{strconv.FormatFloat(t, 'f', -1, 64)}, nil
-	case []interface{}:
+	case []any:
 		var out []string
 		for _, item := range t {
 			subs, err := paramToStrings(name, item)
