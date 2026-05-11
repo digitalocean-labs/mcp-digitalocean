@@ -154,7 +154,6 @@ func (t *OpenAPITool) getOperation(_ context.Context, req mcp.CallToolRequest) (
 // formatOperation renders Operation as markdown-style text for the model.
 func formatOperation(op *Operation) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "## %s\n\n", op.OperationID)
 	fmt.Fprintf(&b, "**%s** `%s`\n\n", op.Method, op.Path)
 	if op.Summary != "" {
 		fmt.Fprintf(&b, "%s\n\n", op.Summary)
@@ -169,17 +168,19 @@ func formatOperation(op *Operation) string {
 	if len(op.Parameters) > 0 {
 		b.WriteString("### Parameters\n\n")
 		for _, p := range op.Parameters {
-			req := ""
+			req := "optional"
 			if p.Required {
-				req = ", required"
+				req = "required"
 			}
-			fmt.Fprintf(&b, "- **%s** (`%s`%s)\n", p.Name, p.In, req)
-			if p.Schema != "" {
-				fmt.Fprintf(&b, "  - schema: %s\n", p.Schema)
+			schema := p.Schema
+			if schema == "" {
+				schema = "unknown"
 			}
+			fmt.Fprintf(&b, "- %s (%s, %s, %s)", p.Name, p.In, schema, req)
 			if p.Description != "" {
-				fmt.Fprintf(&b, "  - %s\n", p.Description)
+				fmt.Fprintf(&b, " — %s", p.Description)
 			}
+			b.WriteByte('\n')
 		}
 		b.WriteByte('\n')
 	}
