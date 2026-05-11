@@ -23,6 +23,9 @@ import (
 const (
 	defaultSearchLimit = 10
 
+	// maxResponseBodyBytes caps bytes read from the API response body into memory for openapi execute tools.
+	maxResponseBodyBytes = 1 << 20
+
 	errDeleteUseOtherTool = "DELETE operations must use the openapi-execute-delete tool (destructive; host clients should require user approval)."
 	errNonDeleteUseOther  = "openapi-execute-delete only accepts DELETE operations; use openapi-execute for %s."
 
@@ -351,6 +354,60 @@ func validateAgainstSpec(ctx context.Context, doc *openapi3.T, idx *indexedOp, m
 	return openapi3filter.ValidateRequest(ctx, vinput)
 }
 
+// limitWriter writes at most remaining bytes to dst; further writes succeed without storing (truncated=true).
+type limitWriter struct {
+	dst         io.Writer
+	remaining   int64
+	truncated bool
+}
+
+func (w *limitWriter) Write(p []byte) (int, error) {
+	if w.remaining <= 0 {
+		w.truncated = true
+		return len(p), nil
+	}
+	if int64(len(p)) <= w.remaining {
+		n, err := w.dst.Write(p)
+		w.remaining -= int64(n)
+		return n, err
+	}
+	n, err := w.dst.Write(p[:w.remaining])
+	w.remaining = 0
+	w.truncated = true
+	if err != nil {
+		return n, err
+	}
+	return len(p), nil
+}
+
+var forwardResponseHeaderKeys = []string{
+	"Content-Type",
+	"Ratelimit-Limit",
+	"Ratelimit-Remaining",
+	"Ratelimit-Reset",
+	"Retry-After",
+	"Link",
+}
+
+func appendForwardedResponseHeaders(b *strings.Builder, h http.Header) {
+	if h == nil {
+		return
+	}
+	for _, key := range forwardResponseHeaderKeys {
+		if v := h.Get(key); v != "" {
+			fmt.Fprintf(b, "%s: %s\n", strings.ToLower(key), v)
+		}
+	}
+}
+
+func formatExecuteResponseBody(contentType string, raw []byte) string {
+	ct := strings.ToLower(strings.TrimSpace(contentType))
+	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/") {
+		return strings.TrimSpace(string(raw))
+	}
+	return string(raw)
+}
+
 func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client, method, execBase, resolvedPath string, queryVals url.Values, jsonBody []byte, headerVals http.Header) (*mcp.CallToolResult, error) {
 	execReq, err := buildHTTPRequest(method, execBase, resolvedPath, queryVals, jsonBody, headerVals)
 	if err != nil {
@@ -358,7 +415,8 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 	}
 
 	var respBuf bytes.Buffer
-	resp, err := client.Do(ctx, execReq, &respBuf)
+	lw := &limitWriter{dst: &respBuf, remaining: maxResponseBodyBytes}
+	resp, err := client.Do(ctx, execReq, lw)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("API request failed", err), nil
 	}
@@ -366,9 +424,21 @@ func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client,
 		return mcp.NewToolResultError("empty response from API client"), nil
 	}
 
-	status := resp.StatusCode
-	out := fmt.Sprintf("Status: %d\n\n%s", status, strings.TrimSpace(respBuf.String()))
-	return mcp.NewToolResultText(out), nil
+	var b strings.Builder
+	fmt.Fprintf(&b, "status: %d\n", resp.StatusCode)
+	appendForwardedResponseHeaders(&b, resp.Header)
+	b.WriteByte('\n')
+
+	ct := ""
+	if resp.Response != nil {
+		ct = resp.Header.Get("Content-Type")
+	}
+	b.WriteString(formatExecuteResponseBody(ct, respBuf.Bytes()))
+	if lw.truncated {
+		b.WriteString("\n\n[truncated: response exceeded 1 MiB; tighten parameters or use Select]")
+	}
+
+	return mcp.NewToolResultText(strings.TrimRight(b.String(), "\n")), nil
 }
 
 func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any) (*mcp.CallToolResult, error) {

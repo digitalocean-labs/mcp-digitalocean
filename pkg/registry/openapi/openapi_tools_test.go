@@ -128,7 +128,7 @@ func TestExecute_GET_droplets_list_smoke(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	txt := res.Content[0].(mcp.TextContent).Text
-	require.Contains(t, txt, "Status: 200")
+	require.Contains(t, txt, "status: 200")
 	require.Contains(t, txt, `"droplets"`)
 }
 
@@ -165,5 +165,5 @@ func TestExecuteDelete_DELETE_droplets_destroy_smoke(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	txt := res.Content[0].(mcp.TextContent).Text
-	require.Contains(t, txt, "Status: 204")
+	require.Contains(t, txt, "status: 204")
 }

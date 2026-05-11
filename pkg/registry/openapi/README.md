@@ -18,7 +18,7 @@ npx @digitalocean/mcp --services openapi --digitalocean-api-token "$DIGITALOCEAN
 |------|---------|
 | `openapi-search` | Keyword search over `operationId`, summary, path, HTTP method, and tags. Optional `Tag` filters to operations that list that exact tag. Annotated `readOnlyHint: true` (embedded spec only). |
 | `openapi-get-operation` | Full text description for one `operationId`: parameters, request body outline, response codes. Annotated `readOnlyHint: true`. |
-| `openapi-execute` | Non-**DELETE** operations only. Build a request from `Parameters` (path/query/header by name), optional JSON `Body`, run [openapi3filter.ValidateRequest](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3filter), then `godo.Client.Do`. Annotated `openWorldHint: true`; rejects DELETE (use `openapi-execute-delete`). |
+| `openapi-execute` | Non-**DELETE** operations only. Build a request from `Parameters` (path/query/header by name), optional JSON `Body`, run [openapi3filter.ValidateRequest](https://pkg.go.dev/github.com/getkin/kin-openapi/openapi3filter), then `godo.Client.Do`. Responses include HTTP status, selected headers (rate limits, pagination `Link`, etc.), then the body (JSON/text bodies are trimmed for display). Large bodies are truncated at **1 MiB** with a clear marker. Annotated `openWorldHint: true`; rejects DELETE (use `openapi-execute-delete`). |
 | `openapi-execute-delete` | **DELETE** operations only. Same validation and execution path as `openapi-execute`. Annotated `destructiveHint: true` so MCP hosts can require explicit user approval per call. Not registered when deletes are disabled server-side (see below). |
 
 ### `openapi-execute` and `openapi-execute-delete` arguments
