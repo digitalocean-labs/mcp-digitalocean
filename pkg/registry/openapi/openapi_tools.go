@@ -258,6 +258,119 @@ func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest
 	return t.runOperation(ctx, idx, params, body)
 }
 
+// collectParams maps MCP Parameters to path, query, and header values per the OpenAPI operation.
+func collectParams(idx *indexedOp, params map[string]any) (pathParams map[string]string, queryVals url.Values, headerVals http.Header, err error) {
+	pathParams = make(map[string]string)
+	queryVals = url.Values{}
+	headerVals = http.Header{}
+
+	allParams := mergeParameters(idx.pathItem, idx.op)
+	for _, p := range allParams {
+		if p == nil {
+			continue
+		}
+		rawVal, has := params[p.Name]
+		if !has || rawVal == nil {
+			continue
+		}
+		strVals, err := paramToStrings(p.Name, rawVal)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		switch p.In {
+		case openapi3.ParameterInPath:
+			if len(strVals) != 1 {
+				return nil, nil, nil, fmt.Errorf("path parameter %q expects a single value", p.Name)
+			}
+			pathParams[p.Name] = strVals[0]
+		case openapi3.ParameterInQuery:
+			for _, s := range strVals {
+				queryVals.Add(p.Name, s)
+			}
+		case openapi3.ParameterInHeader:
+			for _, s := range strVals {
+				headerVals.Add(p.Name, s)
+			}
+		case openapi3.ParameterInCookie:
+			return nil, nil, nil, fmt.Errorf("cookie parameter %q is not supported by openapi execute tools", p.Name)
+		default:
+			return nil, nil, nil, fmt.Errorf("unsupported parameter location %q for %q", p.In, p.Name)
+		}
+	}
+	return pathParams, queryVals, headerVals, nil
+}
+
+// buildHTTPRequest builds an *http.Request against baseTrimmed+resolvedPath with query, optional JSON body, and headers.
+func buildHTTPRequest(method, baseTrimmed, resolvedPath string, queryVals url.Values, jsonBody []byte, headerVals http.Header) (*http.Request, error) {
+	fullURL := baseTrimmed + resolvedPath
+	u, err := url.Parse(fullURL)
+	if err != nil {
+		return nil, err
+	}
+	u.RawQuery = queryVals.Encode()
+
+	var bodyReader io.Reader = http.NoBody
+	if len(jsonBody) > 0 {
+		bodyReader = bytes.NewReader(jsonBody)
+	}
+
+	req, err := http.NewRequest(method, u.String(), bodyReader)
+	if err != nil {
+		return nil, err
+	}
+	if len(jsonBody) > 0 {
+		req.Header.Set("Content-Type", "application/json")
+		req.ContentLength = int64(len(jsonBody))
+	}
+	for k, vals := range headerVals {
+		for _, v := range vals {
+			req.Header.Add(k, v)
+		}
+	}
+	return req, nil
+}
+
+func validateAgainstSpec(ctx context.Context, doc *openapi3.T, idx *indexedOp, method string, validationReq *http.Request, pathParams map[string]string, queryVals url.Values) error {
+	route := &routers.Route{
+		Spec:      doc,
+		Server:    doc.Servers[0],
+		Path:      idx.path,
+		PathItem:  idx.pathItem,
+		Method:    method,
+		Operation: idx.op,
+	}
+	vinput := &openapi3filter.RequestValidationInput{
+		Request:     validationReq,
+		PathParams:  pathParams,
+		QueryParams: queryVals,
+		Route:       route,
+		Options: &openapi3filter.Options{
+			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+		},
+	}
+	return openapi3filter.ValidateRequest(ctx, vinput)
+}
+
+func (t *OpenAPITool) executeAndFormat(ctx context.Context, client *godo.Client, method, execBase, resolvedPath string, queryVals url.Values, jsonBody []byte, headerVals http.Header) (*mcp.CallToolResult, error) {
+	execReq, err := buildHTTPRequest(method, execBase, resolvedPath, queryVals, jsonBody, headerVals)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to build API request", err), nil
+	}
+
+	var respBuf bytes.Buffer
+	resp, err := client.Do(ctx, execReq, &respBuf)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("API request failed", err), nil
+	}
+	if resp == nil || resp.Response == nil {
+		return mcp.NewToolResultError("empty response from API client"), nil
+	}
+
+	status := resp.StatusCode
+	out := fmt.Sprintf("Status: %d\n\n%s", status, strings.TrimSpace(respBuf.String()))
+	return mcp.NewToolResultText(out), nil
+}
+
 func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params map[string]any, body map[string]any) (*mcp.CallToolResult, error) {
 	method := strings.ToUpper(idx.method)
 
@@ -276,42 +389,9 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 		return mcp.NewToolResultErrorFromErr("failed to resolve API client", err), nil
 	}
 
-	pathParams := make(map[string]string)
-	queryVals := url.Values{}
-	headerVals := http.Header{}
-
-	allParams := mergeParameters(idx.pathItem, idx.op)
-	for _, p := range allParams {
-		if p == nil {
-			continue
-		}
-		rawVal, has := params[p.Name]
-		if !has || rawVal == nil {
-			continue
-		}
-		strVals, err := paramToStrings(p.Name, rawVal)
-		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
-		}
-		switch p.In {
-		case openapi3.ParameterInPath:
-			if len(strVals) != 1 {
-				return mcp.NewToolResultError(fmt.Sprintf("path parameter %q expects a single value", p.Name)), nil
-			}
-			pathParams[p.Name] = strVals[0]
-		case openapi3.ParameterInQuery:
-			for _, s := range strVals {
-				queryVals.Add(p.Name, s)
-			}
-		case openapi3.ParameterInHeader:
-			for _, s := range strVals {
-				headerVals.Add(p.Name, s)
-			}
-		case openapi3.ParameterInCookie:
-			return mcp.NewToolResultError(fmt.Sprintf("cookie parameter %q is not supported by openapi execute tools", p.Name)), nil
-		default:
-			return mcp.NewToolResultError(fmt.Sprintf("unsupported parameter location %q for %q", p.In, p.Name)), nil
-		}
+	pathParams, queryVals, headerVals, err := collectParams(idx, params)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	resolvedPath, err := substitutePath(idx.path, pathParams)
@@ -319,100 +399,25 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	fullURL := specBase + resolvedPath
-	u, err := url.Parse(fullURL)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("invalid validation URL", err), nil
-	}
-	u.RawQuery = queryVals.Encode()
-
 	var jsonBody []byte
-	var bodyReader io.Reader = http.NoBody
 	if len(body) > 0 {
 		jsonBody, err = json.Marshal(body)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("failed to encode JSON body", err), nil
 		}
-		bodyReader = bytes.NewReader(jsonBody)
 	}
 
-	validationReq, err := http.NewRequest(method, u.String(), bodyReader)
+	validationReq, err := buildHTTPRequest(method, specBase, resolvedPath, queryVals, jsonBody, headerVals)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to build validation request", err), nil
-	}
-	if len(jsonBody) > 0 {
-		validationReq.Header.Set("Content-Type", "application/json")
-		validationReq.ContentLength = int64(len(jsonBody))
-	}
-	for k, vals := range headerVals {
-		for _, v := range vals {
-			validationReq.Header.Add(k, v)
-		}
+		return mcp.NewToolResultErrorFromErr("invalid validation URL", err), nil
 	}
 
-	route := &routers.Route{
-		Spec:      doc,
-		Server:    doc.Servers[0],
-		Path:      idx.path,
-		PathItem:  idx.pathItem,
-		Method:    method,
-		Operation: idx.op,
-	}
-
-	vinput := &openapi3filter.RequestValidationInput{
-		Request:     validationReq,
-		PathParams:  pathParams,
-		QueryParams: queryVals,
-		Route:       route,
-		Options: &openapi3filter.Options{
-			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-		},
-	}
-	if err := openapi3filter.ValidateRequest(ctx, vinput); err != nil {
+	if err := validateAgainstSpec(ctx, doc, idx, method, validationReq, pathParams, queryVals); err != nil {
 		return mcp.NewToolResultErrorFromErr("request validation failed against OpenAPI spec", err), nil
 	}
 
 	execBase := strings.TrimSuffix(strings.TrimSpace(client.BaseURL.String()), "/")
-	execURL := execBase + resolvedPath
-	u2, err := url.Parse(execURL)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("invalid execution URL", err), nil
-	}
-	u2.RawQuery = queryVals.Encode()
-
-	var execBody io.Reader = http.NoBody
-	var execLen int64
-	if len(jsonBody) > 0 {
-		execBody = bytes.NewReader(jsonBody)
-		execLen = int64(len(jsonBody))
-	}
-
-	execReq, err := http.NewRequest(method, u2.String(), execBody)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to build API request", err), nil
-	}
-	if len(jsonBody) > 0 {
-		execReq.Header.Set("Content-Type", "application/json")
-		execReq.ContentLength = execLen
-	}
-	for k, vals := range headerVals {
-		for _, v := range vals {
-			execReq.Header.Add(k, v)
-		}
-	}
-
-	var respBuf bytes.Buffer
-	resp, err := client.Do(ctx, execReq, &respBuf)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("API request failed", err), nil
-	}
-	if resp == nil || resp.Response == nil {
-		return mcp.NewToolResultError("empty response from API client"), nil
-	}
-
-	status := resp.StatusCode
-	out := fmt.Sprintf("Status: %d\n\n%s", status, strings.TrimSpace(respBuf.String()))
-	return mcp.NewToolResultText(out), nil
+	return t.executeAndFormat(ctx, client, method, execBase, resolvedPath, queryVals, jsonBody, headerVals)
 }
 
 // Tools returns openapi-search, openapi-get-operation, openapi-execute, and
