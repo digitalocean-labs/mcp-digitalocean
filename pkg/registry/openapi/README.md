@@ -27,7 +27,7 @@ Both tools accept:
 
 - **`OperationID`** (required): From the spec / search results.
 - **`Parameters`** (optional): Map of parameter **name** → value. Values may be string, number, boolean, or an array for repeated query parameters. Path parameters must be present for templated paths such as `/v2/droplets/{droplet_id}`.
-- **`Body`** (optional): JSON object serialized as the request body when the operation defines a JSON request body.
+- **`Body`** (optional): JSON object serialized as **`application/json`** when the operation accepts that content type. Operations that only allow non-JSON bodies (e.g. multipart) are rejected with the MIME types listed in the OpenAPI spec.
 
 Destructive intent is signaled by **`destructiveHint: true`** on `openapi-execute-delete` so the host client can prompt the user before running the tool. That is advisory only if the host auto-approves tools.
 

@@ -33,9 +33,9 @@ const (
 
 	toolDescOpenAPIGetOperation = "Return full OpenAPI details for one operationId: method, path, parameters (names, location path/query/header, required flags, schemas), request body outline, and responses. Call this before openapi-execute or openapi-execute-delete so Parameters and Body match the spec; validation errors usually mean wrong names, types, or missing required parameters."
 
-	toolDescOpenAPIExecute = "Validate the request against the embedded spec, then execute it via the configured DigitalOcean API client (a valid API token or equivalent credentials must be available where this MCP server expects them). Non-DELETE HTTP methods only—use openapi-execute-delete for DELETE. Workflow: openapi-get-operation for this operationId first. Cookie parameters from the spec are not supported."
+	toolDescOpenAPIExecute = "Validate the request against the embedded spec, then execute it via the configured DigitalOcean API client (a valid API token or equivalent credentials must be available where this MCP server expects them). Non-DELETE HTTP methods only—use openapi-execute-delete for DELETE. Workflow: openapi-get-operation for this operationId first. Request bodies are sent as application/json only—operations that require multipart or other content types are rejected with the MIME types the spec allows. Cookie parameters from the spec are not supported."
 
-	toolDescOpenAPIExecuteDelete = "Same validation and execution path as openapi-execute but only for DELETE operations. Requires valid API credentials. Destructive — MCP hosts may require explicit approval (destructiveHint). Call openapi-get-operation first. Cookie parameters are not supported."
+	toolDescOpenAPIExecuteDelete = "Same validation and execution path as openapi-execute but only for DELETE operations. Requires valid API credentials. Destructive — MCP hosts may require explicit approval (destructiveHint). Call openapi-get-operation first. Request bodies are application/json only when a body is sent. Cookie parameters are not supported."
 
 	argDescSearchQuery = "Free-text keywords (e.g. API concepts like droplet, firewall, Kubernetes, or a path fragment). Matches substrings across operationId, summary, path, method, and tags."
 
@@ -261,6 +261,30 @@ func (t *OpenAPITool) executeDelete(ctx context.Context, req mcp.CallToolRequest
 	return t.runOperation(ctx, idx, params, body)
 }
 
+// errIfJSONBodyUnsupported returns an error when the caller supplied a JSON body but the
+// operation's requestBody does not define application/json (execute tools only send JSON).
+func errIfJSONBodyUnsupported(op *openapi3.Operation, hasJSONBody bool) error {
+	if !hasJSONBody {
+		return nil
+	}
+	if op.RequestBody == nil || op.RequestBody.Value == nil {
+		return nil
+	}
+	content := op.RequestBody.Value.Content
+	if len(content) == 0 {
+		return nil
+	}
+	if _, ok := content["application/json"]; ok {
+		return nil
+	}
+	types := make([]string, 0, len(content))
+	for ct := range content {
+		types = append(types, ct)
+	}
+	sort.Strings(types)
+	return fmt.Errorf("this operation does not accept application/json request bodies (OpenAPI allows: %s); openapi execute tools only send JSON bodies", strings.Join(types, ", "))
+}
+
 // collectParams maps MCP Parameters to path, query, and header values per the OpenAPI operation.
 func collectParams(idx *indexedOp, params map[string]any) (pathParams map[string]string, queryVals url.Values, headerVals http.Header, err error) {
 	pathParams = make(map[string]string)
@@ -475,6 +499,10 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("failed to encode JSON body", err), nil
 		}
+	}
+
+	if err := errIfJSONBodyUnsupported(idx.op, len(jsonBody) > 0); err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	validationReq, err := buildHTTPRequest(method, specBase, resolvedPath, queryVals, jsonBody, headerVals)
