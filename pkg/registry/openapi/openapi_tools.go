@@ -304,7 +304,9 @@ func (t *OpenAPITool) runOperation(ctx context.Context, idx *indexedOp, params m
 				queryVals.Add(p.Name, s)
 			}
 		case openapi3.ParameterInHeader:
-			headerVals.Set(p.Name, strVals[0])
+			for _, s := range strVals {
+				headerVals.Add(p.Name, s)
+			}
 		case openapi3.ParameterInCookie:
 			return mcp.NewToolResultError(fmt.Sprintf("cookie parameter %q is not supported by openapi execute tools", p.Name)), nil
 		default:
