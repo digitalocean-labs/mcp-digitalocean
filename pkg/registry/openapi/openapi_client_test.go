@@ -27,6 +27,16 @@ func TestParamToStrings(t *testing.T) {
 	s, err = paramToStrings("x", []any{"a", float64(2)})
 	require.NoError(t, err)
 	require.Equal(t, []string{"a", "2"}, s)
+
+	_, err = paramToStrings("x", nil)
+	require.Error(t, err)
+
+	_, err = paramToStrings("x", map[string]any{})
+	require.Error(t, err)
+
+	s, err = paramToStrings("x", []any{[]any{"nested"}})
+	require.NoError(t, err)
+	require.Equal(t, []string{"nested"}, s)
 }
 
 func TestEmbeddedSpecLoads(t *testing.T) {
