@@ -491,6 +491,9 @@ func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
 		return nil, fmt.Errorf("failed to fetch page %s: %w", url, err)
 	}
 
+	// Normalize source URL for self-link filtering
+	sourceBase := normalizeDocURL(url)
+
 	seen := make(map[string]bool)
 	var links []RelatedLink
 
@@ -500,6 +503,11 @@ func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
 
 		// Only include docs.digitalocean.com links
 		if !strings.Contains(linkURL, "docs.digitalocean.com") {
+			continue
+		}
+
+		// Skip self-referencing links (same page, possibly different anchor)
+		if normalizeDocURL(linkURL) == sourceBase {
 			continue
 		}
 
@@ -519,6 +527,28 @@ func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
 	return links, nil
 }
 
+// normalizeDocURL strips anchors and index.html.md suffixes for comparison.
+func normalizeDocURL(url string) string {
+	// Strip anchor
+	if idx := strings.Index(url, "#"); idx != -1 {
+		url = url[:idx]
+	}
+	// Strip index.html.md suffix
+	url = strings.TrimSuffix(url, "index.html.md")
+	// Ensure trailing slash for consistent comparison
+	if !strings.HasSuffix(url, "/") {
+		url += "/"
+	}
+	// Normalize relative to absolute
+	if !strings.HasPrefix(url, "http") {
+		if !strings.HasPrefix(url, "/") {
+			url = "/" + url
+		}
+		url = docsBase + url
+	}
+	return strings.ToLower(url)
+}
+
 // categorizeDocLink categorizes a docs URL by its path pattern.
 func categorizeDocLink(url string) string {
 	lower := strings.ToLower(url)
@@ -527,7 +557,7 @@ func categorizeDocLink(url string) string {
 		return "how-to"
 	case strings.Contains(lower, "/reference/"):
 		return "reference"
-	case strings.Contains(lower, "/support/") || strings.Contains(lower, "/support"):
+	case strings.Contains(lower, "/support/") || strings.HasSuffix(lower, "/support"):
 		return "support"
 	case strings.Contains(lower, "/getting-started/") || strings.Contains(lower, "/quickstart"):
 		return "getting-started"

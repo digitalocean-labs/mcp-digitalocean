@@ -172,6 +172,45 @@ func TestResolveServiceSlug(t *testing.T) {
 	}
 }
 
+func TestNormalizeDocURL(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"https://docs.digitalocean.com/products/droplets/how-to/create/",
+			"https://docs.digitalocean.com/products/droplets/how-to/create/",
+		},
+		{
+			"https://docs.digitalocean.com/products/droplets/how-to/create/#step-1",
+			"https://docs.digitalocean.com/products/droplets/how-to/create/",
+		},
+		{
+			"https://docs.digitalocean.com/products/droplets/how-to/create/index.html.md",
+			"https://docs.digitalocean.com/products/droplets/how-to/create/",
+		},
+		{
+			"/products/droplets/how-to/create/",
+			"https://docs.digitalocean.com/products/droplets/how-to/create/",
+		},
+		{
+			"products/droplets/",
+			"https://docs.digitalocean.com/products/droplets/",
+		},
+		{
+			"https://docs.digitalocean.com/products/droplets",
+			"https://docs.digitalocean.com/products/droplets/",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			result := normalizeDocURL(tc.input)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
 func TestCategorizeDocLink(t *testing.T) {
 	tests := []struct {
 		url      string
