@@ -48,7 +48,9 @@ func ExtractActions(md string) []Action {
 		if len(m) < 2 {
 			continue
 		}
-		for _, line := range strings.Split(m[1], "\n") {
+		// Join backslash-continued lines before splitting
+		block := joinContinuationLines(m[1])
+		for _, line := range strings.Split(block, "\n") {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(strings.ToLower(line), "curl ") && strings.Contains(line, "api.digitalocean.com") {
 				key := "curl:" + line
@@ -74,6 +76,28 @@ func ExtractActions(md string) []Action {
 	}
 
 	return actions
+}
+
+// joinContinuationLines merges lines ending with \ into a single line.
+func joinContinuationLines(block string) string {
+	lines := strings.Split(block, "\n")
+	var merged []string
+	var current strings.Builder
+	for _, line := range lines {
+		trimmed := strings.TrimRight(line, " \t")
+		if strings.HasSuffix(trimmed, `\`) {
+			current.WriteString(strings.TrimSuffix(trimmed, `\`))
+			current.WriteByte(' ')
+		} else {
+			current.WriteString(line)
+			merged = append(merged, current.String())
+			current.Reset()
+		}
+	}
+	if current.Len() > 0 {
+		merged = append(merged, current.String())
+	}
+	return strings.Join(merged, "\n")
 }
 
 func extractAPIEndpoint(curlLine string) string {

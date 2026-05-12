@@ -530,6 +530,16 @@ func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
 			continue
 		}
 
+		// Skip images, screenshots, and non-documentation assets
+		lowerURL := strings.ToLower(linkURL)
+		if strings.Contains(lowerURL, "/screenshots/") ||
+			strings.HasSuffix(lowerURL, ".png") ||
+			strings.HasSuffix(lowerURL, ".jpg") ||
+			strings.HasSuffix(lowerURL, ".svg") ||
+			strings.Contains(lowerURL, "/llms.txt") {
+			continue
+		}
+
 		// Skip self-referencing links (same page, possibly different anchor)
 		if normalizeDocURL(linkURL) == sourceBase {
 			continue
