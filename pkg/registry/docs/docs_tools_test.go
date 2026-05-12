@@ -433,7 +433,7 @@ func TestDocsTool_Tools(t *testing.T) {
 	tool := NewDocsTool()
 	tools := tool.Tools()
 
-	require.Len(t, tools, 6)
+	require.Len(t, tools, 8)
 
 	toolNames := make([]string, len(tools))
 	for i, st := range tools {
@@ -442,6 +442,8 @@ func TestDocsTool_Tools(t *testing.T) {
 
 	require.Contains(t, toolNames, "docs-search")
 	require.Contains(t, toolNames, "docs-get-page")
+	require.Contains(t, toolNames, "docs-search-semantic")
+	require.Contains(t, toolNames, "docs-get-api-spec")
 	require.Contains(t, toolNames, "docs-find-for-service")
 	require.Contains(t, toolNames, "docs-get-quickstart")
 	require.Contains(t, toolNames, "docs-troubleshoot")

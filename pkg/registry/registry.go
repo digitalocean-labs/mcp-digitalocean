@@ -69,7 +69,10 @@ func registerAppTools(s *server.MCPServer, getClient getClientFn) error {
 }
 
 // registerCommonTools registers the common tools with the MCP server.
-func registerCommonTools(s *server.MCPServer, getClient getClientFn) error {
+func registerCommonTools(s *server.MCPServer, getClient getClientFn, registerRegionList bool) error {
+	if !registerRegionList {
+		return nil
+	}
 	s.AddTools(common.NewRegionTools(getClient).Tools()...)
 
 	return nil
@@ -177,8 +180,12 @@ func registerDOKSTools(s *server.MCPServer, getClient getClientFn) error {
 // registerDocsTools registers the documentation tools with the MCP server.
 // Unlike other services, docs tools do not require a DigitalOcean API client
 // since they access public documentation.
-func registerDocsTools(s *server.MCPServer) error {
+// When registerStaticRegions is true (docs-only MCP profile), docs-list-regions is added so clients still get region slugs without an API token.
+func registerDocsTools(s *server.MCPServer, registerStaticRegions bool) error {
 	s.AddTools(docs.NewDocsTool().Tools()...)
+	if registerStaticRegions {
+		s.AddTools(docs.NewStaticRegionTools().Tools()...)
+	}
 	return nil
 }
 
@@ -230,12 +237,23 @@ func registerNfsTools(s *server.MCPServer, getClient getClientFn) error {
 // Register registers the set of tools for the specified services with the MCP server.
 // We either register a subset of tools of the services are specified, or we register all tools if no services are specified.
 func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, servicesToActivate ...string) error {
+	var normalized []string
+	for _, svc := range servicesToActivate {
+		if t := strings.TrimSpace(svc); t != "" {
+			normalized = append(normalized, t)
+		}
+	}
+	servicesToActivate = normalized
+	initialForProfile := append([]string(nil), servicesToActivate...)
+
 	if len(servicesToActivate) == 0 {
 		logger.Warn("no services specified, loading all supported services")
 		for k := range supportedServices {
 			servicesToActivate = append(servicesToActivate, k)
 		}
 	}
+
+	docsOnlyProfile := len(initialForProfile) == 1 && strings.EqualFold(initialForProfile[0], "docs")
 
 	for _, svc := range servicesToActivate {
 		logger.Debug(fmt.Sprintf("Registering tool and resources for service: %s", svc))
@@ -301,7 +319,7 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 				return fmt.Errorf("failed to register DOCR tools: %w", err)
 			}
 		case "docs":
-			if err := registerDocsTools(s); err != nil {
+			if err := registerDocsTools(s, docsOnlyProfile); err != nil {
 				return fmt.Errorf("failed to register docs tools: %w", err)
 			}
 		case "volumes":
@@ -321,8 +339,7 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		}
 	}
 
-	// Common tools are always registered because they provide common functionality for all services such as region resources
-	if err := registerCommonTools(s, getClient); err != nil {
+	if err := registerCommonTools(s, getClient, !docsOnlyProfile); err != nil {
 		return fmt.Errorf("failed to register common tools: %w", err)
 	}
 

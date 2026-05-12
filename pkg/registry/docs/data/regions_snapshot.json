@@ -1,0 +1,23 @@
+[
+  {"slug": "nyc1", "name": "New York 1", "available": true},
+  {"slug": "nyc2", "name": "New York 2", "available": true},
+  {"slug": "nyc3", "name": "New York 3", "available": true},
+  {"slug": "ams3", "name": "Amsterdam 3", "available": true},
+  {"slug": "fra1", "name": "Frankfurt 1", "available": true},
+  {"slug": "lon1", "name": "London 1", "available": true},
+  {"slug": "sfo2", "name": "San Francisco 2", "available": true},
+  {"slug": "sfo3", "name": "San Francisco 3", "available": true},
+  {"slug": "sgp1", "name": "Singapore 1", "available": true},
+  {"slug": "blr1", "name": "Bangalore 1", "available": true},
+  {"slug": "syd1", "name": "Sydney 1", "available": true},
+  {"slug": "tor1", "name": "Toronto 1", "available": true},
+  {"slug": "atl1", "name": "Atlanta 1", "available": true},
+  {"slug": "bom1", "name": "Mumbai 1", "available": true},
+  {"slug": "del1", "name": "Delhi 1", "available": true},
+  {"slug": "lon2", "name": "London 2", "available": true},
+  {"slug": "maa1", "name": "Chennai 1", "available": true},
+  {"slug": "mel1", "name": "Melbourne 1", "available": true},
+  {"slug": "nbg1", "name": "Nuremberg 1", "available": true},
+  {"slug": "tlv1", "name": "Tel Aviv 1", "available": true},
+  {"slug": "waw1", "name": "Warsaw 1", "available": true}
+]

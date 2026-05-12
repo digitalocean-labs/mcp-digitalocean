@@ -1,6 +1,8 @@
 package docs
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,9 +14,10 @@ import (
 )
 
 const (
-	docsBase   = "https://docs.digitalocean.com"
-	llmsTxtURL = docsBase + "/llms.txt"
-	userAgent  = "mcp-digitalocean-docs/1.0"
+	docsBase         = "https://docs.digitalocean.com"
+	llmsTxtURL       = docsBase + "/llms.txt"
+	llmsIndexJSONURL = docsBase + "/llms-index.json"
+	userAgent        = "mcp-digitalocean-docs/1.0"
 
 	indexCacheTTL    = 1 * time.Hour
 	pageCacheTTL     = 30 * time.Minute
@@ -81,6 +84,25 @@ type RelatedLink struct {
 	Category string // "how-to", "reference", "support", "getting-started", "concept", "details", "other"
 }
 
+// LLMSIndexRecord is one row from https://docs.digitalocean.com/llms-index.json
+type LLMSIndexRecord struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	MarkdownURL string `json:"markdown_url"`
+	Product     string `json:"product"`
+	Section     string `json:"section"`
+	Lastmod     string `json:"lastmod"`
+}
+
+// SemanticSearchHit is one ranked result from SemanticSearch.
+type SemanticSearchHit struct {
+	Title   string
+	URL     string
+	Score   float64
+	Snippet string
+}
+
 // DocsService defines the interface for fetching and searching DigitalOcean documentation.
 type DocsService interface {
 	GetDocsIndex() (*DocsIndex, error)
@@ -89,6 +111,8 @@ type DocsService interface {
 	FindQuickstart(service string) (string, string, error)
 	FindTroubleshootPage(symptom string) ([]DocsEntry, error)
 	ExtractRelatedLinks(url string) ([]RelatedLink, error)
+	GetLLMSIndexRecords() ([]LLMSIndexRecord, error)
+	SemanticSearch(ctx context.Context, query string, resultLimit int) ([]SemanticSearchHit, error)
 }
 
 // DocsClient fetches and searches DigitalOcean documentation.
@@ -568,6 +592,27 @@ func categorizeDocLink(url string) string {
 	default:
 		return "other"
 	}
+}
+
+// GetLLMSIndexRecords fetches and parses llms-index.json (cached).
+func (d *DocsClient) GetLLMSIndexRecords() ([]LLMSIndexRecord, error) {
+	const cacheKey = "llmsIndexRecords"
+	if v, ok := d.cache.get(cacheKey); ok {
+		return v.([]LLMSIndexRecord), nil
+	}
+
+	body, err := d.fetch(llmsIndexJSONURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetch llms-index.json: %w", err)
+	}
+
+	var records []LLMSIndexRecord
+	if err := json.Unmarshal([]byte(body), &records); err != nil {
+		return nil, fmt.Errorf("parse llms-index.json: %w", err)
+	}
+
+	d.cache.set(cacheKey, records, indexCacheTTL)
+	return records, nil
 }
 
 var entryRe = regexp.MustCompile(`^-\s+\[([^\]]+)\]\(([^)]+)\)(?::\s*(.+))?$`)

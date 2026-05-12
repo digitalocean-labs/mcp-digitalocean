@@ -16,6 +16,22 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
   Fetch the full markdown content of a specific docs page.
   **Arguments:**
     - `URL` (string, required): Full URL or path of the docs page (e.g., `https://docs.digitalocean.com/products/droplets/getting-started/quickstart/` or `/products/droplets/getting-started/quickstart/`)
+    - `IncludeStructured` (boolean, default: false): If true, returns JSON with `markdown` and an `actions` array (doctl and `curl` examples extracted from the page).
+
+- **docs-search-semantic**
+  Two-stage search: reuse the llms.txt keyword ranker for a first pass, then BM25 over fetched markdown excerpts from `llms-index.json`. Better when the query does not match titles in `llms.txt`.
+  **Arguments:**
+    - `Query` (string, required)
+    - `Limit` (number, default: 10)
+
+- **docs-get-api-spec**
+  Returns one operation object from the embedded bundled public DigitalOcean v2 OpenAPI JSON (gzip in this package).
+  **Arguments:**
+    - `Method` (string, required): `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`
+    - `Path` (string, required): Path template exactly as in the spec (example: `/v2/apps/{id}`)
+
+- **docs-list-regions** (docs-only MCP profile only)
+  Returns a static JSON array of common region slugs. No API token. When other services are enabled alongside docs, use the shared `region-list` tool instead.
 
 - **docs-find-for-service**
   List documentation pages for a given DigitalOcean service.
@@ -42,8 +58,8 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 
 ## How It Works
 
-- Indexes `docs.digitalocean.com/llms.txt` and per-service `llms.txt` files
-- Fetches raw markdown via the `index.html.md` endpoint
+- Indexes `docs.digitalocean.com/llms.txt`, `llms-index.json`, and per-service `llms.txt` files
+- Fetches raw markdown via the `index.html.md` endpoint (and `markdown_url` from `llms-index.json` for semantic search)
 - In-memory caching (30 min for pages, 1 hour for indexes)
 - Supports common service name aliases (e.g., "k8s" → "kubernetes", "gpu" → "bare-metal-gpus")
 
@@ -89,5 +105,5 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 
 - All tools are read-only and do not require a DigitalOcean API token.
 - All tools use argument-based input; do not use resource URIs.
-- All responses are returned as markdown text.
+- Most responses are markdown text; `docs-get-page` with `IncludeStructured: true` and `docs-list-regions` return JSON text.
 - Service name aliases are supported (e.g., "k8s" for "kubernetes", "postgres" for "postgresql").

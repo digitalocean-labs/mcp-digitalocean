@@ -2,6 +2,7 @@ package docs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -65,6 +66,12 @@ func (d *DocsTool) searchDocs(_ context.Context, req mcp.CallToolRequest) (*mcp.
 	return mcp.NewToolResultText(sb.String()), nil
 }
 
+// pageWithActions is returned when docs-get-page is called with IncludeStructured true.
+type pageWithActions struct {
+	Markdown string   `json:"markdown"`
+	Actions  []Action `json:"actions"`
+}
+
 // getDoc fetches the full markdown content of a specific docs page.
 func (d *DocsTool) getDoc(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
@@ -74,12 +81,83 @@ func (d *DocsTool) getDoc(_ context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return mcp.NewToolResultError("URL is required and must be a non-empty string"), nil
 	}
 
+	includeStructured := false
+	if v, ok := args["IncludeStructured"].(bool); ok && v {
+		includeStructured = true
+	}
+
 	content, err := d.client.FetchDocPage(url)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to fetch doc page", err), nil
 	}
 
-	return mcp.NewToolResultText(content), nil
+	if !includeStructured {
+		return mcp.NewToolResultText(content), nil
+	}
+
+	payload := pageWithActions{
+		Markdown: content,
+		Actions:  ExtractActions(content),
+	}
+	out, err := json.Marshal(payload)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to encode response", err), nil
+	}
+	return mcp.NewToolResultText(string(out)), nil
+}
+
+// searchSemanticDocs runs a two-stage BM25 ranking over llms-index.json entries and markdown excerpts.
+func (d *DocsTool) searchSemanticDocs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
+	query, ok := args["Query"].(string)
+	if !ok || query == "" {
+		return mcp.NewToolResultError("Query is required and must be a non-empty string"), nil
+	}
+
+	limit := defaultSearchLimit
+	if limitFloat, ok := args["Limit"].(float64); ok && limitFloat > 0 {
+		limit = int(limitFloat)
+	}
+
+	hits, err := d.client.SemanticSearch(ctx, query, limit)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("semantic search failed", err), nil
+	}
+	if len(hits) == 0 {
+		return mcp.NewToolResultText(fmt.Sprintf("No semantic results for %q. Try docs-search with broader keywords or check spelling.", query)), nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Found %d semantic-ranked result(s) for %q:\n\n", len(hits), query))
+	for i, h := range hits {
+		sb.WriteString(fmt.Sprintf("%d. %s\n   %s\n   score=%.4f\n", i+1, h.Title, h.URL, h.Score))
+		if h.Snippet != "" {
+			sb.WriteString(fmt.Sprintf("   excerpt: %s\n", h.Snippet))
+		}
+		sb.WriteByte('\n')
+	}
+	return mcp.NewToolResultText(sb.String()), nil
+}
+
+// getAPISpec returns one operation object from the embedded DigitalOcean public OpenAPI v2 specification.
+func (d *DocsTool) getAPISpec(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
+	method, ok := args["Method"].(string)
+	if !ok || strings.TrimSpace(method) == "" {
+		return mcp.NewToolResultError("Method is required (GET, POST, PUT, PATCH, or DELETE)"), nil
+	}
+	path, ok := args["Path"].(string)
+	if !ok || strings.TrimSpace(path) == "" {
+		return mcp.NewToolResultError("Path is required (OpenAPI path template, e.g. /v2/apps/{app_id})"), nil
+	}
+
+	b, err := OpenAPIOperationJSON(method, path)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to resolve OpenAPI operation", err), nil
+	}
+	return mcp.NewToolResultText(string(b)), nil
 }
 
 // findDocsForService returns documentation pages for a specific DigitalOcean service.
@@ -287,10 +365,33 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Handler: d.getDoc,
 			Tool: mcp.NewTool(
 				"docs-get-page",
-				mcp.WithDescription("Fetch the full markdown content of a specific DigitalOcean docs page. Returns clean markdown suitable for LLM consumption."),
+				mcp.WithDescription("Fetch the full markdown content of a specific DigitalOcean docs page. Returns clean markdown suitable for LLM consumption. When IncludeStructured is true, returns JSON with markdown and an actions array (doctl and API examples extracted from the page)."),
 				mcp.WithReadOnlyHintAnnotation(true),
 				mcp.WithIdempotentHintAnnotation(true),
 				mcp.WithString("URL", mcp.Required(), mcp.Description("Full URL or path of the docs page (e.g., https://docs.digitalocean.com/products/droplets/getting-started/quickstart/ or /products/droplets/getting-started/quickstart/)")),
+				mcp.WithBoolean("IncludeStructured", mcp.DefaultBool(false), mcp.Description("If true, return JSON with markdown and extracted actions instead of raw markdown only")),
+			),
+		},
+		{
+			Handler: d.searchSemanticDocs,
+			Tool: mcp.NewTool(
+				"docs-search-semantic",
+				mcp.WithDescription("Semantic-style documentation search: BM25 ranking over llms-index.json metadata plus fetched markdown excerpts. Better than docs-search when wording does not match titles in llms.txt."),
+				mcp.WithReadOnlyHintAnnotation(true),
+				mcp.WithIdempotentHintAnnotation(true),
+				mcp.WithString("Query", mcp.Required(), mcp.Description("Search query string")),
+				mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Description("Maximum number of results to return")),
+			),
+		},
+		{
+			Handler: d.getAPISpec,
+			Tool: mcp.NewTool(
+				"docs-get-api-spec",
+				mcp.WithDescription("Return the OpenAPI 3 operation object (parameters, requestBody, responses) for a path in the public DigitalOcean v2 API spec."),
+				mcp.WithReadOnlyHintAnnotation(true),
+				mcp.WithIdempotentHintAnnotation(true),
+				mcp.WithString("Method", mcp.Required(), mcp.Description("HTTP method: GET, POST, PUT, PATCH, or DELETE")),
+				mcp.WithString("Path", mcp.Required(), mcp.Description("OpenAPI path template exactly as in the public spec (e.g. /v2/apps/{id})")),
 			),
 		},
 		{
