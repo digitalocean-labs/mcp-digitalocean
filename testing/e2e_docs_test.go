@@ -287,3 +287,140 @@ func TestDocsGetQuickstart(t *testing.T) {
 		require.Contains(t, errorText, "Service is required")
 	})
 }
+
+func TestDocsTroubleshoot(t *testing.T) {
+	ctx := context.Background()
+	c := initializeClient(ctx, t)
+	defer c.Close()
+
+	t.Run("valid symptom", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-troubleshoot",
+				Arguments: map[string]interface{}{
+					"Symptom": "520 status code app platform",
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, "troubleshooting result(s)")
+		require.Contains(t, text, "https://docs.digitalocean.com")
+		t.Logf("Troubleshoot returned: %.300s...", text)
+	})
+
+	t.Run("with limit", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-troubleshoot",
+				Arguments: map[string]interface{}{
+					"Symptom": "deployment failed",
+					"Limit":   2,
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, "troubleshooting result(s)")
+		t.Logf("Troubleshoot with limit returned: %.300s...", text)
+	})
+
+	t.Run("missing symptom", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name:      "docs-troubleshoot",
+				Arguments: map[string]interface{}{},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.True(t, resp.IsError, "Expected error for missing symptom")
+
+		errorText := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, errorText, "Symptom is required")
+	})
+}
+
+func TestDocsGetRelated(t *testing.T) {
+	ctx := context.Background()
+	c := initializeClient(ctx, t)
+	defer c.Close()
+
+	t.Run("valid URL", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-get-related",
+				Arguments: map[string]interface{}{
+					"URL": "https://docs.digitalocean.com/products/app-platform/how-to/manage-domains/",
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, "Related links from")
+		require.Contains(t, text, "https://docs.digitalocean.com")
+		t.Logf("Related links returned: %.300s...", text)
+	})
+
+	t.Run("relative path", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-get-related",
+				Arguments: map[string]interface{}{
+					"URL": "/products/droplets/getting-started/quickstart/",
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, "https://docs.digitalocean.com")
+	})
+
+	t.Run("invalid URL", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-get-related",
+				Arguments: map[string]interface{}{
+					"URL": "https://docs.digitalocean.com/nonexistent-page-that-does-not-exist/",
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.True(t, resp.IsError, "Expected error for invalid URL")
+	})
+
+	t.Run("missing URL", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name:      "docs-get-related",
+				Arguments: map[string]interface{}{},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.True(t, resp.IsError, "Expected error for missing URL")
+
+		errorText := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, errorText, "URL is required")
+	})
+}

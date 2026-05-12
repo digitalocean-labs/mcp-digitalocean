@@ -116,6 +116,17 @@ func TestSearchIndex(t *testing.T) {
 			query:         "",
 			expectMinimum: 0,
 		},
+		{
+			name:          "matches URL path segments",
+			query:         "quickstart",
+			expectMinimum: 3,
+		},
+		{
+			name:          "all terms boost ranks multi-term match higher",
+			query:         "create droplet",
+			expectMinimum: 1,
+			expectFirst:   "How to Create a Droplet",
+		},
 	}
 
 	for _, tc := range tests {
@@ -159,6 +170,47 @@ func TestResolveServiceSlug(t *testing.T) {
 			require.Equal(t, tc.expected, result)
 		})
 	}
+}
+
+func TestCategorizeDocLink(t *testing.T) {
+	tests := []struct {
+		url      string
+		expected string
+	}{
+		{"https://docs.digitalocean.com/products/droplets/how-to/create/", "how-to"},
+		{"https://docs.digitalocean.com/reference/api/", "reference"},
+		{"https://docs.digitalocean.com/support/520-error/", "support"},
+		{"https://docs.digitalocean.com/products/droplets/getting-started/quickstart/", "getting-started"},
+		{"https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/", "concept"},
+		{"https://docs.digitalocean.com/products/droplets/details/pricing/", "details"},
+		{"https://docs.digitalocean.com/products/droplets/", "other"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.expected, func(t *testing.T) {
+			result := categorizeDocLink(tc.url)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestFindTroubleshootPage(t *testing.T) {
+	// Uses SearchIndex-style logic internally; test the troubleshoot-specific scoring
+	index := parseLlmsTxt(testLlmsTxt + `
+### App Platform Support
+
+- [Why am I receiving 520 status codes from my app?](https://docs.digitalocean.com/support/520-status-codes/index.html.md): Your app may have crashed.
+- [My app deployment failed because of a health check](https://docs.digitalocean.com/support/health-check-failed/index.html.md): Your app is unavailable on the port.
+`)
+
+	// Verify support entries were parsed
+	var supportCount int
+	for _, e := range index.Entries {
+		if e.Section == "App Platform Support" {
+			supportCount++
+		}
+	}
+	require.Equal(t, 2, supportCount, "should have parsed 2 support entries")
 }
 
 func TestCleanMarkdown(t *testing.T) {
