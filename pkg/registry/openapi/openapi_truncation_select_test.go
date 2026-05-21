@@ -33,6 +33,9 @@ func TestExecute_truncatesLargeJSONBody(t *testing.T) {
 	require.False(t, res.IsError)
 	txt := res.Content[0].(mcp.TextContent).Text
 	require.Contains(t, txt, "[truncated:")
+	got := requireExecuteStructured(t, res)
+	require.True(t, got.Truncated)
+	require.False(t, got.SelectNotApplied)
 }
 
 func TestExecute_selectPlainText_skipped(t *testing.T) {
@@ -57,4 +60,7 @@ func TestExecute_selectPlainText_skipped(t *testing.T) {
 	txt := res.Content[0].(mcp.TextContent).Text
 	require.Contains(t, txt, "select-not-applied")
 	require.Contains(t, txt, "hello")
+	got := requireExecuteStructured(t, res)
+	require.True(t, got.SelectNotApplied)
+	require.Equal(t, "hello", got.Body)
 }
