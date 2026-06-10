@@ -362,17 +362,44 @@ List all available model evaluation metrics.
 }
 ```
 
-#### `genai-model-eval-create-dataset`
-Upload a CSV file as a model evaluation dataset.
+#### `genai-model-eval-list-datasets`
+List previously uploaded evaluation datasets so you can reuse an existing dataset's UUID in `genai-model-eval-create-run` (instead of uploading a new one). Defaults to model-evaluation datasets.
 
 **Arguments:**
-- `name` (string, required): Name for the dataset
-- `file_path` (string, required): Path to the CSV file to upload
+- `dataset_type` (string, optional): Filter by dataset type. Defaults to `EVALUATION_DATASET_TYPE_MODEL`. Other values: `EVALUATION_DATASET_TYPE_UNKNOWN`, `EVALUATION_DATASET_TYPE_ADK`, `EVALUATION_DATASET_TYPE_NON_ADK`.
 
-**Returns:** JSON object with the uploaded object key and metadata
+**Returns:** JSON object with an array of datasets and a count. Each dataset includes `dataset_uuid`, `dataset_name`, `created_at`, `row_count`, `file_size`, and `has_ground_truth`.
 
 ```json
 {
+  "datasets": [
+    {
+      "dataset_uuid": "...",
+      "dataset_name": "queries.csv",
+      "row_count": 20,
+      "has_ground_truth": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+> Backed by `GET /v2/gen-ai/evaluation_datasets`. Use the returned `dataset_uuid` directly as the `dataset_uuid` argument of `genai-model-eval-create-run`.
+
+#### `genai-model-eval-create-dataset`
+Upload and register a model evaluation dataset (presign → Spaces upload → database record).
+
+**Arguments:**
+- `name` (string, required): Name for the dataset
+- `file_path` (string, required): Path to a `.csv` or `.jsonl` file to upload. CSV must include an `input` column; JSONL must be one JSON object per line with an `input` field. `ground_truth` is optional in both formats.
+
+**Returns:** JSON object with the registered dataset UUID and upload metadata
+
+```json
+{
+  "evaluation_dataset_uuid": "...",
+  "dataset_uuid": "...",
   "object_key": "...",
   "name": "my_dataset",
   "file_name": "queries.csv",
@@ -383,15 +410,20 @@ Upload a CSV file as a model evaluation dataset.
 #### `genai-model-eval-create-run`
 Create a model evaluation run.
 
+**User confirmation (chat, two steps):** (1) Call without `user_message` — returns a preview with `prompt_for_user`. Post that to the end user and wait for their chat reply. (2) Call again with `user_message` set to their verbatim reply (typically **yes**) and the same arguments. The run is not created until step 2.
+
 **Arguments:**
 - `name` (string, required): Name for the evaluation run
-- `candidate_model_uuid` (string, required): UUID of the candidate model
-- `candidate_model_name` (string, required): Display name of the candidate model
-- `dataset_uuid` (string, required): Dataset UUID
-- `judge_model_uuid` (string, required): Judge model UUID
+- `candidate_model_name` (string, required): Exact candidate model name (partial names return match list)
+- `candidate_model_uuid` (string, optional): Exact full candidate UUID (optional when name is exact)
+- `eval_preset_uuid` (string, optional): Preset UUID (dataset/judge/metrics from preset; judge name not required)
+- `dataset_uuid` (string, required without preset): Dataset UUID. Get it from `genai-model-eval-create-dataset` (returns `evaluation_dataset_uuid`) or, for an already-uploaded dataset, from `genai-model-eval-list-datasets`.
+- `judge_model_name` (string, required without preset): Exact judge model name
+- `judge_model_uuid` (string, optional): Exact full judge UUID
 - `metric_uuids` (array of strings, optional): Metric UUIDs to evaluate
 - `star_metric` (object, optional): Primary success metric
 - `candidate_inference_config` (object, optional): Inference params (max_tokens, temperature, top_p)
+- `user_message` (string, optional): End user's verbatim chat reply after preview (second call; typically `yes`)
 
 **Returns:** JSON object with the evaluation run UUID
 
@@ -437,21 +469,58 @@ Get a presigned download URL for the full results of an evaluation run.
 }
 ```
 
+#### `genai-model-eval-delete-run`
+Delete a model evaluation run by UUID. Deletion is permanent: the run record and its results cannot be recovered.
+
+**User consent:** `confirm_deletion` must be `true`. Present `eval_run_uuid` and that deletion is permanent, then ask for yes/no in chat. Only set `confirm_deletion: true` after the user explicitly agrees.
+
+**Arguments:**
+- `eval_run_uuid` (string, required): UUID of the run to delete
+- `confirm_deletion` (boolean, required): Must be true; only after the user has agreed in chat
+
+**Returns:** JSON status from the delete API.
+
+#### `genai-model-eval-cancel-run`
+Cancel an in-progress model evaluation run by UUID. The run transitions to `MODEL_EVALUATION_RUN_CANCELLING` and then `MODEL_EVALUATION_RUN_CANCELLED`. Any partial results may be lost.
+
+**User consent:** `confirm_cancel` must be `true`. Present `eval_run_uuid` and that partial results may be lost, then ask for yes/no in chat. Only set `confirm_cancel: true` after the user explicitly agrees.
+
+**Arguments:**
+- `eval_run_uuid` (string, required): UUID of the run to cancel
+- `confirm_cancel` (boolean, required): Must be true; only after the user has agreed in chat
+
+**Returns:** JSON object with the cancelled run summary.
+
+#### `genai-model-eval-delete-preset`
+Delete a saved model evaluation preset by UUID. Existing runs that referenced the preset are not affected.
+
+**User consent:** `confirm_deletion` must be `true`. Present `eval_preset_uuid` and that deletion is permanent, then ask for yes/no in chat. Only set `confirm_deletion: true` after the user explicitly agrees.
+
+**Arguments:**
+- `eval_preset_uuid` (string, required): UUID of the preset to delete
+- `confirm_deletion` (boolean, required): Must be true; only after the user has agreed in chat
+
+**Returns:** JSON object confirming the deletion.
+
 ### Orchestrated Workflow Tool
 
 #### `genai-model-eval-run-workflow`
 Run a complete model evaluation workflow: upload dataset, create run, and poll for results.
 
+**User consent:** Same two-step chat confirmation as `genai-model-eval-create-run`.
+
 **Arguments:**
-- `dataset_file_path` (string, required): Path to the CSV evaluation dataset
+- `dataset_file_path` (string, required): Path to the `.csv` or `.jsonl` evaluation dataset
 - `name` (string, required): Name for the evaluation run
-- `candidate_model_uuid` (string, required): UUID of the candidate model
-- `candidate_model_name` (string, required): Display name of the candidate model
-- `judge_model_uuid` (string, required): UUID of the judge model
+- `candidate_model_name` (string, required): Exact candidate model name
+- `candidate_model_uuid` (string, optional): Exact full candidate UUID
+- `judge_model_name` (string, required): Exact judge model name
+- `judge_model_uuid` (string, optional): Exact full judge UUID
 - `metric_uuids` (array of strings, optional): Metric UUIDs (if empty, all available metrics are used)
 - `candidate_inference_config` (object, optional): Inference params
 - `timeout_seconds` (number, optional): Polling timeout (default: 300)
 - `poll_interval_seconds` (number, optional): Poll interval (default: 5)
+- `user_message` (string, optional): End user's verbatim chat reply after preview (second call; typically `yes`)
 
 **Returns:** JSON object with complete workflow results
 
@@ -470,6 +539,25 @@ Run a complete model evaluation workflow: upload dataset, create run, and poll f
 }
 ```
 
+## Model Evaluation Dataset Format
+
+Model evaluation datasets accept **CSV** or **JSONL**:
+
+**CSV** — header row with `input` column (and optional `ground_truth`):
+
+```csv
+input,ground_truth
+What is 2+2?,4
+What is the capital of France?,Paris
+```
+
+**JSONL** — one JSON object per line with an `input` field (and optional `ground_truth`):
+
+```jsonl
+{"input":"What is 2+2?","ground_truth":"4"}
+{"input":"What is the capital of France?","ground_truth":"Paris"}
+```
+
 ## Model Evaluation Workflow Examples
 
 ### Using Atomic Tools (Step-by-Step)
@@ -483,16 +571,20 @@ Run a complete model evaluation workflow: upload dataset, create run, and poll f
 2. List metrics:
    genai-model-eval-list-metrics
 
-3. Create a run:
+3. Create run (first call — preview; post prompt_for_user and wait for user to type yes):
    genai-model-eval-create-run
      name: "eval_run_1"
-     candidate_model_uuid: "<candidate-uuid>"
      candidate_model_name: "Llama 3.3 70B"
-     dataset_uuid: "<object-key from step 1>"
-     judge_model_uuid: "<judge-model-uuid>"
+     judge_model_name: "GPT-4o"
+     dataset_uuid: "<evaluation_dataset_uuid from step 1>"
      metric_uuids: ["<metric-uuid-1>", "<metric-uuid-2>"]
 
-4. Poll for results:
+4. Create run (second call — after user types yes):
+   genai-model-eval-create-run
+     (same arguments as step 3)
+     user_message: "yes"
+
+5. Poll for results:
    genai-model-eval-get-run
      eval_run_uuid: "<uuid from step 3>"
 ```
@@ -500,12 +592,20 @@ Run a complete model evaluation workflow: upload dataset, create run, and poll f
 ### Using the Orchestrated Workflow (All-in-One)
 
 ```
+# First call — preview; post prompt_for_user and wait for yes in chat
 genai-model-eval-run-workflow
   dataset_file_path: "/path/to/queries.csv"
   name: "eval_llama_v1"
-  candidate_model_uuid: "<candidate-uuid>"
   candidate_model_name: "Llama 3.3 70B"
-  judge_model_uuid: "<judge-model-uuid>"
+  judge_model_name: "GPT-4o"
+
+# Second call — same args plus user_message (verbatim reply from end user)
+genai-model-eval-run-workflow
+  dataset_file_path: "/path/to/queries.csv"
+  name: "eval_llama_v1"
+  candidate_model_name: "Llama 3.3 70B"
+  judge_model_name: "GPT-4o"
+  user_message: "yes"
   timeout_seconds: 300
   poll_interval_seconds: 5
 ```

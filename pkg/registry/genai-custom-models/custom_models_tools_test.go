@@ -65,10 +65,6 @@ func TestCustomModelsTool_importModel_validation(t *testing.T) {
 		name string
 		args map[string]any
 	}{
-		{name: "missing name", args: map[string]any{
-			"source_type": "SOURCE_TYPE_HUGGINGFACE",
-			"source_ref":  map[string]interface{}{"repo_id": "test/model"},
-		}},
 		{name: "missing source_type", args: map[string]any{
 			"name":       "my-model",
 			"source_ref": map[string]interface{}{"repo_id": "test/model"},
@@ -88,17 +84,6 @@ func TestCustomModelsTool_importModel_validation(t *testing.T) {
 			"source_ref":                  map[string]interface{}{"repo_id": "test/model"},
 			"accept_terms_and_conditions": false,
 		}},
-		{name: "name whitespace only", args: map[string]any{
-			"name":        " \t ",
-			"source_type": "SOURCE_TYPE_HUGGINGFACE",
-			"source_ref":  map[string]interface{}{"repo_id": "test/model"},
-		}},
-		{name: "name wrong type", args: map[string]any{
-			"name":                        float64(42),
-			"source_type":                 "SOURCE_TYPE_HUGGINGFACE",
-			"source_ref":                  map[string]interface{}{"repo_id": "test/model"},
-			"accept_terms_and_conditions": true,
-		}},
 	}
 
 	for _, tc := range tests {
@@ -112,43 +97,25 @@ func TestCustomModelsTool_importModel_validation(t *testing.T) {
 	}
 }
 
-func TestImportModel_invalidNameDoesNotResolveHuggingFace(t *testing.T) {
+func TestImportModel_missingConsentDoesNotResolveHuggingFace(t *testing.T) {
 	oldFetch := fetchHuggingFaceCommitSHA
 	hfCalled := false
 	fetchHuggingFaceCommitSHA = func(ctx context.Context, repoID, hfToken string) (string, error) {
 		hfCalled = true
-		return "", errors.New("Hugging Face resolution should not run without a valid name")
+		return "", errors.New("Hugging Face resolution should not run without consent")
 	}
 	t.Cleanup(func() { fetchHuggingFaceCommitSHA = oldFetch })
 
 	tool := setupCustomModelsToolWithFailingClient()
 
-	t.Run("missing name", func(t *testing.T) {
-		hfCalled = false
-		req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-			"source_type":                 "SOURCE_TYPE_HUGGINGFACE",
-			"source_ref":                  map[string]interface{}{"repo_id": "test/model"},
-			"accept_terms_and_conditions": true,
-		}}}
-		resp, err := tool.importModel(context.Background(), req)
-		require.NoError(t, err)
-		require.True(t, resp.IsError)
-		require.False(t, hfCalled)
-	})
-
-	t.Run("whitespace name", func(t *testing.T) {
-		hfCalled = false
-		req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-			"name":                        " ",
-			"source_type":                 "SOURCE_TYPE_HUGGINGFACE",
-			"source_ref":                  map[string]interface{}{"repo_id": "test/model"},
-			"accept_terms_and_conditions": true,
-		}}}
-		resp, err := tool.importModel(context.Background(), req)
-		require.NoError(t, err)
-		require.True(t, resp.IsError)
-		require.False(t, hfCalled)
-	})
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"source_type": "SOURCE_TYPE_HUGGINGFACE",
+		"source_ref":  map[string]interface{}{"repo_id": "test/model"},
+	}}}
+	resp, err := tool.importModel(context.Background(), req)
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+	require.False(t, hfCalled)
 }
 
 func TestCustomModelsTool_importModel_spacesSourceRef(t *testing.T) {
@@ -467,59 +434,6 @@ func TestCustomModelsTool_unifiedSearch_emptyQuery_clientError(t *testing.T) {
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}}
 	_, err := tool.unifiedSearch(context.Background(), req)
 	require.Error(t, err, "empty query should still attempt API call and fail on client error")
-}
-
-func TestCustomModelMatchesQuery(t *testing.T) {
-	tests := []struct {
-		name     string
-		model    *CustomModel
-		query    string
-		expected bool
-	}{
-		{
-			name:     "match by name",
-			model:    &CustomModel{Name: "my-llama-model"},
-			query:    "llama",
-			expected: true,
-		},
-		{
-			name:     "match by description",
-			model:    &CustomModel{Name: "some-model", Description: "A fine-tuned Llama variant"},
-			query:    "llama",
-			expected: true,
-		},
-		{
-			name:     "match by tag",
-			model:    &CustomModel{Name: "some-model", Tags: &CustomModelTags{Tags: []string{"llm", "llama"}}},
-			query:    "llama",
-			expected: true,
-		},
-		{
-			name:     "match by architecture",
-			model:    &CustomModel{Name: "some-model", Architecture: "LlamaForCausalLM"},
-			query:    "llama",
-			expected: true,
-		},
-		{
-			name:     "no match",
-			model:    &CustomModel{Name: "my-gpt-model", Description: "A GPT variant"},
-			query:    "llama",
-			expected: false,
-		},
-		{
-			name:     "case insensitive",
-			model:    &CustomModel{Name: "My-LLAMA-Model"},
-			query:    "llama",
-			expected: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result := customModelMatchesQuery(tc.model, tc.query)
-			require.Equal(t, tc.expected, result)
-		})
-	}
 }
 
 func setupCustomModelsToolWithTestServer(t *testing.T, models []*CustomModel) *CustomModelsTool {

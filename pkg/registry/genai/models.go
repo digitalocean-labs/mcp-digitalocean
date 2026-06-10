@@ -105,9 +105,36 @@ type FileUploadDataSource struct {
 	SizeInBytes      int64  `json:"size_in_bytes"`
 }
 
+// Evaluation dataset types for POST /evaluation_datasets and the dataset_type
+// filter on GET /evaluation_datasets.
+const (
+	EvaluationDatasetTypeUnknown = "EVALUATION_DATASET_TYPE_UNKNOWN"
+	EvaluationDatasetTypeADK     = "EVALUATION_DATASET_TYPE_ADK"
+	EvaluationDatasetTypeNonADK  = "EVALUATION_DATASET_TYPE_NON_ADK"
+	EvaluationDatasetTypeModel   = "EVALUATION_DATASET_TYPE_MODEL"
+)
+
+// ModelEvalDatasetListItem is a single dataset returned by GET /evaluation_datasets.
+// Matches the apiEvaluationDataset schema (file_size is a string per the API spec).
+type ModelEvalDatasetListItem struct {
+	DatasetUUID    string `json:"dataset_uuid"`
+	DatasetName    string `json:"dataset_name"`
+	DatasetType    string `json:"dataset_type,omitempty"`
+	CreatedAt      string `json:"created_at,omitempty"`
+	FileSize       string `json:"file_size,omitempty"`
+	RowCount       int64  `json:"row_count,omitempty"`
+	HasGroundTruth bool   `json:"has_ground_truth,omitempty"`
+}
+
+// ListEvaluationDatasetsOutput is the response from GET /evaluation_datasets.
+type ListEvaluationDatasetsOutput struct {
+	EvaluationDatasets []*ModelEvalDatasetListItem `json:"evaluation_datasets"`
+}
+
 // CreateEvaluationDatasetInput input for creating a dataset
 type CreateEvaluationDatasetInput struct {
 	Name                 string               `json:"name"`
+	DatasetType          string               `json:"dataset_type,omitempty"`
 	FileUploadDataSource FileUploadDataSource `json:"file_upload_dataset"`
 }
 

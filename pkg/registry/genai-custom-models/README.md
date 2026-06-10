@@ -41,12 +41,10 @@ List custom models with optional status filter and pagination.
 ### `genai-custom-models-import`
 Import a custom model from an external source (e.g. HuggingFace). Starts an async import job.
 
-**Model name (validated first):** Do not call this tool until the user has provided a non-empty model name (`name` must be a string; whitespace-only is rejected). The server checks `name` before any other import logic—for example it does **not** resolve Hugging Face `commit_sha`, validate consent arguments, or call the DigitalOcean API until `name` is valid.
-
-**Consent (required every import):** After you have a name, present import terms and obtain explicit consent (yes). Set `accept_terms_and_conditions` to `true` only after the user agrees. This applies to every import, including re-imports of the same model. The tool rejects omitted or `false` values.
+**Consent (required every import):** Present import terms and obtain explicit consent (yes) before calling. Set `accept_terms_and_conditions` to `true` only after the user agrees. Consent is validated before Hugging Face `commit_sha` resolution or the DigitalOcean API. This applies to every import, including re-imports of the same model. The tool rejects omitted or `false` values.
 
 **Arguments:**
-- `name` (string, required): Non-empty display name from the user (leading/trailing spaces are trimmed and must leave a non-empty value)
+- `name` (string, optional): Display name (leading/trailing spaces are trimmed when provided)
 - `source_type` (string, required): `SOURCE_TYPE_HUGGINGFACE`, `SOURCE_TYPE_SPACES_BUCKET`, `SOURCE_TYPE_SDK_UPLOAD`, `SOURCE_TYPE_FINE_TUNING`
 - `source_ref` (object, required): Source reference with `repo_id`, `commit_sha` (optional for HuggingFace; if omitted, fetched from Hugging Face Hub before the import API is called), `access_type`, `hf_token` (for private/gated)
 - `accept_terms_and_conditions` (boolean, required): Must be `true` after explicit user consent in chat
@@ -137,30 +135,28 @@ Delete a custom model by exact UUID or exact name.
 ## Workflow Example
 
 ```
-1. Ask the user for the custom model name. Do not import until they provide a non-empty name.
+1. Ask the user to accept import terms (storage cost, license, source). Wait for explicit yes.
 
-2. Ask the user to accept import terms (storage cost, license, source). Wait for explicit yes.
-
-3. Import a model from HuggingFace:
+2. Import a model from HuggingFace:
    genai-custom-models-import
      name: "my-mistral-7b"
      source_type: "SOURCE_TYPE_HUGGINGFACE"
      source_ref: { "repo_id": "mistralai/Mistral-7B-v0.1", "access_type": "ACCESS_TYPE_PUBLIC" }
      accept_terms_and_conditions: true
 
-4. Check import status by listing models:
+3. Check import status by listing models:
    genai-custom-models-list
      status: "STATUS_IMPORTING"
 
-5. Once ready, update metadata:
+4. Once ready, update metadata:
    genai-custom-models-update-metadata
-     uuid: "<uuid from step 3>"
+     uuid: "<uuid from step 2>"
      description: "Production model for customer support"
      tags: { "tags": ["production", "v1"] }
 
-6. Confirm deletion with the user (permanent removal). Wait for explicit yes.
+5. Confirm deletion with the user (permanent removal). Wait for explicit yes.
 
-7. Delete using the exact name or uuid the user confirmed:
+6. Delete using the exact name or uuid the user confirmed:
    genai-custom-models-delete
      name: "my-mistral-7b"
      confirm_deletion: true

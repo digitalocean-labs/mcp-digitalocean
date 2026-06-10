@@ -22,10 +22,11 @@ func TestModelEvaluationTool_Tools(t *testing.T) {
 	})
 
 	tools := tool.Tools()
-	require.Len(t, tools, 9, "should have 9 model evaluation tools")
+	require.Len(t, tools, 13, "should have 13 model evaluation tools")
 
 	expectedTools := map[string]bool{
 		"genai-model-eval-list-metrics":             false,
+		"genai-model-eval-list-datasets":            false,
 		"genai-model-eval-list-presets":             false,
 		"genai-model-eval-get-preset":               false,
 		"genai-model-eval-create-dataset":           false,
@@ -33,6 +34,9 @@ func TestModelEvaluationTool_Tools(t *testing.T) {
 		"genai-model-eval-list-runs":                false,
 		"genai-model-eval-get-run":                  false,
 		"genai-model-eval-get-results-download-url": false,
+		"genai-model-eval-delete-run":               false,
+		"genai-model-eval-cancel-run":               false,
+		"genai-model-eval-delete-preset":            false,
 		"genai-model-eval-run-workflow":             false,
 	}
 
@@ -104,7 +108,7 @@ func TestModelEvaluationTool_createDataset_validation(t *testing.T) {
 		{name: "empty name", args: map[string]any{"name": "", "file_path": "/tmp/test.csv"}},
 		{name: "missing file_path", args: map[string]any{"name": "test"}},
 		{name: "empty file_path", args: map[string]any{"name": "test", "file_path": ""}},
-		{name: "non-csv file", args: map[string]any{"name": "test", "file_path": "/tmp/test.json"}},
+		{name: "unsupported file format", args: map[string]any{"name": "test", "file_path": "/tmp/test.json"}},
 	}
 
 	for _, tc := range tests {
@@ -126,16 +130,14 @@ func TestModelEvaluationTool_createRun_validation(t *testing.T) {
 		args map[string]any
 	}{
 		{name: "missing name", args: map[string]any{
-			"candidate_model_uuid": "uuid",
-			"candidate_model_name": "model",
-		}},
-		{name: "missing candidate_model_uuid", args: map[string]any{
-			"name":                 "run1",
 			"candidate_model_name": "model",
 		}},
 		{name: "missing candidate_model_name", args: map[string]any{
+			"name": "run1",
+		}},
+		{name: "empty candidate_model_name", args: map[string]any{
 			"name":                 "run1",
-			"candidate_model_uuid": "uuid",
+			"candidate_model_name": "",
 		}},
 	}
 
@@ -148,17 +150,6 @@ func TestModelEvaluationTool_createRun_validation(t *testing.T) {
 			require.True(t, resp.IsError)
 		})
 	}
-}
-
-func TestModelEvaluationTool_createRun_clientError(t *testing.T) {
-	tool := setupModelEvalToolWithFailingClient()
-	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-		"name":                 "run1",
-		"candidate_model_uuid": "uuid",
-		"candidate_model_name": "model",
-	}}}
-	_, err := tool.createRun(context.Background(), req)
-	require.Error(t, err)
 }
 
 func TestModelEvaluationTool_listRuns_clientError(t *testing.T) {
@@ -239,20 +230,16 @@ func TestModelEvaluationTool_runWorkflow_validation(t *testing.T) {
 	}{
 		{name: "missing all required", args: map[string]any{}},
 		{name: "missing dataset_file_path", args: map[string]any{
-			"name": "run1", "candidate_model_uuid": "uuid",
-			"candidate_model_name": "model", "judge_model_uuid": "judge",
+			"name":                 "run1",
+			"candidate_model_name": "model", "judge_model_name": "judge",
 		}},
 		{name: "missing name", args: map[string]any{
-			"dataset_file_path": "/tmp/test.csv", "candidate_model_uuid": "uuid",
-			"candidate_model_name": "model", "judge_model_uuid": "judge",
+			"dataset_file_path":    "/tmp/test.csv",
+			"candidate_model_name": "model", "judge_model_name": "judge",
 		}},
-		{name: "missing candidate_model_uuid", args: map[string]any{
+		{name: "missing candidate_model_name", args: map[string]any{
 			"dataset_file_path": "/tmp/test.csv", "name": "run1",
-			"candidate_model_name": "model", "judge_model_uuid": "judge",
-		}},
-		{name: "missing judge_model_uuid", args: map[string]any{
-			"dataset_file_path": "/tmp/test.csv", "name": "run1",
-			"candidate_model_uuid": "uuid", "candidate_model_name": "model",
+			"judge_model_name": "judge",
 		}},
 	}
 
@@ -265,6 +252,108 @@ func TestModelEvaluationTool_runWorkflow_validation(t *testing.T) {
 			require.True(t, resp.IsError)
 		})
 	}
+}
+
+func TestModelEvaluationTool_deleteRun_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing eval_run_uuid", args: map[string]any{"confirm_deletion": true}},
+		{name: "empty eval_run_uuid", args: map[string]any{"eval_run_uuid": "", "confirm_deletion": true}},
+		{name: "missing confirm_deletion", args: map[string]any{"eval_run_uuid": "test-uuid"}},
+		{name: "false confirm_deletion", args: map[string]any{"eval_run_uuid": "test-uuid", "confirm_deletion": false}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.deleteRun(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
+func TestModelEvaluationTool_cancelRun_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing eval_run_uuid", args: map[string]any{"confirm_cancel": true}},
+		{name: "empty eval_run_uuid", args: map[string]any{"eval_run_uuid": "", "confirm_cancel": true}},
+		{name: "missing confirm_cancel", args: map[string]any{"eval_run_uuid": "test-uuid"}},
+		{name: "false confirm_cancel", args: map[string]any{"eval_run_uuid": "test-uuid", "confirm_cancel": false}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.cancelRun(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
+func TestModelEvaluationTool_deletePreset_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing eval_preset_uuid", args: map[string]any{"confirm_deletion": true}},
+		{name: "empty eval_preset_uuid", args: map[string]any{"eval_preset_uuid": "", "confirm_deletion": true}},
+		{name: "missing confirm_deletion", args: map[string]any{"eval_preset_uuid": "test-uuid"}},
+		{name: "false confirm_deletion", args: map[string]any{"eval_preset_uuid": "test-uuid", "confirm_deletion": false}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.deletePreset(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
+func TestModelEvaluationTool_deleteRun_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"eval_run_uuid":    "test-uuid",
+		"confirm_deletion": true,
+	}}}
+	_, err := tool.deleteRun(context.Background(), req)
+	require.Error(t, err)
+}
+
+func TestModelEvaluationTool_cancelRun_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"eval_run_uuid":  "test-uuid",
+		"confirm_cancel": true,
+	}}}
+	_, err := tool.cancelRun(context.Background(), req)
+	require.Error(t, err)
+}
+
+func TestModelEvaluationTool_deletePreset_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"eval_preset_uuid": "test-uuid",
+		"confirm_deletion": true,
+	}}}
+	_, err := tool.deletePreset(context.Background(), req)
+	require.Error(t, err)
 }
 
 func TestIsModelEvalTerminalStatus(t *testing.T) {

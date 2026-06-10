@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/digitalocean/godo"
@@ -13,18 +11,12 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-const customModelsAPIPath = "v2/gen-ai/custom_models"
-
 const (
-	importModelNameRequiredMsg = "name is required: ask the user for a non-empty model name before importing or calling this tool. Name is validated first; source checks (such as resolving Hugging Face commit_sha) and the API request do not run until name is valid."
-
-	importModelNameTypeMsg = "name must be a non-empty string supplied by the user; do not use numbers or other types."
-
 	importConsentRequiredMsg = "accept_terms_and_conditions must be true. Before importing, present the import terms to the user and obtain explicit consent (yes) in this conversation. Consent is required for every import, including re-imports of the same model."
 
 	genaiCustomModelsImportToolDescription = "Import a custom model from an external source (e.g. HuggingFace). Starts an async import job.\n\n" +
-		"MODEL NAME REQUIRED: Do not call this tool until the user has supplied a non-empty model name string. Name is checked before anything else — no Hugging Face resolution, consent validation of other arguments, or API calls occur until name is valid.\n\n" +
 		"CONSENT REQUIRED (every import): Do not call this tool until the user has explicitly agreed to the import terms in the current conversation. " +
+		"Consent is checked before any import related API calls " +
 		"Present the terms (storage cost, license, source) and ask for yes/no. This applies to every import request, even if the same model was imported before. " +
 		"Only pass accept_terms_and_conditions: true after the user says yes."
 
@@ -42,96 +34,78 @@ func NewCustomModelsTool(client func(ctx context.Context) (*godo.Client, error))
 	return &CustomModelsTool{client: client}
 }
 
-// newRequestWithContext builds an authenticated HTTP request via the godo client.
-func newRequestWithContext(ctx context.Context, client *godo.Client, method, urlPath string, body interface{}) (*http.Request, error) {
-	req0, err := client.NewRequest(ctx, method, urlPath, body)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, req0.Method, req0.URL.String(), req0.Body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = req0.Header.Clone()
-	if req0.ContentLength > 0 {
-		req.ContentLength = req0.ContentLength
-	}
-	if req0.GetBody != nil {
-		req.GetBody = req0.GetBody
-	}
-	return req, nil
-}
-
-// listModels lists custom models with optional filters.
+// listModels lists custom models with optional filters. Returns one markdown table with
+// every model on its own row (including STATUS_FAILED with UUID). For catalog + custom
+// together, use genai-models-unified-search.
 func (cmt *CustomModelsTool) listModels(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
 	client, err := cmt.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	args := req.GetArguments()
-	q := url.Values{}
+	if !listModelsHasFilters(args) {
+		rows, err := fetchCustomModels(ctx, client, "")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("failed to list custom models", err), nil
+		}
+		return mcp.NewToolResultText(formatCustomModelsList("", rows)), nil
+	}
+
+	statusFilter := ""
+	opt := &godo.CustomModelListOptions{}
 	if status, ok := args["status"].(string); ok && status != "" {
-		q.Set("status", status)
+		statusFilter = status
+		opt.Status = godo.CustomModelStatus(status)
 	}
-	if page, ok := args["page"].(float64); ok {
-		q.Set("page", fmt.Sprintf("%d", int(page)))
+	if page, ok := args["page"].(float64); ok && int(page) > 0 {
+		opt.Page = int(page)
 	}
-	if perPage, ok := args["per_page"].(float64); ok {
-		q.Set("per_page", fmt.Sprintf("%d", int(perPage)))
-	}
-
-	path := customModelsAPIPath
-	if enc := q.Encode(); enc != "" {
-		path += "?" + enc
+	if perPage, ok := args["per_page"].(float64); ok && int(perPage) > 0 {
+		opt.PerPage = int(perPage)
 	}
 
-	apiReq, err := newRequestWithContext(ctx, client, "GET", path, nil)
+	models, _, err := listCustomModels(ctx, client, opt)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output ListCustomModelsOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil || resp.StatusCode >= 400 {
 		return mcp.NewToolResultErrorFromErr("failed to list custom models", err), nil
 	}
 
-	type ListResponse struct {
-		Models       []*CustomModel `json:"models"`
-		Count        int            `json:"count"`
-		MaxThreshold int            `json:"max_threshold,omitempty"`
+	rows := make([]CustomSearchRow, 0, len(models))
+	for _, cm := range models {
+		rows = append(rows, toCustomSearchRow(cm))
 	}
 
-	response := ListResponse{
-		Models:       output.Models,
-		Count:        len(output.Models),
-		MaxThreshold: output.MaxThreshold,
-	}
+	return mcp.NewToolResultText(formatCustomModelsList(statusFilter, rows)), nil
+}
 
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
+func listModelsHasFilters(args map[string]any) bool {
+	if status, ok := args["status"].(string); ok && strings.TrimSpace(status) != "" {
+		return true
 	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	if page, ok := args["page"].(float64); ok && int(page) > 0 {
+		return true
+	}
+	if perPage, ok := args["per_page"].(float64); ok && int(perPage) > 0 {
+		return true
+	}
+	return false
 }
 
 // importModel imports a custom model from an external source.
 func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
-	nameRaw, hasName := args["name"]
-	if !hasName || nameRaw == nil {
-		return mcp.NewToolResultError(importModelNameRequiredMsg), nil
+	acceptTerms, _ := args["accept_terms_and_conditions"].(bool)
+	if !acceptTerms {
+		return mcp.NewToolResultError(importConsentRequiredMsg), nil
 	}
-	name, ok := nameRaw.(string)
-	if !ok {
-		return mcp.NewToolResultError(importModelNameTypeMsg), nil
-	}
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return mcp.NewToolResultError(importModelNameRequiredMsg), nil
+
+	var name string
+	if nameRaw, ok := args["name"]; ok && nameRaw != nil {
+		if s, ok := nameRaw.(string); ok {
+			name = strings.TrimSpace(s)
+		}
 	}
 
 	sourceType, _ := args["source_type"].(string)
@@ -167,11 +141,6 @@ func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRe
 		sourceRef.Prefix = v
 	}
 
-	acceptTerms, _ := args["accept_terms_and_conditions"].(bool)
-	if !acceptTerms {
-		return mcp.NewToolResultError(importConsentRequiredMsg), nil
-	}
-
 	if CustomModelSourceType(sourceType) == CustomModelSourceTypeHuggingFace {
 		if err := ensureHuggingFaceCommitSHA(ctx, &sourceRef); err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to resolve Hugging Face commit_sha: %v", err)), nil
@@ -203,23 +172,21 @@ func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRe
 		}
 	}
 
+	if input.Name == "" && input.SourceRef.RepoID != "" {
+		input.Name = input.SourceRef.RepoID
+	}
+
 	client, err := cmt.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	apiReq, err := newRequestWithContext(ctx, client, "POST", customModelsAPIPath+"/import", input)
+	out, _, err := client.GradientAI.ImportCustomModel(ctx, importRequestToGodo(input))
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output ImportCustomModelOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil || resp.StatusCode >= 400 {
 		return mcp.NewToolResultErrorFromErr("failed to import custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
+	jsonData, err := json.MarshalIndent(importResponseFromGodo(out), "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
@@ -269,18 +236,12 @@ func (cmt *CustomModelsTool) updateMetadata(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	apiReq, err := newRequestWithContext(ctx, client, "PATCH", customModelsAPIPath+"/"+uuid+"/metadata", input)
+	model, _, err := client.GradientAI.UpdateCustomModelMetadata(ctx, uuid, metadataUpdateToGodo(input))
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output UpdateCustomModelMetadataOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil || resp.StatusCode >= 400 {
 		return mcp.NewToolResultErrorFromErr("failed to update custom model metadata", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output.Model, "", "  ")
+	jsonData, err := json.MarshalIndent(customModelFromGodo(model), "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
@@ -300,18 +261,12 @@ func (cmt *CustomModelsTool) getModel(ctx context.Context, req mcp.CallToolReque
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	apiReq, err := newRequestWithContext(ctx, client, "GET", customModelsAPIPath+"/"+uuid, nil)
+	model, err := getCustomModelByUUID(ctx, client, uuid)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output GetCustomModelOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil || resp.StatusCode >= 400 {
 		return mcp.NewToolResultErrorFromErr("failed to get custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output.Model, "", "  ")
+	jsonData, err := json.MarshalIndent(model, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
@@ -378,23 +333,14 @@ func (cmt *CustomModelsTool) deleteModel(ctx context.Context, req mcp.CallToolRe
 }
 
 func (cmt *CustomModelsTool) deleteModelByUUID(ctx context.Context, client *godo.Client, uuid, name string) (*mcp.CallToolResult, error) {
-	apiReq, err := newRequestWithContext(ctx, client, "DELETE", customModelsAPIPath+"/"+uuid, nil)
+	output, resp, err := deleteCustomModelByUUID(ctx, client, uuid)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output DeleteCustomModelOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if isNotFoundResponse(resp) {
 			return mcp.NewToolResultError(fmt.Sprintf(
 				"DELETE returned 404 for model %q (%s) but the model still exists. Deletion may be blocked (for example active deployments) or the delete API may be unavailable in this environment — verify in the control panel or remove deployments first.",
 				name, uuid)), nil
 		}
 		return mcp.NewToolResultErrorFromErr("failed to delete custom model", err), nil
-	}
-	if resp.StatusCode >= 400 {
-		return mcp.NewToolResultErrorFromErr("failed to delete custom model", fmt.Errorf("status %d", resp.StatusCode)), nil
 	}
 
 	jsonData, err := json.MarshalIndent(output, "", "  ")
@@ -409,10 +355,18 @@ func (cmt *CustomModelsTool) deleteModelByUUID(ctx context.Context, client *godo
 func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
+			Handler: cmt.unifiedSearch,
+			Tool: mcp.NewTool(
+				"genai-models-unified-search",
+				mcp.WithDescription("PRIMARY tool for listing or searching models. Use when the user asks to list all models, show available models, or search by partial name. Returns two markdown tables (Model Catalog and Custom Models) with one row per model: custom columns are UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities; catalog columns include Provider, Type, Context Window, Capabilities, and modalities. Empty query lists everything; partial query returns nearest matches."),
+				mcp.WithString("query", mcp.Description("Partial model name or search string (optional). Empty returns all models in both tables.")),
+			),
+		},
+		{
 			Handler: cmt.listModels,
 			Tool: mcp.NewTool(
 				"genai-custom-models-list",
-				mcp.WithDescription("List custom models with optional status filter and pagination."),
+				mcp.WithDescription("List all custom models in one markdown table (one row per model, every UUID shown including STATUS_FAILED). Columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities. Do not summarize the table in the response. For catalog + custom together use genai-models-unified-search. Optional status/page/per_page filters."),
 				mcp.WithString("status", mcp.Description("Filter by status: STATUS_IMPORTING, STATUS_READY, STATUS_FAILED, STATUS_DELETED")),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
 				mcp.WithNumber("per_page", mcp.Description("Results per page (default: 20)")),
@@ -423,7 +377,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"genai-custom-models-import",
 				mcp.WithDescription(genaiCustomModelsImportToolDescription),
-				mcp.WithString("name", mcp.Required(), mcp.Description("Non-empty name for the custom model (leading/trailing whitespace is rejected). Obtain this from the user before calling — it is validated before any import checks.")),
+				mcp.WithString("name", mcp.Description("Optional display name for the custom model (leading/trailing whitespace is trimmed when provided).")),
 				mcp.WithString("source_type", mcp.Required(), mcp.Description("Source type: SOURCE_TYPE_HUGGINGFACE, SOURCE_TYPE_SPACES_BUCKET, SOURCE_TYPE_SDK_UPLOAD, SOURCE_TYPE_FINE_TUNING")),
 				mcp.WithObject("source_ref", mcp.Required(), mcp.Description("Source reference. For HuggingFace: repo_id (string, required), commit_sha (string, optional; if omitted, resolved from Hugging Face Hub before import), access_type (ACCESS_TYPE_PUBLIC, ACCESS_TYPE_PRIVATE, ACCESS_TYPE_GATED), hf_token (string, for private/gated models). For Spaces Bucket: bucket (string, required), region (string, optional), prefix (string, optional)")),
 				mcp.WithBoolean("accept_terms_and_conditions", mcp.Required(), mcp.Description(genaiCustomModelsImportAcceptTermsDescription)),
@@ -459,14 +413,6 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				mcp.WithString("name", mcp.Description("Exact custom model name the user provided or confirmed (character-for-character, whitespace trimmed). Use this OR uuid. Partial names return candidates only.")),
 				mcp.WithString("uuid", mcp.Description("Exact full custom model UUID (8-4-4-4-12 hex). Use this OR name. Partial uuids return candidates only; never delete on a partial uuid even if one match.")),
 				mcp.WithBoolean("confirm_deletion", mcp.Description(genaiCustomModelsDeleteConfirmDescription)),
-			),
-		},
-		{
-			Handler: cmt.unifiedSearch,
-			Tool: mcp.NewTool(
-				"genai-models-unified-search",
-				mcp.WithDescription("Search across both the DigitalOcean model catalog and your custom models in a single call. Returns a merged list of models with a 'source' field indicating whether each result is from the 'catalog' or 'custom' models. When a query is provided, catalog models are searched server-side and custom models are filtered client-side by name, description, architecture, and tags. An empty query returns all models from both sources."),
-				mcp.WithString("query", mcp.Description("Search query string to find models (optional; empty or omitted returns all models from both sources)")),
 			),
 		},
 	}

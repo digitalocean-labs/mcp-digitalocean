@@ -45,3 +45,37 @@ func TestAgentEvaluationToolListParamSchemas(t *testing.T) {
 		}
 	}
 }
+
+func TestModelEvaluationToolListParamSchemas(t *testing.T) {
+	met := NewModelEvaluationTool(func(ctx context.Context) (*godo.Client, error) {
+		return nil, nil
+	})
+
+	byName := make(map[string]map[string]any)
+	for _, st := range met.Tools() {
+		raw, err := json.Marshal(st.Tool.InputSchema)
+		require.NoError(t, err)
+		var schema map[string]any
+		require.NoError(t, json.Unmarshal(raw, &schema))
+		props, _ := schema["properties"].(map[string]any)
+		byName[st.Tool.Name] = props
+	}
+
+	// The new dataset-discovery tool must be registered so an existing dataset_uuid
+	// can be found without uploading a new dataset.
+	_, ok := byName["genai-model-eval-list-datasets"]
+	require.True(t, ok, "genai-model-eval-list-datasets must be registered")
+
+	// metric_uuids must be advertised as an array of strings (not an object) so
+	// schema-driven callers send ["uuid", ...] rather than guessing.
+	for _, toolName := range []string{"genai-model-eval-create-run", "genai-model-eval-run-workflow"} {
+		props, ok := byName[toolName]
+		require.True(t, ok, "tool %s not registered", toolName)
+		prop, ok := props["metric_uuids"].(map[string]any)
+		require.True(t, ok, "tool %s missing property metric_uuids", toolName)
+		require.Equal(t, "array", prop["type"], "tool %s metric_uuids should be array, got %#v", toolName, prop["type"])
+		items, ok := prop["items"].(map[string]any)
+		require.True(t, ok, "tool %s metric_uuids missing items", toolName)
+		require.Equal(t, "string", items["type"], "tool %s metric_uuids items should be string", toolName)
+	}
+}
