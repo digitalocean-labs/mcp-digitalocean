@@ -1,6 +1,6 @@
 module mcp-digitalocean
 
-go 1.25.3
+go 1.26.4
 
 require (
 	github.com/digitalocean/godo v1.196.0
