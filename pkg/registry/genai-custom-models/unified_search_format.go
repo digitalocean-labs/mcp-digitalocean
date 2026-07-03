@@ -138,7 +138,7 @@ func renderCatalogTable(rows []CatalogSearchRow) string {
 func renderCustomTable(rows []CustomSearchRow) string {
 	headers := []string{
 		"UUID", "Name", "Source", "Status", "Architecture",
-		"Input Modalities", "Output Modalities",
+		"Input Modalities", "Output Modalities", "Error Message",
 	}
 	var sb strings.Builder
 	sb.WriteString(markdownTableHeader(headers))
@@ -154,6 +154,7 @@ func renderCustomTable(rows []CustomSearchRow) string {
 			r.Architecture,
 			joinCSV(r.InputModalities),
 			joinCSV(r.OutputModalities),
+			r.ErrorMessage,
 		}))
 	}
 	return sb.String()
@@ -203,6 +204,7 @@ func toCustomSearchRow(cm *CustomModel) CustomSearchRow {
 		Architecture:     cm.Architecture,
 		InputModalities:  append([]string(nil), cm.InputModalities...),
 		OutputModalities: append([]string(nil), cm.OutputModalities...),
+		ErrorMessage:     cm.ErrorMessage,
 	}
 }
 

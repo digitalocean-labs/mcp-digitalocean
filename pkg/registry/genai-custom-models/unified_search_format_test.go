@@ -46,11 +46,11 @@ func countTableDataRows(markdown string) int {
 func TestFormatCustomModelsList_IncludesFailedUUIDRow(t *testing.T) {
 	rows := []CustomSearchRow{
 		{UUID: "ready-uuid", Name: "ready", Source: sourceCustom, Status: "STATUS_READY"},
-		{UUID: "failed-uuid", Name: "failed-one", Source: sourceCustom, Status: "STATUS_FAILED", Architecture: "MistralForCausalLM"},
+		{UUID: "failed-uuid", Name: "failed-one", Source: sourceCustom, Status: "STATUS_FAILED", Architecture: "MistralForCausalLM", ErrorMessage: "Repository not found or access denied"},
 	}
 	out := formatCustomModelsList("", rows)
 	require.Contains(t, out, modelListDisplayInstruction)
-	require.Contains(t, out, "| failed-uuid | failed-one | custom | STATUS_FAILED | MistralForCausalLM |")
+	require.Contains(t, out, "| failed-uuid | failed-one | custom | STATUS_FAILED | MistralForCausalLM |  |  | Repository not found or access denied |")
 	require.Equal(t, 2, countTableDataRows(out))
 }
 

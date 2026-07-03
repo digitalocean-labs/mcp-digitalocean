@@ -96,6 +96,7 @@ type CustomModel struct {
 	TeamID               json.Number                    `json:"team_id,omitempty"`
 	ConfigJSON           map[string]interface{}         `json:"config_json,omitempty"`
 	StorageRegion        string                         `json:"storage_region,omitempty"`
+	ErrorMessage         string                         `json:"error_message,omitempty"`
 }
 
 // PaginationLinks holds pagination links from the API.
@@ -212,6 +213,7 @@ type CustomSearchRow struct {
 	Architecture     string   `json:"architecture,omitempty"`
 	InputModalities  []string `json:"input_modalities,omitempty"`
 	OutputModalities []string `json:"output_modalities,omitempty"`
+	ErrorMessage     string   `json:"error_message,omitempty"`
 }
 
 // UnifiedSearchResponse is the response from the unified model search tool.

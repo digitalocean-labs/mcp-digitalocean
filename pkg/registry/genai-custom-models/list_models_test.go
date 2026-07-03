@@ -18,7 +18,7 @@ func TestListModelsHasFilters(t *testing.T) {
 func TestCustomModelsTool_listModels_unfilteredIncludesFailedUUID(t *testing.T) {
 	tool := setupCustomModelsToolWithTestServer(t, []*CustomModel{
 		{UUID: "ok-uuid", Name: "ready", Status: CustomModelStatusReady},
-		{UUID: "bad-uuid", Name: "failed-one", Status: CustomModelStatusFailed, Architecture: "LlamaForCausalLM"},
+		{UUID: "bad-uuid", Name: "failed-one", Status: CustomModelStatusFailed, Architecture: "LlamaForCausalLM", ErrorMessage: "Import validation failed"},
 	})
 
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}}
@@ -27,7 +27,7 @@ func TestCustomModelsTool_listModels_unfilteredIncludesFailedUUID(t *testing.T) 
 	require.False(t, resp.IsError)
 
 	text := resp.Content[0].(mcp.TextContent).Text
-	require.Contains(t, text, "| bad-uuid | failed-one | custom | STATUS_FAILED | LlamaForCausalLM |")
+	require.Contains(t, text, "| bad-uuid | failed-one | custom | STATUS_FAILED | LlamaForCausalLM |  |  | Import validation failed |")
 	require.NotContains(t, text, "## Model Catalog")
 }
 

@@ -20,7 +20,7 @@ List custom models with optional status filter and pagination.
 - `page` (number, optional): Page number (default: 1)
 - `per_page` (number, optional): Results per page (default: 20)
 
-**Returns:** JSON object with array of models and count
+**Returns:** Markdown table with one row per model (columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message). Failed models include the backend failure reason in the Error Message column.
 
 ```json
 {
@@ -31,9 +31,16 @@ List custom models with optional status filter and pagination.
       "status": "STATUS_READY",
       "architecture": "MistralForCausalLM",
       "source_type": "SOURCE_TYPE_HUGGINGFACE"
+    },
+    {
+      "uuid": "...",
+      "name": "team/failed-model",
+      "status": "STATUS_FAILED",
+      "error_message": "Repository not found or access denied",
+      "source_type": "SOURCE_TYPE_HUGGINGFACE"
     }
   ],
-  "count": 1,
+  "count": 2,
   "max_threshold": 10
 }
 ```
@@ -126,7 +133,7 @@ Delete a custom model by exact UUID or exact name.
 
 - `STATUS_IMPORTING`: Model files are being imported
 - `STATUS_READY`: Model is ready for deployment
-- `STATUS_FAILED`: Import failed
+- `STATUS_FAILED`: Import failed; `error_message` describes the failure (also shown in list/search tables)
 - `STATUS_DELETED`: Model has been deleted
 
 ## Source Types

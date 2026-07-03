@@ -32,6 +32,7 @@ func customModelFromGodo(m *godo.CustomModel) *CustomModel {
 		TeamID:               jsonNumberFromString(m.TeamId),
 		ConfigJSON:           m.ConfigJson,
 		StorageRegion:        m.StorageRegion,
+		ErrorMessage:         m.ErrorMessage,
 	}
 	if m.SourceRef != nil {
 		out.SourceRef = &CustomModelSourceRef{
