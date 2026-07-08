@@ -330,7 +330,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.createDroplet,
 			Tool: mcp.NewTool("droplet-create",
-				common.WithHints(common.HintsAction),
+				common.WithHints(common.HintsCreate),
 				mcp.WithDescription("Create a new droplet. Supports standard distribution images via ImageID and 1-click marketplace app images via ImageSlug. Exactly one of ImageID or ImageSlug must be provided."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the droplet")),
 				mcp.WithString("Size", mcp.Required(), mcp.Description("Slug of the droplet size (e.g., s-1vcpu-1gb)")),

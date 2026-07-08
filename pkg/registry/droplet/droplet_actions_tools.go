@@ -663,7 +663,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: da.snapshotByTag,
 			Tool: mcp.NewTool("snapshot-droplets-tag",
-				common.WithHints(common.HintsAction),
+				common.WithHints(common.HintsCreate),
 				mcp.WithDescription("Take a snapshot of droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the snapshot")),
@@ -790,7 +790,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: da.snapshotDroplet,
 			Tool: mcp.NewTool("snapshot-droplet",
-				common.WithHints(common.HintsAction),
+				common.WithHints(common.HintsCreate),
 				mcp.WithDescription("Take a snapshot of a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the snapshot")),

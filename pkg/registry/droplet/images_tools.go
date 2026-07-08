@@ -249,7 +249,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Handler: i.createImage,
 			Tool: mcp.NewTool(
 				"image-create",
-				common.WithHints(common.HintsAction),
+				common.WithHints(common.HintsCreate),
 				mcp.WithDescription("Create a custom image from a URL (e.g. QCOW2, ISO)."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the new image")),
 				mcp.WithString("Url", mcp.Required(), mcp.Description("URL to import the image from")),
