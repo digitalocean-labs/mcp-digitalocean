@@ -169,6 +169,22 @@ func (mr *MockGradientAIServiceMockRecorder) CreateAnthropicAPIKey(ctx, anthropi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).CreateAnthropicAPIKey), ctx, anthropicAPIKeyCreateRequest)
 }
 
+// CreateCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) CreateCustomEvaluationMetric(ctx context.Context, createRequest *godo.CreateCustomEvaluationMetricRequest) (*godo.EvaluationMetric, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCustomEvaluationMetric", ctx, createRequest)
+	ret0, _ := ret[0].(*godo.EvaluationMetric)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateCustomEvaluationMetric indicates an expected call of CreateCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) CreateCustomEvaluationMetric(ctx, createRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).CreateCustomEvaluationMetric), ctx, createRequest)
+}
+
 // CreateFunctionRoute mocks base method.
 func (m *MockGradientAIService) CreateFunctionRoute(arg0 context.Context, arg1 string, arg2 *godo.FunctionRouteCreateRequest) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -327,6 +343,21 @@ func (m *MockGradientAIService) DeleteAnthropicAPIKey(ctx context.Context, id st
 func (mr *MockGradientAIServiceMockRecorder) DeleteAnthropicAPIKey(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).DeleteAnthropicAPIKey), ctx, id)
+}
+
+// DeleteCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) DeleteCustomEvaluationMetric(ctx context.Context, metricUUID string) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCustomEvaluationMetric", ctx, metricUUID)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCustomEvaluationMetric indicates an expected call of DeleteCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) DeleteCustomEvaluationMetric(ctx, metricUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).DeleteCustomEvaluationMetric), ctx, metricUUID)
 }
 
 // DeleteCustomModel mocks base method.
@@ -1129,6 +1160,22 @@ func (m *MockGradientAIService) UpdateAnthropicAPIKey(ctx context.Context, id st
 func (mr *MockGradientAIServiceMockRecorder) UpdateAnthropicAPIKey(ctx, id, anthropicAPIKeyUpdateRequest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).UpdateAnthropicAPIKey), ctx, id, anthropicAPIKeyUpdateRequest)
+}
+
+// UpdateCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) UpdateCustomEvaluationMetric(ctx context.Context, metricUUID string, updateRequest *godo.UpdateCustomEvaluationMetricRequest) (*godo.EvaluationMetric, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCustomEvaluationMetric", ctx, metricUUID, updateRequest)
+	ret0, _ := ret[0].(*godo.EvaluationMetric)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateCustomEvaluationMetric indicates an expected call of UpdateCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) UpdateCustomEvaluationMetric(ctx, metricUUID, updateRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).UpdateCustomEvaluationMetric), ctx, metricUUID, updateRequest)
 }
 
 // UpdateCustomModelMetadata mocks base method.

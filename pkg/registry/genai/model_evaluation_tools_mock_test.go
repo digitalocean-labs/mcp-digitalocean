@@ -305,3 +305,175 @@ func TestModelEvaluationTool_deleteDataset_apiError(t *testing.T) {
 
 	require.True(t, resp.IsError)
 }
+
+func TestModelEvaluationTool_createCustomMetric_success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), &godo.CreateCustomEvaluationMetricRequest{
+		MetricName:  "helpfulness",
+		Description: "How helpful the response is",
+		Config: &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt:       "Score the response for helpfulness",
+			RequiresGroundTruth: true,
+		},
+	}).Return(&godo.EvaluationMetric{
+		MetricUUID: "metric-1",
+		MetricName: "helpfulness",
+		Source:     godo.EvaluationMetricSourceCustom,
+	}, okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+		"metric_name":           "helpfulness",
+		"description":           "How helpful the response is",
+		"scoring_prompt":        "Score the response for helpfulness",
+		"requires_ground_truth": true,
+	})
+
+	require.False(t, resp.IsError)
+	text := resultText(t, resp)
+	require.Contains(t, text, "metric-1")
+	require.Contains(t, text, "helpfulness")
+}
+
+func TestModelEvaluationTool_createCustomMetric_apiNon2xx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), gomock.Any()).Return(
+		&godo.EvaluationMetric{}, okResponse(http.StatusInternalServerError), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+		"metric_name":    "helpfulness",
+		"scoring_prompt": "Score the response",
+	})
+
+	require.True(t, resp.IsError)
+	require.Contains(t, resultText(t, resp), "500")
+}
+
+func TestModelEvaluationTool_createCustomMetric_apiError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), gomock.Any()).Return(nil, nil, errors.New("boom"))
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+		"metric_name":    "helpfulness",
+		"scoring_prompt": "Score the response",
+	})
+
+	require.True(t, resp.IsError)
+}
+
+func TestModelEvaluationTool_updateCustomMetric_success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", &godo.UpdateCustomEvaluationMetricRequest{
+		MetricUUID: "metric-1",
+		MetricName: "helpfulness-v2",
+		Config: &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt: "Updated scoring prompt",
+		},
+	}).Return(&godo.EvaluationMetric{
+		MetricUUID: "metric-1",
+		MetricName: "helpfulness-v2",
+	}, okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+		"metric_uuid":    "metric-1",
+		"metric_name":    "helpfulness-v2",
+		"scoring_prompt": "Updated scoring prompt",
+	})
+
+	require.False(t, resp.IsError)
+	text := resultText(t, resp)
+	require.Contains(t, text, "metric-1")
+	require.Contains(t, text, "helpfulness-v2")
+}
+
+func TestModelEvaluationTool_updateCustomMetric_apiNon2xx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", gomock.Any()).Return(
+		&godo.EvaluationMetric{}, okResponse(http.StatusInternalServerError), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+		"metric_uuid": "metric-1",
+		"metric_name": "helpfulness-v2",
+	})
+
+	require.True(t, resp.IsError)
+	require.Contains(t, resultText(t, resp), "500")
+}
+
+func TestModelEvaluationTool_updateCustomMetric_apiError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", gomock.Any()).Return(nil, nil, errors.New("boom"))
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+		"metric_uuid": "metric-1",
+		"metric_name": "helpfulness-v2",
+	})
+
+	require.True(t, resp.IsError)
+}
+
+func TestModelEvaluationTool_deleteCustomMetric_success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+		"metric_uuid":      "metric-1",
+		"confirm_deletion": true,
+	})
+
+	require.False(t, resp.IsError)
+	text := resultText(t, resp)
+	require.Contains(t, text, "metric-1")
+	require.Contains(t, text, "deleted")
+}
+
+func TestModelEvaluationTool_deleteCustomMetric_apiNon2xx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(okResponse(http.StatusInternalServerError), nil)
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+		"metric_uuid":      "metric-1",
+		"confirm_deletion": true,
+	})
+
+	require.True(t, resp.IsError)
+	require.Contains(t, resultText(t, resp), "500")
+}
+
+func TestModelEvaluationTool_deleteCustomMetric_apiError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(nil, errors.New("boom"))
+
+	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+		"metric_uuid":      "metric-1",
+		"confirm_deletion": true,
+	})
+
+	require.True(t, resp.IsError)
+}
