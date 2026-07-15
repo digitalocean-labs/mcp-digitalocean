@@ -9,6 +9,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type PackageTool struct {
@@ -172,6 +174,8 @@ func (t *PackageTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listPackages,
 			Tool: mcp.NewTool("functions-list-packages",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all packages in a DigitalOcean Functions namespace. Packages group related actions together."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithNumber("Limit", mcp.Description("Number of packages to return (0-200, default 30). Use 0 for maximum.")),
@@ -182,6 +186,8 @@ func (t *PackageTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getPackage,
 			Tool: mcp.NewTool("functions-get-package",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get detailed information about a specific package in a DigitalOcean Functions namespace, including its actions, parameters, and annotations."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("PackageName", mcp.Required(), mcp.Description("The name of the package")),
@@ -190,6 +196,8 @@ func (t *PackageTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createOrUpdatePackage,
 			Tool: mcp.NewTool("functions-create-or-update-package",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create or update a package in a DigitalOcean Functions namespace. Packages are used to group related actions."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("PackageName", mcp.Required(), mcp.Description("The name of the package to create or update")),
@@ -202,11 +210,12 @@ func (t *PackageTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deletePackage,
 			Tool: mcp.NewTool("functions-delete-package",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a package from a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("PackageName", mcp.Required(), mcp.Description("The name of the package to delete")),
 				mcp.WithBoolean("Force", mcp.Description("Force delete the package even if it contains actions. Default is false.")),
-				mcp.WithDestructiveHintAnnotation(true),
 			),
 		},
 	}

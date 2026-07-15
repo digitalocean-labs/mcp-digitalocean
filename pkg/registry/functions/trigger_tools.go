@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type TriggerTool struct {
@@ -205,6 +207,8 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listTriggers,
 			Tool: mcp.NewTool("functions-list-triggers",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all triggers for a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -212,6 +216,8 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getTrigger,
 			Tool: mcp.NewTool("functions-get-trigger",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a specific trigger in a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("TriggerName", mcp.Required(), mcp.Description("The name of the trigger")),
@@ -220,6 +226,8 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createTrigger,
 			Tool: mcp.NewTool("functions-create-trigger",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a scheduled trigger for a function in a DigitalOcean Functions namespace. Currently only SCHEDULED type triggers are supported."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("A name for the trigger")),
@@ -232,6 +240,8 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 		{
 			Handler: t.updateTrigger,
 			Tool: mcp.NewTool("functions-update-trigger",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a trigger in a DigitalOcean Functions namespace. You can enable/disable the trigger or change the cron schedule."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("TriggerName", mcp.Required(), mcp.Description("The name of the trigger to update")),
@@ -243,10 +253,11 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deleteTrigger,
 			Tool: mcp.NewTool("functions-delete-trigger",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a trigger from a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("TriggerName", mcp.Required(), mcp.Description("The name of the trigger to delete")),
-				mcp.WithDestructiveHintAnnotation(true),
 			),
 		},
 	}

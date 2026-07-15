@@ -9,6 +9,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type ActivationTool struct {
@@ -164,6 +166,8 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listActivations,
 			Tool: mcp.NewTool("functions-list-activations",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List activations (invocation records) for a DigitalOcean Functions namespace. Activations record every function invocation with timing, status, and optional response data."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithString("FunctionName", mcp.Description("Filter activations by function name")),
@@ -177,6 +181,8 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getActivation,
 			Tool: mcp.NewTool("functions-get-activation",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the full activation record for a specific function invocation, including response, logs, timing, and status."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),
@@ -185,6 +191,8 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getActivationLogs,
 			Tool: mcp.NewTool("functions-get-activation-logs",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get only the logs for a specific function activation. Useful for debugging function execution."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),
@@ -193,6 +201,8 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getActivationResult,
 			Tool: mcp.NewTool("functions-get-activation-result",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get only the result of a specific function activation. Returns the function's return value and status."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),
