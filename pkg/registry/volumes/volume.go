@@ -7,6 +7,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type VolumeTool struct {
@@ -335,6 +337,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.createVolume,
 			Tool: mcp.NewTool(
 				"volume-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new block storage volume"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("The name of the volume")),
 				mcp.WithNumber("SizeGigaBytes", mcp.Required(), mcp.Description("The size of the volume in GB")),
@@ -350,6 +354,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.listVolumes,
 			Tool: mcp.NewTool(
 				"volume-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List block storage volumes with optional Name/Region filters. Supports pagination."),
 				mcp.WithString("Name", mcp.Description("Name filtering parameter")),
 				mcp.WithString("Region", mcp.Description("Region filtering parameter")),
@@ -361,6 +367,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.getVolumeByID,
 			Tool: mcp.NewTool(
 				"volume-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a block storage volume by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the volume to get")),
 			),
@@ -369,6 +377,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.deleteVolume,
 			Tool: mcp.NewTool(
 				"volume-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a block storage volume by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the volume to delete")),
 			),
@@ -377,6 +387,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.createSnapshot,
 			Tool: mcp.NewTool(
 				"volume-snapshot-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a new snapshot from a volume"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to create a snapshot from")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("The name of the snapshot")),
@@ -387,6 +399,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.listSnapshots,
 			Tool: mcp.NewTool(
 				"volume-snapshot-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List snapshots for a volume. Supports pagination."),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to list snapshots for")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultVolumeListPage), mcp.Description("Page number")),
@@ -397,6 +411,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.getSnapshotByID,
 			Tool: mcp.NewTool(
 				"volume-snapshot-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a snapshot by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the snapshot to get")),
 			),
@@ -405,6 +421,8 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 			Handler: vt.deleteSnapshot,
 			Tool: mcp.NewTool(
 				"volume-snapshot-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a snapshot by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the snapshot to delete")),
 			),
