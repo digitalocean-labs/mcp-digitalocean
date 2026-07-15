@@ -117,6 +117,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-action-transfer",
 				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Transfer an image to another region."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the image to transfer")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug to transfer to (e.g., nyc3)")),
@@ -127,6 +128,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-action-convert",
 				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Convert an image (backup) to a snapshot."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the image to convert")),
 			),
@@ -136,6 +138,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-action-get",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Retrieve the status of an image action."),
 				mcp.WithNumber("ImageID", mcp.Required(), mcp.Description("ID of the image")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("ID of the action")),

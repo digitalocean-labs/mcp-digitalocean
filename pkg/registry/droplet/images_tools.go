@@ -230,6 +230,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-list",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List available images (snapshots, backups, distributions, applications)."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultImagesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultImagesPageSize), mcp.Description("Items per page")),
@@ -241,6 +242,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-get",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a specific image by its numeric ID."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Image ID")),
 			),
@@ -250,6 +252,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-create",
 				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a custom image from a URL (e.g. QCOW2, ISO)."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the new image")),
 				mcp.WithString("Url", mcp.Required(), mcp.Description("URL to import the image from")),
@@ -264,6 +267,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-update",
 				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update an image's name."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Image ID")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the image")),
@@ -274,6 +278,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"image-delete",
 				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete an image or snapshot."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the image to delete")),
 			),

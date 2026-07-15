@@ -17,6 +17,19 @@ const (
 	OpDelete Operation = "delete"
 )
 
+// Risk is the coarse-grained blast radius of a tool call. It maps 1:1 to the
+// tool registry's classification.risk field and is what approval gating keys
+// off of (high-risk tools require approval). Risk is set per tool via WithRisk
+// because it varies within a single hint profile — e.g. an idempotent toggle
+// can be low (enable-ipv6) or high (power-off by tag).
+type Risk string
+
+const (
+	RiskLow    Risk = "low"
+	RiskMedium Risk = "medium"
+	RiskHigh   Risk = "high"
+)
+
 // RegistryMetaKey is the reverse-DNS-namespaced key under a tool's _meta
 // that holds the registry metadata set by the hint profiles (permission,
 // operation, parallelizable, streaming_safe). MCP reserves _meta for
@@ -37,6 +50,24 @@ type hints struct {
 	parallelizable, streamingSafe                bool
 }
 
+// registryMeta returns the mutable registry metadata map stored under
+// RegistryMetaKey in t.Meta, creating the intermediate structures on first
+// access. Both WithHints and WithRisk write through this helper so their keys
+// merge regardless of the order the options are applied in.
+func registryMeta(t *mcp.Tool) map[string]any {
+	if t.Meta == nil {
+		t.Meta = &mcp.Meta{AdditionalFields: map[string]any{}}
+	} else if t.Meta.AdditionalFields == nil {
+		t.Meta.AdditionalFields = map[string]any{}
+	}
+	reg, ok := t.Meta.AdditionalFields[RegistryMetaKey].(map[string]any)
+	if !ok {
+		reg = map[string]any{}
+		t.Meta.AdditionalFields[RegistryMetaKey] = reg
+	}
+	return reg
+}
+
 // apply sets the four MCP tool hint annotations on t (overriding the mcp-go
 // library defaults, which assume the worst case: not read-only, destructive,
 // not idempotent) and stashes the registry metadata under t.Meta. The
@@ -48,23 +79,25 @@ func (h hints) apply(t *mcp.Tool) {
 	mcp.WithIdempotentHintAnnotation(h.idempotent)(t)
 	mcp.WithOpenWorldHintAnnotation(h.openWorld)(t)
 
-	reg := map[string]any{
-		"permission":     "tools.digitalocean." + strings.ReplaceAll(t.Name, "-", "_"),
-		"operation":      string(h.operation),
-		"parallelizable": h.parallelizable,
-		"streamingSafe":  h.streamingSafe,
-	}
-	if t.Meta == nil {
-		t.Meta = &mcp.Meta{AdditionalFields: map[string]any{}}
-	} else if t.Meta.AdditionalFields == nil {
-		t.Meta.AdditionalFields = map[string]any{}
-	}
-	t.Meta.AdditionalFields[RegistryMetaKey] = reg
+	reg := registryMeta(t)
+	reg["permission"] = "tools.digitalocean." + strings.ReplaceAll(t.Name, "-", "_")
+	reg["operation"] = string(h.operation)
+	reg["parallelizable"] = h.parallelizable
+	reg["streamingSafe"] = h.streamingSafe
 }
 
 // WithHints returns a ToolOption that applies the given hint profile to a
 // tool registration.
 func WithHints(h hints) mcp.ToolOption { return h.apply }
+
+// WithRisk returns a ToolOption that records the tool's risk classification in
+// the registry metadata. It is applied independently of WithHints because risk
+// is a per-tool judgement that does not map cleanly onto a hint profile.
+func WithRisk(r Risk) mcp.ToolOption {
+	return func(t *mcp.Tool) {
+		registryMeta(t)["risk"] = string(r)
+	}
+}
 
 // Hint profiles. Every tool in this package falls into one of six
 // categories. openWorld is false on every profile.

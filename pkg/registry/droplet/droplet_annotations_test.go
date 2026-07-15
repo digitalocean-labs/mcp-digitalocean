@@ -15,67 +15,69 @@ import (
 // TestToolAnnotations. Adding a tool to this package WITHOUT a row here, or
 // changing an annotation in code without updating the row, fails the test.
 //
-// Order: readOnly, destructive, idempotent, openWorld, operation,
+// Order: readOnly, destructive, idempotent, openWorld, operation, risk,
 // parallelizable, streamingSafe. See annotations.go for the rationale behind
 // the six profile categories these rows map to. permission is not listed
 // per row because it is derived 1:1 from the tool name and asserted
-// generically.
+// generically. risk is set per tool (via common.WithRisk) because it varies
+// within a single hint profile.
 var expectedAnnotations = map[string]struct {
 	readOnly, destructive, idempotent, openWorld bool
 	operation                                    common.Operation
+	risk                                         common.Risk
 	parallelizable, streamingSafe                bool
 }{
 	// droplet_tools.go
-	"droplet-create":             {false, false, false, false, common.OpCreate, false, false},
-	"droplet-delete":             {false, true, true, false, common.OpDelete, false, false},
-	"droplet-enable-private-net": {false, false, true, false, common.OpUpdate, false, false},
-	"droplet-kernels":            {true, false, true, false, common.OpRead, false, false},
-	"droplet-get":                {true, false, true, false, common.OpRead, false, false},
-	"droplet-backup-policy":      {true, false, true, false, common.OpRead, false, false},
-	"droplet-action":             {true, false, true, false, common.OpRead, false, false},
-	"droplet-list":               {true, false, true, false, common.OpRead, false, false},
+	"droplet-create":             {false, false, false, false, common.OpCreate, common.RiskHigh, false, false},
+	"droplet-delete":             {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
+	"droplet-enable-private-net": {false, false, true, false, common.OpUpdate, common.RiskHigh, false, false},
+	"droplet-kernels":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"droplet-get":                {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"droplet-backup-policy":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"droplet-action":             {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"droplet-list":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 
 	// droplet_actions_tools.go
-	"reboot-droplet":                  {false, false, false, false, common.OpUpdate, false, false},
-	"reset-droplet-password":          {false, false, false, false, common.OpUpdate, false, false},
-	"rebuild-droplet-by-slug":         {false, true, false, false, common.OpUpdate, false, false},
-	"power-cycle-droplets-tag":        {false, false, false, false, common.OpUpdate, false, false},
-	"power-on-droplets-tag":           {false, false, true, false, common.OpUpdate, false, false},
-	"power-off-droplets-tag":          {false, false, true, false, common.OpUpdate, false, false},
-	"shutdown-droplets-tag":           {false, false, true, false, common.OpUpdate, false, false},
-	"enable-backups-droplets-tag":     {false, false, true, false, common.OpUpdate, false, false},
-	"disable-backups-droplets-tag":    {false, false, true, false, common.OpUpdate, false, false},
-	"snapshot-droplets-tag":           {false, false, false, false, common.OpCreate, false, false},
-	"enable-ipv6-droplets-tag":        {false, false, true, false, common.OpUpdate, false, false},
-	"enable-private-net-droplets-tag": {false, false, true, false, common.OpUpdate, false, false},
-	"power-cycle-droplet":             {false, false, false, false, common.OpUpdate, false, false},
-	"power-on-droplet":                {false, false, true, false, common.OpUpdate, false, false},
-	"power-off-droplet":               {false, false, true, false, common.OpUpdate, false, false},
-	"shutdown-droplet":                {false, false, true, false, common.OpUpdate, false, false},
-	"restore-droplet":                 {false, true, false, false, common.OpUpdate, false, false},
-	"resize-droplet":                  {false, false, true, false, common.OpUpdate, false, false},
-	"rebuild-droplet":                 {false, true, false, false, common.OpUpdate, false, false},
-	"rename-droplet":                  {false, false, true, false, common.OpUpdate, false, false},
-	"change-kernel-droplet":           {false, false, true, false, common.OpUpdate, false, false},
-	"enable-ipv6-droplet":             {false, false, true, false, common.OpUpdate, false, false},
-	"enable-backups-droplet":          {false, false, true, false, common.OpUpdate, false, false},
-	"disable-backups-droplet":         {false, false, true, false, common.OpUpdate, false, false},
-	"snapshot-droplet":                {false, false, false, false, common.OpCreate, false, false},
+	"reboot-droplet":                  {false, false, false, false, common.OpUpdate, common.RiskMedium, false, false},
+	"reset-droplet-password":          {false, false, false, false, common.OpUpdate, common.RiskMedium, false, false},
+	"rebuild-droplet-by-slug":         {false, true, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"power-cycle-droplets-tag":        {false, false, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"power-on-droplets-tag":           {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"power-off-droplets-tag":          {false, false, true, false, common.OpUpdate, common.RiskHigh, false, false},
+	"shutdown-droplets-tag":           {false, false, true, false, common.OpUpdate, common.RiskHigh, false, false},
+	"enable-backups-droplets-tag":     {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"disable-backups-droplets-tag":    {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"snapshot-droplets-tag":           {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"enable-ipv6-droplets-tag":        {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"enable-private-net-droplets-tag": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"power-cycle-droplet":             {false, false, false, false, common.OpUpdate, common.RiskMedium, false, false},
+	"power-on-droplet":                {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"power-off-droplet":               {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"shutdown-droplet":                {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"restore-droplet":                 {false, true, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"resize-droplet":                  {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"rebuild-droplet":                 {false, true, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"rename-droplet":                  {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"change-kernel-droplet":           {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"enable-ipv6-droplet":             {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"enable-backups-droplet":          {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"disable-backups-droplet":         {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"snapshot-droplet":                {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
 
 	// image_actions_tools.go
-	"image-action-transfer": {false, false, true, false, common.OpUpdate, false, false},
-	"image-action-convert":  {false, false, true, false, common.OpUpdate, false, false},
-	"image-action-get":      {true, false, true, false, common.OpRead, false, false},
+	"image-action-transfer": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"image-action-convert":  {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"image-action-get":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 
 	// images_tools.go
-	"image-list":   {true, false, true, false, common.OpRead, false, false},
-	"image-get":    {true, false, true, false, common.OpRead, false, false},
-	"image-create": {false, false, false, false, common.OpCreate, false, false},
-	"image-update": {false, false, true, false, common.OpUpdate, false, false},
-	"image-delete": {false, true, true, false, common.OpDelete, false, false},
+	"image-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"image-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"image-create": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"image-update": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"image-delete": {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
 
 	// sizes_tools.go
-	"size-list": {true, false, true, false, common.OpRead, false, false},
+	"size-list": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
@@ -143,6 +145,9 @@ func TestToolAnnotations(t *testing.T) {
 		}
 		if got, _ := reg["operation"].(string); got != string(want.operation) {
 			t.Errorf("tool %q operation = %q, want %q", name, got, want.operation)
+		}
+		if got, _ := reg["risk"].(string); got != string(want.risk) {
+			t.Errorf("tool %q risk = %q, want %q", name, got, want.risk)
 		}
 		if got, _ := reg["parallelizable"].(bool); got != want.parallelizable {
 			t.Errorf("tool %q parallelizable = %v, want %v", name, got, want.parallelizable)
