@@ -322,6 +322,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"docs-troubleshoot",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Search for troubleshooting pages matching an error message or symptom. Returns the full content of the best matching support page, plus links to related pages. Use this when diagnosing errors or unexpected behavior with DigitalOcean services."),
 				mcp.WithString("Symptom", mcp.Required(), mcp.Description("Error message, symptom description, or keywords describing the problem (e.g., \"SSL certificate not working\", \"520 status code\", \"deployment failed health check\")")),
 				mcp.WithNumber("Limit", mcp.DefaultNumber(5), mcp.Description("Maximum number of results to return")),
@@ -332,6 +333,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"docs-get-related",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Extract and categorize all outbound documentation links from a specific docs page. Returns links grouped by type (how-to, reference, support, getting-started, concept, details). Use this to discover related pages and navigate the docs graph."),
 				mcp.WithString("URL", mcp.Required(), mcp.Description("Full URL or path of the docs page to extract links from (e.g., https://docs.digitalocean.com/products/app-platform/how-to/manage-domains/ or /products/app-platform/how-to/manage-domains/)")),
 			),
