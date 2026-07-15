@@ -7,6 +7,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type NfsActionsTool struct {
@@ -195,6 +197,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.resizeFileShare,
 			Tool: mcp.NewTool("nfs-resize",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Resize a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to resize")),
 				mcp.WithNumber("SizeGibibytes", mcp.Required(), mcp.Description("Size of the file share in GiB")),
@@ -203,6 +207,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.snapshotFileShare,
 			Tool: mcp.NewTool("nfs-snapshot",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a snapshot of a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to snapshot")),
 				mcp.WithString("SnapshotName", mcp.Required(), mcp.Description("Name of the snapshot")),
@@ -211,6 +217,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.attachFileShare,
 			Tool: mcp.NewTool("nfs-attach",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Attach a NFS file share to a VPC"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to attach")),
 				mcp.WithString("VpcID", mcp.Required(), mcp.Description("ID of the VPC to attach the file share to")),
@@ -219,6 +227,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.detachFileShare,
 			Tool: mcp.NewTool("nfs-detach",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Detach a NFS file share from a VPC"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to detach")),
 				mcp.WithString("VpcID", mcp.Required(), mcp.Description("ID of the VPC to detach the file share from")),
@@ -227,6 +237,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.reassignFileShare,
 			Tool: mcp.NewTool("nfs-reassign",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Reassign a NFS file share from one VPC to another"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to reassign")),
 				mcp.WithString("OldVpcID", mcp.Required(), mcp.Description("ID of the VPC to reassign the file share from")),
@@ -236,6 +248,8 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: n.switchPerformanceTier,
 			Tool: mcp.NewTool("nfs-switch-performance-tier",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Switch the performance tier of a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to switch the performance tier of")),
 				mcp.WithString("PerformanceTier", mcp.Required(), mcp.Description("Performance tier to switch the file share to")),
