@@ -13,6 +13,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // toGodoStarMetric converts the locally parsed star metric into the godo SDK type.
@@ -912,6 +914,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.listMetrics,
 			Tool: mcp.NewTool(
 				"genai-model-eval-list-metrics",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all available model evaluation metrics."),
 			),
 		},
@@ -919,6 +923,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.listDatasets,
 			Tool: mcp.NewTool(
 				"genai-model-eval-list-datasets",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List previously uploaded evaluation datasets so you can reuse an existing dataset's UUID in genai-model-eval-create-run. Defaults to model-evaluation datasets. Each item includes dataset_uuid, dataset_name, created_at, row_count, file_size, and has_ground_truth. Use this to find the dataset_uuid for a dataset the user already uploaded (instead of uploading a new one)."),
 				mcp.WithString("dataset_type", mcp.Description("Filter by dataset type. Defaults to EVALUATION_DATASET_TYPE_MODEL (datasets usable for model evaluation). Other values: EVALUATION_DATASET_TYPE_UNKNOWN, EVALUATION_DATASET_TYPE_ADK, EVALUATION_DATASET_TYPE_NON_ADK.")),
 			),
@@ -927,6 +933,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.listPresets,
 			Tool: mcp.NewTool(
 				"genai-model-eval-list-presets",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all model evaluation presets. Presets are reusable evaluation configurations containing a dataset, judge model, and metrics."),
 			),
 		},
@@ -934,6 +942,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.getPreset,
 			Tool: mcp.NewTool(
 				"genai-model-eval-get-preset",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a single model evaluation preset by UUID."),
 				mcp.WithString("eval_preset_uuid", mcp.Required(), mcp.Description("UUID of the evaluation preset")),
 			),
@@ -942,6 +952,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.createDataset,
 			Tool: mcp.NewTool(
 				"genai-model-eval-create-dataset",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Upload and register a model evaluation dataset (presign → Spaces upload → database record). Accepts .csv (with 'input' column) or .jsonl (one JSON object per line with 'input' field); 'ground_truth' is optional. Returns evaluation_dataset_uuid for use with genai-model-eval-create-run."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
 				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl dataset file to upload")),
@@ -951,6 +963,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.createRun,
 			Tool: mcp.NewTool(
 				"genai-model-eval-create-run",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription(genaiModelEvalCreateRunToolDescription),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for this evaluation run")),
 				mcp.WithString("candidate_model_name", mcp.Required(), mcp.Description("Exact candidate model name the user provided or confirmed (character-for-character, whitespace trimmed). Partial names return nearest matches only.")),
@@ -973,6 +987,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.listRuns,
 			Tool: mcp.NewTool(
 				"genai-model-eval-list-runs",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List model evaluation runs with optional filters. Each run includes its eval_run_uuid (use it with genai-model-eval-get-run / cancel-run / delete-run), name, status, and the candidate/judge model and dataset it used."),
 				mcp.WithString("eval_preset_uuid", mcp.Description("Filter by preset UUID")),
 				mcp.WithString("status", mcp.Description("Filter by run status. Accepts the full enum values: MODEL_EVALUATION_RUN_QUEUED, MODEL_EVALUATION_RUN_RUNNING_DATASET, MODEL_EVALUATION_RUN_EVALUATING_RESULTS, MODEL_EVALUATION_RUN_CANCELLING, MODEL_EVALUATION_RUN_CANCELLED, MODEL_EVALUATION_RUN_SUCCESSFUL, MODEL_EVALUATION_RUN_PARTIALLY_SUCCESSFUL (some rows scored, others failed), MODEL_EVALUATION_RUN_FAILED.")),
@@ -984,6 +1000,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.getRun,
 			Tool: mcp.NewTool(
 				"genai-model-eval-get-run",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the status, details, and per-prompt results of a model evaluation run."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run (the eval_run_uuid returned by genai-model-eval-list-runs or genai-model-eval-create-run)")),
 				mcp.WithNumber("page", mcp.Description("Page number for per-prompt results pagination")),
@@ -994,6 +1012,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.updateRun,
 			Tool: mcp.NewTool(
 				"genai-model-eval-update-run",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a model evaluation run. Currently only the run name can be changed."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("New name for the evaluation run")),
@@ -1003,6 +1023,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.getResultsDownloadURL,
 			Tool: mcp.NewTool(
 				"genai-model-eval-get-results-download-url",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a presigned download URL for the full results of a model evaluation run. The returned URL is short-lived (expires in ~15 minutes) and points to a gzip-compressed JSON (.json.gz) file, so use it promptly."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run (the eval_run_uuid returned by genai-model-eval-list-runs)")),
 			),
@@ -1011,6 +1033,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.deleteRun,
 			Tool: mcp.NewTool(
 				"genai-model-eval-delete-run",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a model evaluation run by UUID. Deletion is permanent: the run record and its results cannot be recovered.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the eval_run_uuid and that deletion is permanent; ask for yes/no."),
@@ -1022,6 +1046,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.cancelRun,
 			Tool: mcp.NewTool(
 				"genai-model-eval-cancel-run",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Cancel an in-progress model evaluation run by UUID. The run transitions to MODEL_EVALUATION_RUN_CANCELLING and then MODEL_EVALUATION_RUN_CANCELLED. Any partial results may be lost.\n\n"+
 					"CONSENT REQUIRED (every cancel): Do not call with confirm_cancel: true until the user has explicitly agreed in chat. "+
 					"Present the eval_run_uuid and that any partial results may be lost; ask for yes/no."),
@@ -1033,6 +1059,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.deletePreset,
 			Tool: mcp.NewTool(
 				"genai-model-eval-delete-preset",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Delete a saved model evaluation preset by UUID. Deletion is permanent and existing runs that referenced the preset are not affected.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the eval_preset_uuid and that deletion is permanent; ask for yes/no."),
@@ -1044,6 +1072,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.deleteDataset,
 			Tool: mcp.NewTool(
 				"genai-model-eval-delete-dataset",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete an evaluation dataset by UUID. Works for both model and agent evaluation datasets. Deletion is permanent: the dataset record cannot be recovered.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the dataset_uuid and that deletion is permanent; ask for yes/no."),
@@ -1055,6 +1085,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.runWorkflow,
 			Tool: mcp.NewTool(
 				"genai-model-eval-run-workflow",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription(genaiModelEvalWorkflowToolDescription),
 				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl evaluation dataset")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the evaluation run")),

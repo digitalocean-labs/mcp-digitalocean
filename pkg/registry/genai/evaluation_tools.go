@@ -16,6 +16,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // genAIAPIPath is the relative path prefix for GenAI endpoints (same style as godo's "v2/droplets").
@@ -968,6 +970,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.listEvaluationMetrics,
 			Tool: mcp.NewTool(
 				"genai-list-evaluation-metrics",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all available evaluation metrics."),
 			),
 		},
@@ -975,6 +979,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.listEvaluationTestCases,
 			Tool: mcp.NewTool(
 				"genai-list-evaluation-test-cases",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List evaluation test cases for a workspace."),
 				mcp.WithString("workspace_uuid", mcp.Description("Workspace UUID (optional if agent_workspace_name is provided)")),
 				mcp.WithString("agent_workspace_name", mcp.Description("Workspace name (optional if workspace_uuid is provided)")),
@@ -984,6 +990,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.createEvaluationDataset,
 			Tool: mcp.NewTool(
 				"genai-create-evaluation-dataset",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create an evaluation dataset by uploading a CSV file. The file must contain a 'query' column with JSON objects."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
 				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the CSV file to upload")),
@@ -993,6 +1001,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.createEvaluationTestCase,
 			Tool: mcp.NewTool(
 				"genai-create-evaluation-test-case",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create an evaluation test case."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name of the test case")),
 				mcp.WithString("description", mcp.Description("Description of the test case")),
@@ -1007,6 +1017,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.updateEvaluationTestCase,
 			Tool: mcp.NewTool(
 				"genai-update-evaluation-test-case",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update an evaluation test case."),
 				mcp.WithString("test_case_uuid", mcp.Required(), mcp.Description("Test case UUID to update")),
 				mcp.WithString("name", mcp.Description("New name for the test case")),
@@ -1020,6 +1032,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.runEvaluationTestCase,
 			Tool: mcp.NewTool(
 				"genai-run-evaluation-test-case",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Run an evaluation test case."),
 				mcp.WithString("test_case_uuid", mcp.Required(), mcp.Description("Test case UUID to run")),
 				mcp.WithArray("agent_deployment_names", mcp.Description("List of agent deployment names"), mcp.Items(map[string]any{"type": "string"})),
@@ -1030,6 +1044,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.getEvaluationRun,
 			Tool: mcp.NewTool(
 				"genai-get-evaluation-run",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the status and results of an evaluation run."),
 				mcp.WithString("evaluation_run_uuid", mcp.Required(), mcp.Description("Evaluation run UUID")),
 			),
@@ -1038,6 +1054,8 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 			Handler: et.runEvaluationWorkflow,
 			Tool: mcp.NewTool(
 				"genai-run-evaluation-workflow",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Run a complete evaluation workflow: validate dataset, create/update test case, run evaluation, and poll for results. This is a convenience tool for users unfamiliar with the multi-step evaluation process."),
 				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the CSV evaluation dataset")),
 				mcp.WithString("workspace_name", mcp.Required(), mcp.Description("Agent workspace name")),
