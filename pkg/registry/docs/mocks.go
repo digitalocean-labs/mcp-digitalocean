@@ -39,6 +39,21 @@ func (m *MockDocsService) EXPECT() *MockDocsServiceMockRecorder {
 	return m.recorder
 }
 
+// ExtractRelatedLinks mocks base method.
+func (m *MockDocsService) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExtractRelatedLinks", url)
+	ret0, _ := ret[0].([]RelatedLink)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExtractRelatedLinks indicates an expected call of ExtractRelatedLinks.
+func (mr *MockDocsServiceMockRecorder) ExtractRelatedLinks(url any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtractRelatedLinks", reflect.TypeOf((*MockDocsService)(nil).ExtractRelatedLinks), url)
+}
+
 // FetchDocPage mocks base method.
 func (m *MockDocsService) FetchDocPage(url string) (string, error) {
 	m.ctrl.T.Helper()
@@ -68,6 +83,21 @@ func (m *MockDocsService) FindQuickstart(service string) (string, string, error)
 func (mr *MockDocsServiceMockRecorder) FindQuickstart(service any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindQuickstart", reflect.TypeOf((*MockDocsService)(nil).FindQuickstart), service)
+}
+
+// FindTroubleshootPage mocks base method.
+func (m *MockDocsService) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindTroubleshootPage", symptom)
+	ret0, _ := ret[0].([]DocsEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindTroubleshootPage indicates an expected call of FindTroubleshootPage.
+func (mr *MockDocsServiceMockRecorder) FindTroubleshootPage(symptom any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindTroubleshootPage", reflect.TypeOf((*MockDocsService)(nil).FindTroubleshootPage), symptom)
 }
 
 // GetDocsIndex mocks base method.
