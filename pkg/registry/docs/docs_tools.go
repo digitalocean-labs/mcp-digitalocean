@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"mcp-digitalocean/pkg/registry/common"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -177,6 +179,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Handler: d.searchDocs,
 			Tool: mcp.NewTool(
 				"docs-search",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Full-text search across DigitalOcean documentation. Returns ranked results with title, URL, and content snippet."),
 				mcp.WithString("Query", mcp.Required(), mcp.Description("Search query string")),
 				mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Description("Maximum number of results to return")),
@@ -186,6 +189,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Handler: d.getDoc,
 			Tool: mcp.NewTool(
 				"docs-get-page",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Fetch the full markdown content of a specific DigitalOcean docs page. Returns clean markdown suitable for LLM consumption."),
 				mcp.WithString("URL", mcp.Required(), mcp.Description("Full URL or path of the docs page (e.g., https://docs.digitalocean.com/products/droplets/getting-started/quickstart/ or /products/droplets/getting-started/quickstart/)")),
 			),
@@ -194,6 +198,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Handler: d.findDocsForService,
 			Tool: mcp.NewTool(
 				"docs-find-for-service",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Given a DigitalOcean service name (e.g., \"droplets\", \"managed kubernetes\", \"app platform\"), return a list of relevant documentation pages with titles and URLs."),
 				mcp.WithString("Service", mcp.Required(), mcp.Description("DigitalOcean service name (e.g., \"droplets\", \"kubernetes\", \"app platform\", \"databases\")")),
 			),
@@ -202,6 +207,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 			Handler: d.getQuickstart,
 			Tool: mcp.NewTool(
 				"docs-get-quickstart",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Get the quickstart or getting-started guide for a DigitalOcean service. Returns the full content as clean markdown."),
 				mcp.WithString("Service", mcp.Required(), mcp.Description("DigitalOcean service name (e.g., \"droplets\", \"kubernetes\", \"app platform\")")),
 			),
