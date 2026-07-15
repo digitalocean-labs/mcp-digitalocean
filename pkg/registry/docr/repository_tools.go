@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -240,6 +242,8 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.listRepositories,
 			Tool: mcp.NewTool("docr-repository-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List repositories in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultRepoPage), mcp.Description("Page number")),
@@ -250,6 +254,8 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.listRepositoryTags,
 			Tool: mcp.NewTool("docr-repository-tag-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List tags for a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),
@@ -260,6 +266,8 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.deleteTag,
 			Tool: mcp.NewTool("docr-repository-tag-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a tag from a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),
@@ -269,6 +277,8 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.listRepositoryManifests,
 			Tool: mcp.NewTool("docr-repository-manifest-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List manifests for a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),
@@ -279,6 +289,8 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.deleteManifest,
 			Tool: mcp.NewTool("docr-repository-manifest-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a manifest from a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),

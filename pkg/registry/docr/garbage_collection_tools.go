@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -169,6 +171,8 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 		{
 			Handler: g.startGarbageCollection,
 			Tool: mcp.NewTool("docr-garbage-collection-start",
+				common.WithHints(common.HintsReplace),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Start a garbage collection for a container registry to free up storage"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Type", mcp.Description("Type of garbage collection to perform (e.g., 'untagged manifests and unreferenced blobs' or 'unreferenced blobs only')")),
@@ -177,6 +181,8 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 		{
 			Handler: g.getGarbageCollection,
 			Tool: mcp.NewTool("docr-garbage-collection-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the active garbage collection for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 			),
@@ -184,6 +190,8 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 		{
 			Handler: g.listGarbageCollections,
 			Tool: mcp.NewTool("docr-garbage-collection-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List garbage collections for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultGCPage), mcp.Description("Page number")),
@@ -193,6 +201,8 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 		{
 			Handler: g.updateGarbageCollection,
 			Tool: mcp.NewTool("docr-garbage-collection-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a garbage collection for a container registry (e.g., to cancel it)"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("GarbageCollectionUUID", mcp.Required(), mcp.Description("UUID of the garbage collection to update")),
