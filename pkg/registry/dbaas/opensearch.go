@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type OpenSearchTool struct {
@@ -75,6 +76,8 @@ func (s *OpenSearchTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getOpensearchConfig,
 			Tool: mcp.NewTool("db-cluster-get-opensearch-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the Opensearch config for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -82,6 +85,8 @@ func (s *OpenSearchTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateOpensearchConfig,
 			Tool: mcp.NewTool("db-cluster-update-os-config",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update the Opensearch config for a cluster by its id. Accepts a structured config object."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithObject("config",

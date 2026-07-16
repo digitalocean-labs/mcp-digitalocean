@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type FirewallTool struct {
@@ -95,6 +96,8 @@ func (s *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getFirewallRules,
 			Tool: mcp.NewTool("db-cluster-get-firewall-rules",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get firewall rules for a database cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -102,6 +105,8 @@ func (s *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateFirewallRules,
 			Tool: mcp.NewTool("db-cluster-update-firewall-rules",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update firewall rules for a cluster using a structured list of rules."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithArray("rules",
