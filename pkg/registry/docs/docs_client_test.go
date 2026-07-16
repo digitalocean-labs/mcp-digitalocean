@@ -161,6 +161,24 @@ func TestResolveServiceSlug(t *testing.T) {
 	}
 }
 
+func TestFetchDocPage_RejectsExternalHosts(t *testing.T) {
+	client := NewDocsClient()
+
+	tests := []string{
+		"https://example.com/products/droplets/",
+		"https://docs.digitalocean.com.evil.example/products/droplets/",
+		"http://attacker.example/",
+	}
+
+	for _, url := range tests {
+		t.Run(url, func(t *testing.T) {
+			_, err := client.FetchDocPage(url)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "refusing to fetch")
+		})
+	}
+}
+
 func TestCleanMarkdown(t *testing.T) {
 	tests := []struct {
 		name     string
