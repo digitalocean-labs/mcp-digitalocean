@@ -22,7 +22,7 @@ func TestModelEvaluationTool_Tools(t *testing.T) {
 	})
 
 	tools := tool.Tools()
-	require.Len(t, tools, 15, "should have 15 model evaluation tools")
+	require.Len(t, tools, 18, "should have 18 model evaluation tools")
 
 	expectedTools := map[string]bool{
 		"genai-model-eval-list-metrics":             false,
@@ -39,6 +39,9 @@ func TestModelEvaluationTool_Tools(t *testing.T) {
 		"genai-model-eval-cancel-run":               false,
 		"genai-model-eval-delete-preset":            false,
 		"genai-model-eval-delete-dataset":           false,
+		"genai-model-eval-create-custom-metric":     false,
+		"genai-model-eval-update-custom-metric":     false,
+		"genai-model-eval-delete-custom-metric":     false,
 		"genai-model-eval-run-workflow":             false,
 	}
 
@@ -386,6 +389,78 @@ func TestModelEvaluationTool_deleteDataset_validation(t *testing.T) {
 	}
 }
 
+func TestModelEvaluationTool_createCustomMetric_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing metric_name", args: map[string]any{"scoring_prompt": "Score the response"}},
+		{name: "empty metric_name", args: map[string]any{"metric_name": "", "scoring_prompt": "Score the response"}},
+		{name: "missing scoring_prompt", args: map[string]any{"metric_name": "helpfulness"}},
+		{name: "empty scoring_prompt", args: map[string]any{"metric_name": "helpfulness", "scoring_prompt": ""}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.createCustomMetric(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
+func TestModelEvaluationTool_updateCustomMetric_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing metric_uuid", args: map[string]any{"metric_name": "new-name"}},
+		{name: "empty metric_uuid", args: map[string]any{"metric_uuid": "", "metric_name": "new-name"}},
+		{name: "no fields to update", args: map[string]any{"metric_uuid": "test-uuid"}},
+		{name: "only empty fields", args: map[string]any{"metric_uuid": "test-uuid", "metric_name": "", "scoring_prompt": ""}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.updateCustomMetric(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
+func TestModelEvaluationTool_deleteCustomMetric_validation(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing metric_uuid", args: map[string]any{"confirm_deletion": true}},
+		{name: "empty metric_uuid", args: map[string]any{"metric_uuid": "", "confirm_deletion": true}},
+		{name: "missing confirm_deletion", args: map[string]any{"metric_uuid": "test-uuid"}},
+		{name: "false confirm_deletion", args: map[string]any{"metric_uuid": "test-uuid", "confirm_deletion": false}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
+			resp, err := tool.deleteCustomMetric(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.True(t, resp.IsError)
+		})
+	}
+}
+
 func TestModelEvaluationTool_deleteRun_clientError(t *testing.T) {
 	tool := setupModelEvalToolWithFailingClient()
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
@@ -423,6 +498,36 @@ func TestModelEvaluationTool_deleteDataset_clientError(t *testing.T) {
 		"confirm_deletion": true,
 	}}}
 	_, err := tool.deleteDataset(context.Background(), req)
+	require.Error(t, err)
+}
+
+func TestModelEvaluationTool_createCustomMetric_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"metric_name":    "helpfulness",
+		"scoring_prompt": "Score the response",
+	}}}
+	_, err := tool.createCustomMetric(context.Background(), req)
+	require.Error(t, err)
+}
+
+func TestModelEvaluationTool_updateCustomMetric_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"metric_uuid": "test-uuid",
+		"metric_name": "new-name",
+	}}}
+	_, err := tool.updateCustomMetric(context.Background(), req)
+	require.Error(t, err)
+}
+
+func TestModelEvaluationTool_deleteCustomMetric_clientError(t *testing.T) {
+	tool := setupModelEvalToolWithFailingClient()
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"metric_uuid":      "test-uuid",
+		"confirm_deletion": true,
+	}}}
+	_, err := tool.deleteCustomMetric(context.Background(), req)
 	require.Error(t, err)
 }
 

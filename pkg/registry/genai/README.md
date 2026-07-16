@@ -513,6 +513,53 @@ Delete an evaluation dataset by UUID. Works for both model and agent evaluation 
 
 **Returns:** JSON object confirming the deletion.
 
+#### `genai-model-eval-create-custom-metric`
+Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the `scoring_prompt`. The created metric appears in `genai-model-eval-list-metrics` (source `EVALUATION_METRIC_SOURCE_CUSTOM`) and its `metric_uuid` can be used in evaluation runs and presets.
+
+**Arguments:**
+- `metric_name` (string, required): Display name for the custom metric
+- `scoring_prompt` (string, required): LLM-as-judge scoring prompt describing how the judge model should score a response
+- `description` (string, optional): Human-readable description of what the metric measures
+- `requires_ground_truth` (boolean, optional): Whether scoring this metric requires a `ground_truth` column in the evaluation dataset (default: false)
+
+**Returns:** JSON object with the created metric, including its `metric_uuid`.
+
+```json
+{
+  "metric_uuid": "...",
+  "metric_name": "helpfulness",
+  "description": "How helpful the response is",
+  "source": "EVALUATION_METRIC_SOURCE_CUSTOM",
+  "custom_eval_config": {
+    "scoring_prompt": "Score the response for helpfulness...",
+    "requires_ground_truth": false
+  }
+}
+```
+
+#### `genai-model-eval-update-custom-metric`
+Update an existing custom model evaluation metric. Only custom metrics (source `EVALUATION_METRIC_SOURCE_CUSTOM`) can be updated; built-in catalog metrics cannot. Provide at least one field to change.
+
+**Arguments:**
+- `metric_uuid` (string, required): UUID of the custom metric to update. Get it from `genai-model-eval-list-metrics` or `genai-model-eval-create-custom-metric`.
+- `metric_name` (string, optional): New display name for the metric
+- `description` (string, optional): New description of what the metric measures
+- `scoring_prompt` (string, optional): New LLM-as-judge scoring prompt
+- `requires_ground_truth` (boolean, optional): Whether scoring this metric requires a `ground_truth` column in the evaluation dataset
+
+**Returns:** JSON object with the updated metric.
+
+#### `genai-model-eval-delete-custom-metric`
+Delete a custom model evaluation metric by UUID. Only custom metrics (source `EVALUATION_METRIC_SOURCE_CUSTOM`) can be deleted; built-in catalog metrics cannot. After deletion the metric is no longer available for new evaluation runs; completed runs keep their results.
+
+**User consent:** `confirm_deletion` must be `true`. Present `metric_uuid` and that the metric will no longer be usable in new runs, then ask for yes/no in chat. Only set `confirm_deletion: true` after the user explicitly agrees.
+
+**Arguments:**
+- `metric_uuid` (string, required): UUID of the custom metric to delete. Get it from `genai-model-eval-list-metrics`.
+- `confirm_deletion` (boolean, required): Must be true; only after the user has agreed in chat
+
+**Returns:** JSON object confirming the deletion.
+
 ### Orchestrated Workflow Tool
 
 #### `genai-model-eval-run-workflow`

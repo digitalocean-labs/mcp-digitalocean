@@ -367,10 +367,6 @@ func (met *ModelEvaluationTool) createRun(ctx context.Context, req mcp.CallToolR
 		createReq.Source = source
 	}
 
-	if saveAsPreset, ok := args["save_as_preset"].(bool); ok {
-		createReq.SaveAsPreset = saveAsPreset
-	}
-
 	if presetName, ok := args["preset_name"].(string); ok && presetName != "" {
 		createReq.PresetName = presetName
 	}
@@ -555,6 +551,8 @@ const (
 
 	modelEvalDeleteDatasetConsentMsg = "confirm_deletion must be true. Before deleting an evaluation dataset, present the dataset UUID and that deletion is permanent and obtain explicit consent (yes) in this conversation. Consent is required for every delete."
 
+	modelEvalDeleteCustomMetricConsentMsg = "confirm_deletion must be true. Before deleting a custom evaluation metric, present the metric UUID and that the metric will no longer be available for new evaluation runs, and obtain explicit consent (yes) in this conversation. Consent is required for every delete."
+
 	modelEvalCancelRunConsentMsg = "confirm_cancel must be true. Before cancelling an evaluation run, present the run UUID and explain that any partial results may be lost, then obtain explicit consent (yes) in this conversation."
 
 	modelEvalDeleteRunConfirmDescription = "Must be true only after the end user has explicitly confirmed the deletion in conversation (yes/no in chat). Omitted or false is rejected."
@@ -562,6 +560,8 @@ const (
 	modelEvalDeletePresetConfirmDescription = "Must be true only after the end user has explicitly confirmed the preset deletion in conversation (yes/no in chat). Omitted or false is rejected."
 
 	modelEvalDeleteDatasetConfirmDescription = "Must be true only after the end user has explicitly confirmed the dataset deletion in conversation (yes/no in chat). Omitted or false is rejected."
+
+	modelEvalDeleteCustomMetricConfirmDescription = "Must be true only after the end user has explicitly confirmed the custom metric deletion in conversation (yes/no in chat). Omitted or false is rejected."
 
 	modelEvalCancelRunConfirmDescription = "Must be true only after the end user has explicitly confirmed the cancellation in conversation (yes/no in chat). Omitted or false is rejected."
 )
@@ -714,6 +714,146 @@ func (met *ModelEvaluationTool) deleteDataset(ctx context.Context, req mcp.CallT
 		Status:      "deleted",
 	}
 	_ = output
+	jsonData, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// createCustomMetric creates a custom (LLM-as-judge) model evaluation metric.
+func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
+	metricName := strings.TrimSpace(stringArg(args, "metric_name"))
+	if metricName == "" {
+		return mcp.NewToolResultError("metric_name is required"), nil
+	}
+
+	scoringPrompt := strings.TrimSpace(stringArg(args, "scoring_prompt"))
+	if scoringPrompt == "" {
+		return mcp.NewToolResultError("scoring_prompt is required"), nil
+	}
+
+	requiresGroundTruth, _ := args["requires_ground_truth"].(bool)
+
+	client, err := met.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	metric, resp, err := client.GradientAI.CreateCustomEvaluationMetric(ctx, &godo.CreateCustomEvaluationMetricRequest{
+		MetricName:  metricName,
+		Description: strings.TrimSpace(stringArg(args, "description")),
+		Config: &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt:       scoringPrompt,
+			RequiresGroundTruth: requiresGroundTruth,
+		},
+	})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to create custom evaluation metric", err), nil
+	}
+	if resp != nil && resp.StatusCode >= 400 {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to create custom evaluation metric: status %d", resp.StatusCode)), nil
+	}
+	if metric == nil {
+		return mcp.NewToolResultError("empty response from create custom evaluation metric"), nil
+	}
+
+	jsonData, err := json.MarshalIndent(metric, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// updateCustomMetric updates an existing custom model evaluation metric.
+func (met *ModelEvaluationTool) updateCustomMetric(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
+	metricUUID := strings.TrimSpace(stringArg(args, "metric_uuid"))
+	if metricUUID == "" {
+		return mcp.NewToolResultError("metric_uuid is required"), nil
+	}
+
+	metricName := strings.TrimSpace(stringArg(args, "metric_name"))
+	description := strings.TrimSpace(stringArg(args, "description"))
+	scoringPrompt := strings.TrimSpace(stringArg(args, "scoring_prompt"))
+	requiresGroundTruth, hasRequiresGroundTruth := args["requires_ground_truth"].(bool)
+
+	if metricName == "" && description == "" && scoringPrompt == "" && !hasRequiresGroundTruth {
+		return mcp.NewToolResultError("at least one of metric_name, description, scoring_prompt, or requires_ground_truth must be provided"), nil
+	}
+
+	updateReq := &godo.UpdateCustomEvaluationMetricRequest{
+		MetricUUID:  metricUUID,
+		MetricName:  metricName,
+		Description: description,
+	}
+	if scoringPrompt != "" || hasRequiresGroundTruth {
+		updateReq.Config = &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt:       scoringPrompt,
+			RequiresGroundTruth: requiresGroundTruth,
+		}
+	}
+
+	client, err := met.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	metric, resp, err := client.GradientAI.UpdateCustomEvaluationMetric(ctx, metricUUID, updateReq)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to update custom evaluation metric", err), nil
+	}
+	if resp != nil && resp.StatusCode >= 400 {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to update custom evaluation metric: status %d", resp.StatusCode)), nil
+	}
+	if metric == nil {
+		return mcp.NewToolResultError("empty response from update custom evaluation metric"), nil
+	}
+
+	jsonData, err := json.MarshalIndent(metric, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// deleteCustomMetric deletes a custom model evaluation metric by UUID.
+func (met *ModelEvaluationTool) deleteCustomMetric(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+
+	metricUUID := strings.TrimSpace(stringArg(args, "metric_uuid"))
+	if metricUUID == "" {
+		return mcp.NewToolResultError("metric_uuid is required"), nil
+	}
+
+	if confirm, _ := args["confirm_deletion"].(bool); !confirm {
+		return mcp.NewToolResultError(modelEvalDeleteCustomMetricConsentMsg), nil
+	}
+
+	client, err := met.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	resp, err := client.GradientAI.DeleteCustomEvaluationMetric(ctx, metricUUID)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("failed to delete custom evaluation metric", err), nil
+	}
+	if resp != nil && resp.StatusCode >= 400 {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to delete custom evaluation metric: status %d", resp.StatusCode)), nil
+	}
+
+	type DeleteCustomMetricResponse struct {
+		MetricUUID string `json:"metric_uuid"`
+		Status     string `json:"status"`
+	}
+	response := DeleteCustomMetricResponse{
+		MetricUUID: metricUUID,
+		Status:     "deleted",
+	}
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
@@ -963,8 +1103,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithObject("star_metric", mcp.Description("Primary success metric: metric_uuid and optional success_threshold_pct")),
 				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), top_p (float)")),
 				mcp.WithString("source", mcp.Description("Source identifier for this run (e.g., 'mcp')")),
-				mcp.WithBoolean("save_as_preset", mcp.Description("Whether to save this configuration as a new preset")),
-				mcp.WithString("preset_name", mcp.Description("Name for the new preset (required if save_as_preset is true)")),
+				mcp.WithString("preset_name", mcp.Description("Name for a new preset; providing this saves the run's configuration as a reusable preset")),
 				mcp.WithString("candidate_model_source", mcp.Description("Source of the candidate model")),
 				mcp.WithString("user_message", mcp.Description(genaiModelEvalUserMessageDescription)),
 			),
@@ -1049,6 +1188,40 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 					"Present the dataset_uuid and that deletion is permanent; ask for yes/no."),
 				mcp.WithString("dataset_uuid", mcp.Required(), mcp.Description("UUID of the evaluation dataset to delete (the dataset_uuid returned by genai-model-eval-list-datasets, or evaluation_dataset_uuid from genai-model-eval-create-dataset)")),
 				mcp.WithBoolean("confirm_deletion", mcp.Required(), mcp.Description(modelEvalDeleteDatasetConfirmDescription)),
+			),
+		},
+		{
+			Handler: met.createCustomMetric,
+			Tool: mcp.NewTool(
+				"genai-model-eval-create-custom-metric",
+				mcp.WithDescription("Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the scoring_prompt. The created metric appears in genai-model-eval-list-metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) and its metric_uuid can be used in evaluation runs and presets."),
+				mcp.WithString("metric_name", mcp.Required(), mcp.Description("Display name for the custom metric")),
+				mcp.WithString("scoring_prompt", mcp.Required(), mcp.Description("LLM-as-judge scoring prompt describing how the judge model should score a response")),
+				mcp.WithString("description", mcp.Description("Human-readable description of what the metric measures")),
+				mcp.WithBoolean("requires_ground_truth", mcp.Description("Whether scoring this metric requires a ground_truth column in the evaluation dataset (default: false)")),
+			),
+		},
+		{
+			Handler: met.updateCustomMetric,
+			Tool: mcp.NewTool(
+				"genai-model-eval-update-custom-metric",
+				mcp.WithDescription("Update an existing custom model evaluation metric. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be updated; built-in catalog metrics cannot. Provide at least one field to change."),
+				mcp.WithString("metric_uuid", mcp.Required(), mcp.Description("UUID of the custom metric to update (get it from genai-model-eval-list-metrics or genai-model-eval-create-custom-metric)")),
+				mcp.WithString("metric_name", mcp.Description("New display name for the metric")),
+				mcp.WithString("description", mcp.Description("New description of what the metric measures")),
+				mcp.WithString("scoring_prompt", mcp.Description("New LLM-as-judge scoring prompt")),
+				mcp.WithBoolean("requires_ground_truth", mcp.Description("Whether scoring this metric requires a ground_truth column in the evaluation dataset")),
+			),
+		},
+		{
+			Handler: met.deleteCustomMetric,
+			Tool: mcp.NewTool(
+				"genai-model-eval-delete-custom-metric",
+				mcp.WithDescription("Delete a custom model evaluation metric by UUID. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be deleted; built-in catalog metrics cannot. After deletion the metric is no longer available for new evaluation runs; completed runs keep their results.\n\n"+
+					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
+					"Present the metric_uuid and that the metric will no longer be usable in new runs; ask for yes/no."),
+				mcp.WithString("metric_uuid", mcp.Required(), mcp.Description("UUID of the custom metric to delete (get it from genai-model-eval-list-metrics)")),
+				mcp.WithBoolean("confirm_deletion", mcp.Required(), mcp.Description(modelEvalDeleteCustomMetricConfirmDescription)),
 			),
 		},
 		{

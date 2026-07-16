@@ -368,6 +368,22 @@ func (mr *MockDatabasesServiceMockRecorder) GetDB(arg0, arg1, arg2 any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDB", reflect.TypeOf((*MockDatabasesService)(nil).GetDB), arg0, arg1, arg2)
 }
 
+// GetDOSettings mocks base method.
+func (m *MockDatabasesService) GetDOSettings(arg0 context.Context, arg1 string) (*godo.DOSettings, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDOSettings", arg0, arg1)
+	ret0, _ := ret[0].(*godo.DOSettings)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetDOSettings indicates an expected call of GetDOSettings.
+func (mr *MockDatabasesServiceMockRecorder) GetDOSettings(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDOSettings", reflect.TypeOf((*MockDatabasesService)(nil).GetDOSettings), arg0, arg1)
+}
+
 // GetEvictionPolicy mocks base method.
 func (m *MockDatabasesService) GetEvictionPolicy(arg0 context.Context, arg1 string) (string, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1051,6 +1067,21 @@ func (m *MockDatabasesService) UpdateAdvancedPostgresSQLConfig(arg0 context.Cont
 func (mr *MockDatabasesServiceMockRecorder) UpdateAdvancedPostgresSQLConfig(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAdvancedPostgresSQLConfig", reflect.TypeOf((*MockDatabasesService)(nil).UpdateAdvancedPostgresSQLConfig), arg0, arg1, arg2)
+}
+
+// UpdateDOSettings mocks base method.
+func (m *MockDatabasesService) UpdateDOSettings(arg0 context.Context, arg1 string, arg2 *godo.DatabaseUpdateDOSettingsRequest) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDOSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateDOSettings indicates an expected call of UpdateDOSettings.
+func (mr *MockDatabasesServiceMockRecorder) UpdateDOSettings(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDOSettings", reflect.TypeOf((*MockDatabasesService)(nil).UpdateDOSettings), arg0, arg1, arg2)
 }
 
 // UpdateFirewallRules mocks base method.
