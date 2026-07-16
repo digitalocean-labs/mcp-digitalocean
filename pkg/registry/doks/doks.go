@@ -10,8 +10,22 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"mcp-digitalocean/pkg/registry/common"
+
 	_ "embed"
 )
+
+// rawSchemaTool builds a Tool from a raw JSON input schema and applies the
+// given options. NewToolWithRawSchema does not accept ToolOptions directly, so
+// the hint profile and risk options are applied to the constructed tool here.
+// The applied options only touch Annotations and _meta, not the input schema.
+func rawSchemaTool(name, description string, schema json.RawMessage, opts ...mcp.ToolOption) mcp.Tool {
+	t := mcp.NewToolWithRawSchema(name, description, schema)
+	for _, opt := range opts {
+		opt(&t)
+	}
+	return t
+}
 
 //go:embed spec/cluster-create-schema.json
 var clusterCreateSchemaJSON []byte
@@ -796,6 +810,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDoksCluster,
 			Tool: mcp.NewTool("doks-get-cluster",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -803,6 +819,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.listDOKSClusters,
 			Tool: mcp.NewTool("doks-list-clusters",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all DigitalOcean Kubernetes clusters"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number of the results to fetch")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Number of items returned per page")),
@@ -810,13 +828,17 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: d.createDOKSCluster,
-			Tool: mcp.NewToolWithRawSchema("doks-create-cluster",
+			Tool: rawSchemaTool("doks-create-cluster",
 				"Create a new DigitalOcean Kubernetes cluster", clusterCreateSchemaJSON,
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskHigh),
 			),
 		},
 		{
 			Handler: d.updateDOKSCluster,
 			Tool: mcp.NewTool("doks-update-cluster",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("Name", mcp.Description("The name of the Kubernetes cluster")),
@@ -829,6 +851,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.deleteDOKSCluster,
 			Tool: mcp.NewTool("doks-delete-cluster",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -836,6 +860,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.upgradeDOKSCluster,
 			Tool: mcp.NewTool("doks-upgrade-cluster",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Upgrade a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("VersionSlug", mcp.Required(), mcp.Description("The Kubernetes version to upgrade to")),
@@ -844,6 +870,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDOKSClusterUpgrades,
 			Tool: mcp.NewTool("doks-get-cluster-upgrades",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get available upgrades for a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -851,6 +879,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDOKSClusterKubeConfig,
 			Tool: mcp.NewTool("doks-get-kubeconfig",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get kubeconfig for a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -858,19 +888,25 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDOKSClusterCredentials,
 			Tool: mcp.NewTool("doks-get-credentials",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get credentials for a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
 		},
 		{
 			Handler: d.createDOKSNodePool,
-			Tool: mcp.NewToolWithRawSchema("doks-create-nodepool",
+			Tool: rawSchemaTool("doks-create-nodepool",
 				"Create a new node pool in a DigitalOcean Kubernetes cluster", nodePoolCreateSchemaJSON,
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 			),
 		},
 		{
 			Handler: d.getDOKSNodePool,
 			Tool: mcp.NewTool("doks-get-nodepool",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -879,6 +915,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.listDOKSNodePools,
 			Tool: mcp.NewTool("doks-list-nodepools",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all node pools in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -886,6 +924,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.updateDOKSNodePool,
 			Tool: mcp.NewTool("doks-update-nodepool",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -902,6 +942,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.deleteDOKSNodePool,
 			Tool: mcp.NewTool("doks-delete-nodepool",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -910,6 +952,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.deleteDOKSNode,
 			Tool: mcp.NewTool("doks-delete-node",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a node from a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -921,6 +965,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.recycleDOKSNodes,
 			Tool: mcp.NewTool("doks-recycle-nodes",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Recycle specific nodes in a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -930,6 +976,8 @@ func (d *DoksTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getKubernetesOptions,
 			Tool: mcp.NewTool("doks-list-options",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List available Kubernetes options including versions, regions, and sizes"),
 			),
 		},
