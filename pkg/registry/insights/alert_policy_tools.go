@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -296,6 +297,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 		{
 			Handler: c.getAlertPolicy,
 			Tool: mcp.NewTool("alert-policy-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get Alert Policy information by UUID"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to retrieve (format: 00000000-0000-0000-0000-000000000000)")),
 			),
@@ -303,6 +306,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 		{
 			Handler: c.listAlertPolicies,
 			Tool: mcp.NewTool("alert-policy-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all Alert Policies in your account with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultAlertPoliciesPage), mcp.Description("Page number for pagination (starts from 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultAlertPoliciesPageSize), mcp.Description("Number of items per page (1-200, default 20)")),
@@ -311,6 +316,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 		{
 			Handler: c.createAlertPolicy,
 			Tool: mcp.NewTool("alert-policy-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a new Alert Policy"),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
 Droplet metrics:
@@ -372,6 +379,8 @@ Database metrics:
 		{
 			Handler: c.updateAlertPolicy,
 			Tool: mcp.NewTool("alert-policy-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update an Alert Policy"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to update")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
@@ -434,6 +443,8 @@ Database metrics:
 		{
 			Handler: c.deleteAlertPolicy,
 			Tool: mcp.NewTool("alert-policy-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete an Alert Policy permanently"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to delete (format: 00000000-0000-0000-0000-000000000000)")),
 			),
