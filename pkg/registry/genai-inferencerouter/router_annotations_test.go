@@ -28,12 +28,12 @@ var expectedAnnotations = map[string]struct {
 	parallelizable, streamingSafe                bool
 }{
 	// router_tools.go
-	"genai-inference-router-create":       {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"genai-inference-router-create":       {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
 	"genai-inference-router-list":         {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"genai-inference-router-get":          {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"genai-inference-router-delete":       {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
 	"genai-inference-router-task-presets": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"genai-inference-router-update":       {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"genai-inference-router-update":       {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {

@@ -333,7 +333,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"genai-inference-router-create",
 				common.WithHints(common.HintsCreate),
-				common.WithRisk(common.RiskMedium),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription(`Create a GenAI model router via godo.GradientAI.CreateInferenceRouter. JSON body fields: "name", optional "policies" array, and required "fallback_models" (at least one model). Each policy needs a task: either "task_slug" (built-in) plus "models" and "selection_policy":{"prefer":"fastest"|"cheapest"}, or "custom_task":{"name","description"} with "models" and selection_policy. Flat {"model","usecase_class"} policies fail with "task is required". List/get return the same policy shape under model_router.config.`),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Router name")),
 				mcp.WithString("PoliciesJson", mcp.Description(`JSON array for "policies". Example: [{"task_slug":"code-generation","models":["openai-gpt-5"],"selection_policy":{"prefer":"fastest"}}]. Custom task: use custom_task with name+description instead of task_slug. Omit or "[]" if allowed.`)),
@@ -387,7 +387,9 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool(
 				"genai-inference-router-update",
 				common.WithHints(common.HintsToggle),
-				common.WithRisk(common.RiskLow),
+				// Reconfiguring a router that is actively serving traffic can
+				// incur cost / affect live routing, so risk is medium.
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription(`Update a GenAI model router (godo.GradientAI.UpdateInferenceRouter, PUT). At least one of Name, Description, PoliciesJson (non-empty), or FallbackModels must be supplied. PoliciesJson must be a JSON array (same rules as create). Omit fields you do not want to change.`),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 				mcp.WithString("Name", mcp.Description("New router name (optional)")),
