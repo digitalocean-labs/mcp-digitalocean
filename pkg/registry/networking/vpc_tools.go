@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // VPCTool provides VPC management tools
@@ -155,6 +156,8 @@ func (v *VPCTool) Tools() []server.ServerTool {
 		{
 			Handler: v.getVPC,
 			Tool: mcp.NewTool("vpc-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get VPC information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
 			),
@@ -162,6 +165,8 @@ func (v *VPCTool) Tools() []server.ServerTool {
 		{
 			Handler: v.listVPCs,
 			Tool: mcp.NewTool("vpc-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List VPCs with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -170,6 +175,8 @@ func (v *VPCTool) Tools() []server.ServerTool {
 		{
 			Handler: v.createVPC,
 			Tool: mcp.NewTool("vpc-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new VPC"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the VPC")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug (e.g., nyc3)")),
@@ -180,6 +187,8 @@ func (v *VPCTool) Tools() []server.ServerTool {
 		{
 			Handler: v.listVPCMembers,
 			Tool: mcp.NewTool("vpc-list-members",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List members of a VPC"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
 			),
@@ -187,6 +196,8 @@ func (v *VPCTool) Tools() []server.ServerTool {
 		{
 			Handler: v.deleteVPC,
 			Tool: mcp.NewTool("vpc-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a VPC"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC to delete")),
 			),

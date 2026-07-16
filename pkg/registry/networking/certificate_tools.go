@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // CertificateTool provides tools for managing certificates
@@ -163,6 +164,8 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 		{
 			Handler: c.getCertificate,
 			Tool: mcp.NewTool("certificate-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get certificate information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate")),
 			),
@@ -170,6 +173,8 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 		{
 			Handler: c.listCertificates,
 			Tool: mcp.NewTool("certificate-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List certificates with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -178,6 +183,8 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 		{
 			Handler: c.createCustomCertificate,
 			Tool: mcp.NewTool("custom-certificate-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new custom certificate"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the certificate")),
 				mcp.WithString("PrivateKey", mcp.Required(), mcp.Description("Private key for the certificate")),
@@ -188,6 +195,8 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 		{
 			Handler: c.createLetsEncryptCertificate,
 			Tool: mcp.NewTool("lets-encrypt-certificate-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new let's encrypt certificate"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the certificate")),
 				mcp.WithArray("DnsNames", mcp.Required(), mcp.Description("DNS names of the certificate"), mcp.Items(map[string]any{
@@ -199,6 +208,8 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 		{
 			Handler: c.deleteCertificate,
 			Tool: mcp.NewTool("certificate-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a certificate"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate to delete")),
 			),

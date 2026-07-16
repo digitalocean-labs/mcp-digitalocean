@@ -10,6 +10,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // ReservedIPTool provides tools for managing reserved IPs
@@ -235,6 +236,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getReservedIP,
 			Tool: mcp.NewTool("reserved-ip-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get reserved IPv4 or IPv6 information by IP"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IPv4 or IPv6 address")),
 			),
@@ -242,6 +245,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listReservedIPs,
 			Tool: mcp.NewTool("reserved-ip-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List reserved IPv4 or IPv6 addresses with pagination"),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to list ('ipv4' or 'ipv6')")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default: 1)")),
@@ -251,6 +256,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.reserveIP,
 			Tool: mcp.NewTool("reserved-ip-reserve",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Reserve a new IPv4 or IPv6"),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region to reserve the IP in")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to reserve ('ipv4' or 'ipv6')")),
@@ -259,6 +266,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.releaseIP,
 			Tool: mcp.NewTool("reserved-ip-release",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Release a reserved IPv4 or IPv6"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to release")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to release ('ipv4' or 'ipv6')")),
@@ -267,6 +276,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.assignIP,
 			Tool: mcp.NewTool("reserved-ip-assign",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Assign a reserved IP to a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to assign")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to assign the IP to")),
@@ -276,6 +287,8 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 		{
 			Handler: t.unassignIP,
 			Tool: mcp.NewTool("reserved-ip-unassign",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Unassign a reserved IP from a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to unassign")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to unassign ('ipv4' or 'ipv6')")),

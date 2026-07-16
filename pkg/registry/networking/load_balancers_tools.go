@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // LoadBalancersTool provides load balancer management tools
@@ -537,6 +538,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.createLoadBalancer,
 			Tool: mcp.NewTool("lb-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new Load Balancer"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the load balancer")),
 				mcp.WithString("Region", mcp.Description("Region slug (e.g., nyc3)")),
@@ -555,7 +558,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.deleteLoadBalancer,
 			Tool: mcp.NewTool("lb-delete",
-				mcp.WithDestructiveHintAnnotation(true),
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a Load Balancer by ID"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 			),
@@ -563,7 +567,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.deleteLoadBalancerCache,
 			Tool: mcp.NewTool("lb-delete-cache",
-				mcp.WithDestructiveHintAnnotation(true),
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete the CDN cache of a global load balancer by ID"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 			),
@@ -571,6 +576,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.getLoadBalancer,
 			Tool: mcp.NewTool("lb-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a Load Balancer by ID"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 			),
@@ -578,6 +585,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.listLoadBalancers,
 			Tool: mcp.NewTool("lb-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List Load Balancers with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -586,6 +595,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.addDroplets,
 			Tool: mcp.NewTool("lb-add-droplets",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Add Droplets to a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("IDs of the droplets to add"), mcp.Items(map[string]any{"type": "string"})),
@@ -594,6 +605,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.removeDroplets,
 			Tool: mcp.NewTool("lb-remove-droplets",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Remove Droplets from a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("IDs of the droplets to remove"), mcp.Items(map[string]any{"type": "string"})),
@@ -602,6 +615,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.updateLoadBalancer,
 			Tool: mcp.NewTool("lb-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the load balancer")),
@@ -621,6 +636,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.addForwardingRules,
 			Tool: mcp.NewTool("lb-add-fwd-rules",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Add Forwarding Rules to a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithArray("ForwardingRules", mcp.Required(), mcp.Description("Forwarding rules to add"), mcp.Items(map[string]any{"type": "string"})),
@@ -629,6 +646,8 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 		{
 			Handler: l.removeForwardingRules,
 			Tool: mcp.NewTool("lb-remove-fwd-rules",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Remove Forwarding Rules from a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithArray("ForwardingRules", mcp.Required(), mcp.Description("Forwarding rules to remove"), mcp.Items(map[string]any{"type": "string"})),

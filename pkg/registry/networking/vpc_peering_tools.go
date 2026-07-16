@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // VPCPeeringTool represents a tool for managing VPC peering connections.
@@ -123,6 +124,8 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getVPCPeering,
 			Tool: mcp.NewTool("vpc-peering-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get VPC Peering information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC Peering connection")),
 			),
@@ -130,6 +133,8 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listVPCPeerings,
 			Tool: mcp.NewTool("vpc-peering-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List VPC Peering connections with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -138,6 +143,8 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createPeering,
 			Tool: mcp.NewTool("vpc-peering-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new VPC Peering connection between two VPCs"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the Peering connection")),
 				mcp.WithString("Vpc1", mcp.Required(), mcp.Description("ID of the first VPC")),
@@ -147,6 +154,8 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deletePeering,
 			Tool: mcp.NewTool("vpc-peering-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a VPC Peering connection"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC Peering connection to delete")),
 			),
