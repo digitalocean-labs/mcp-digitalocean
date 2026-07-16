@@ -243,7 +243,10 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 			Handler: r.dockerCredentials,
 			Tool: mcp.NewTool("docr-docker-credentials",
 				common.WithHints(common.HintsRead),
-				common.WithRisk(common.RiskLow),
+				// Read-only (does not mutate the registry) but mints Docker
+				// credentials that can grant write access when ReadWrite=true,
+				// so the blast radius is medium, not low.
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Get Docker credentials for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithBoolean("ReadWrite", mcp.Description("Whether the credentials should have read-write access (default: false, read-only)")),

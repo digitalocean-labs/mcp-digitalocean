@@ -32,7 +32,7 @@ var expectedAnnotations = map[string]struct {
 	"docr-list":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"docr-create":             {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
 	"docr-delete":             {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
-	"docr-docker-credentials": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"docr-docker-credentials": {true, false, true, false, common.OpRead, common.RiskMedium, false, false},
 	"docr-options":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"docr-validate-name":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 
