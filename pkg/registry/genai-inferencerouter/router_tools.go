@@ -10,6 +10,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // RouterTool exposes GenAI inference router operations via godo.GradientAI.
@@ -330,6 +332,8 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.create,
 			Tool: mcp.NewTool(
 				"genai-inference-router-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription(`Create a GenAI model router via godo.GradientAI.CreateInferenceRouter. JSON body fields: "name", optional "policies" array, and required "fallback_models" (at least one model). Each policy needs a task: either "task_slug" (built-in) plus "models" and "selection_policy":{"prefer":"fastest"|"cheapest"}, or "custom_task":{"name","description"} with "models" and selection_policy. Flat {"model","usecase_class"} policies fail with "task is required". List/get return the same policy shape under model_router.config.`),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Router name")),
 				mcp.WithString("PoliciesJson", mcp.Description(`JSON array for "policies". Example: [{"task_slug":"code-generation","models":["openai-gpt-5"],"selection_policy":{"prefer":"fastest"}}]. Custom task: use custom_task with name+description instead of task_slug. Omit or "[]" if allowed.`)),
@@ -340,6 +344,8 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.list,
 			Tool: mcp.NewTool(
 				"genai-inference-router-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List GenAI model routers (godo.GradientAI.ListInferenceRouters) with pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
@@ -349,6 +355,8 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.get,
 			Tool: mcp.NewTool(
 				"genai-inference-router-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a GenAI model router by UUID (godo.GradientAI.GetInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
@@ -357,6 +365,8 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.delete,
 			Tool: mcp.NewTool(
 				"genai-inference-router-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a GenAI model router by UUID (godo.GradientAI.DeleteInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
@@ -365,6 +375,8 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.listTaskPresets,
 			Tool: mcp.NewTool(
 				"genai-inference-router-task-presets",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List preset inference-router tasks (task_slug, name, models, etc.) from GET /v2/gen-ai/models/routers/tasks/presets via godo.GradientAI.ListInferenceRouterTaskPresets. Use task_slug values when building PoliciesJson for create/update."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
@@ -374,6 +386,10 @@ func (t *RouterTool) Tools() []server.ServerTool {
 			Handler: t.update,
 			Tool: mcp.NewTool(
 				"genai-inference-router-update",
+				common.WithHints(common.HintsToggle),
+				// Reconfiguring a router that is actively serving traffic can
+				// incur cost / affect live routing, so risk is medium.
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription(`Update a GenAI model router (godo.GradientAI.UpdateInferenceRouter, PUT). At least one of Name, Description, PoliciesJson (non-empty), or FallbackModels must be supplied. PoliciesJson must be a JSON array (same rules as create). Omit fields you do not want to change.`),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 				mcp.WithString("Name", mcp.Description("New router name (optional)")),
