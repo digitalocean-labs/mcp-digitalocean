@@ -9,6 +9,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type ActionTool struct {
@@ -271,6 +273,8 @@ func (t *ActionTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listActions,
 			Tool: mcp.NewTool("functions-list-actions",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all actions in a DigitalOcean Functions namespace. Returns action metadata including name, namespace, version, and limits."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithNumber("Limit", mcp.Description("Number of actions to return (0-200, default 30). Use 0 for maximum.")),
@@ -280,6 +284,8 @@ func (t *ActionTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getAction,
 			Tool: mcp.NewTool("functions-get-action",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get detailed information about a specific action in a DigitalOcean Functions namespace, including its configuration and optionally its source code."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action")),
@@ -290,6 +296,8 @@ func (t *ActionTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createOrUpdateAction,
 			Tool: mcp.NewTool("functions-create-or-update-action",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create or update an action in a DigitalOcean Functions namespace. If the action already exists it will be overwritten."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action to create or update")),
@@ -309,16 +317,19 @@ func (t *ActionTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deleteAction,
 			Tool: mcp.NewTool("functions-delete-action",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete an action from a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action to delete")),
 				mcp.WithString("PackageName", mcp.Description("The package containing the action, if applicable")),
-				mcp.WithDestructiveHintAnnotation(true),
 			),
 		},
 		{
 			Handler: t.invokeAction,
 			Tool: mcp.NewTool("functions-invoke-action",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Invoke a function action in a DigitalOcean Functions namespace. By default this is a blocking invocation that waits for the result."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action to invoke")),

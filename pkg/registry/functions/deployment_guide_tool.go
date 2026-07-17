@@ -6,6 +6,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 //go:embed DEPLOY_SPEC.md
@@ -32,6 +34,8 @@ func (t *DeploymentGuideTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getDeploymentGuide,
 			Tool: mcp.NewTool("functions-deployment-guide",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription(
 					"Return the authoritative step-by-step guide for deploying a DigitalOcean "+
 						"Functions project from a local directory using `doctl serverless deploy`. "+
@@ -60,7 +64,6 @@ func (t *DeploymentGuideTool) Tools() []server.ServerTool {
 						"The returned content is markdown. Follow its instructions exactly; do not "+
 						"paraphrase the steps to the user.",
 				),
-				mcp.WithReadOnlyHintAnnotation(true),
 			),
 		},
 	}
