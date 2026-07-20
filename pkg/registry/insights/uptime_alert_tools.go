@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -256,6 +257,8 @@ func (c *UptimeCheckAlertTool) Tools() []server.ServerTool {
 		{
 			Handler: c.getUptimeCheckAlert,
 			Tool: mcp.NewTool("uptimecheck-alert-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get UptimeCheck Alert information by CheckID and AlertID"),
 				mcp.WithString("CheckID", mcp.Required(), mcp.Description("A unique identifier for a check")),
 				mcp.WithString("AlertID", mcp.Required(), mcp.Description("A unique identifier for a alert")),
@@ -264,6 +267,8 @@ func (c *UptimeCheckAlertTool) Tools() []server.ServerTool {
 		{
 			Handler: c.listUptimeCheckAlerts,
 			Tool: mcp.NewTool("uptimecheck-alert-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List UptimeChecks Alerts with pagination"),
 				mcp.WithString("CheckID", mcp.Required(), mcp.Description("A unique identifier for a check")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultAlertsPage), mcp.Description("Page number")),
@@ -273,6 +278,8 @@ func (c *UptimeCheckAlertTool) Tools() []server.ServerTool {
 		{
 			Handler: c.createUptimeCheckAlert,
 			Tool: mcp.NewTool("uptimecheck-alert-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a new UptimeCheck"),
 				mcp.WithString("CheckID", mcp.Required(), mcp.Description("A unique identifier for a check")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the UptimeCheck Alert")),
@@ -301,6 +308,8 @@ func (c *UptimeCheckAlertTool) Tools() []server.ServerTool {
 		{
 			Handler: c.updateUptimeCheckAlert,
 			Tool: mcp.NewTool("uptimecheck-alert-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a UptimeCheck"),
 				mcp.WithString("CheckID", mcp.Required(), mcp.Description("A unique identifier for a check")),
 				mcp.WithString("AlertID", mcp.Required(), mcp.Description("A unique identifier for a check alert")),
@@ -330,6 +339,8 @@ func (c *UptimeCheckAlertTool) Tools() []server.ServerTool {
 		{
 			Handler: c.deleteUptimeCheckAlert,
 			Tool: mcp.NewTool("uptimecheck-alert-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a uptimeCheck"),
 				mcp.WithString("CheckID", mcp.Required(), mcp.Description("A unique identifier for a check")),
 				mcp.WithString("AlertID", mcp.Required(), mcp.Description("A unique identifier for a alert")),
