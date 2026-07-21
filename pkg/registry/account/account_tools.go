@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type AccountTools struct {
@@ -44,6 +45,7 @@ func (a *AccountTools) Tools() []server.ServerTool {
 		{
 			Handler: a.getAccountInformation,
 			Tool: mcp.NewTool("account-get-information",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Retrieves account information for the current user"),
 			),
 		},

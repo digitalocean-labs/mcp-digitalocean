@@ -7,7 +7,7 @@ This package provides MCP tools for managing custom (bring-your-own) models on D
 The custom models tools enable users to:
 - List custom models with status filtering and pagination
 - Import models from HuggingFace or other sources
-- Update model metadata (name, description, tags)
+- Update model metadata (name, description, tags, and — for Spaces-imported models — input/output modalities, parameter count, license)
 - Delete custom models
 
 ## Tools
@@ -20,7 +20,7 @@ List custom models with optional status filter and pagination.
 - `page` (number, optional): Page number (default: 1)
 - `per_page` (number, optional): Results per page (default: 20)
 
-**Returns:** JSON object with array of models and count
+**Returns:** Markdown table with one row per model (columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message). Failed models include the backend failure reason in the Error Message column.
 
 ```json
 {
@@ -31,9 +31,16 @@ List custom models with optional status filter and pagination.
       "status": "STATUS_READY",
       "architecture": "MistralForCausalLM",
       "source_type": "SOURCE_TYPE_HUGGINGFACE"
+    },
+    {
+      "uuid": "...",
+      "name": "team/failed-model",
+      "status": "STATUS_FAILED",
+      "error_message": "Repository not found or access denied",
+      "source_type": "SOURCE_TYPE_HUGGINGFACE"
     }
   ],
-  "count": 1,
+  "count": 2,
   "max_threshold": 10
 }
 ```
@@ -41,12 +48,10 @@ List custom models with optional status filter and pagination.
 ### `genai-custom-models-import`
 Import a custom model from an external source (e.g. HuggingFace). Starts an async import job.
 
-**Model name (validated first):** Do not call this tool until the user has provided a non-empty model name (`name` must be a string; whitespace-only is rejected). The server checks `name` before any other import logic—for example it does **not** resolve Hugging Face `commit_sha`, validate consent arguments, or call the DigitalOcean API until `name` is valid.
-
-**Consent (required every import):** After you have a name, present import terms and obtain explicit consent (yes). Set `accept_terms_and_conditions` to `true` only after the user agrees. This applies to every import, including re-imports of the same model. The tool rejects omitted or `false` values.
+**Consent (required every import):** Present import terms and obtain explicit consent (yes) before calling. Set `accept_terms_and_conditions` to `true` only after the user agrees. Consent is validated before Hugging Face `commit_sha` resolution or the DigitalOcean API. This applies to every import, including re-imports of the same model. The tool rejects omitted or `false` values.
 
 **Arguments:**
-- `name` (string, required): Non-empty display name from the user (leading/trailing spaces are trimmed and must leave a non-empty value)
+- `name` (string, optional): Display name (leading/trailing spaces are trimmed when provided)
 - `source_type` (string, required): `SOURCE_TYPE_HUGGINGFACE`, `SOURCE_TYPE_SPACES_BUCKET`, `SOURCE_TYPE_SDK_UPLOAD`, `SOURCE_TYPE_FINE_TUNING`
 - `source_ref` (object, required): Source reference with `repo_id`, `commit_sha` (optional for HuggingFace; if omitted, fetched from Hugging Face Hub before the import API is called), `access_type`, `hf_token` (for private/gated)
 - `accept_terms_and_conditions` (boolean, required): Must be `true` after explicit user consent in chat
@@ -66,15 +71,25 @@ Import a custom model from an external source (e.g. HuggingFace). Starts an asyn
 ```
 
 ### `genai-custom-models-update-metadata`
-Update the name, description, or tags of an existing custom model.
+Update the metadata of an existing custom model.
 
 **Arguments:**
 - `uuid` (string, required): UUID of the custom model
 - `name` (string, optional): New name
 - `description` (string, optional): New description
 - `tags` (object, optional): New tags object with a `tags` array
+- `input_modalities` (array of strings, optional): Input modalities the model accepts (e.g. `["text", "image"]`). **Spaces-imported models only.**
+- `output_modalities` (array of strings, optional): Output modalities the model produces (e.g. `["text"]`). **Spaces-imported models only.**
+- `parameters` (string, optional): Parameter count as a numeric string (e.g. `"7000000000"` for 7B). **Spaces-imported models only.**
+- `license` (string, optional): License identifier (e.g. `"apache-2.0"`). **Spaces-imported models only.**
 
-At least one of `name`, `description`, or `tags` must be provided.
+At least one updatable field must be provided.
+
+**Spaces-only capability fields.** `input_modalities`, `output_modalities`, `parameters`, and `license` are auto-populated for HuggingFace imports and cannot be edited on those models — the backend rejects such requests with `InvalidArgument`. They are editable only for models with `source_type = SOURCE_TYPE_SPACES_BUCKET`, where the import path leaves them empty.
+
+**Modality semantics.** When `input_modalities` or `output_modalities` is provided, the value **replaces** the existing list wholesale. Passing an empty array (`[]`) is rejected — a model must have at least one input and one output modality. To leave a modality list unchanged, simply omit the field.
+
+**Canonical modality vocabulary.** The HuggingFace importer and existing catalog entries use this lowercase, singular set: `text`, `image`, `audio`, `video`. Prefer these tokens so Spaces-imported models stay aligned with HF-imported ones downstream.
 
 **Returns:** JSON object with the updated model
 
@@ -118,7 +133,7 @@ Delete a custom model by exact UUID or exact name.
 
 - `STATUS_IMPORTING`: Model files are being imported
 - `STATUS_READY`: Model is ready for deployment
-- `STATUS_FAILED`: Import failed
+- `STATUS_FAILED`: Import failed; `error_message` describes the failure (also shown in list/search tables)
 - `STATUS_DELETED`: Model has been deleted
 
 ## Source Types
@@ -137,26 +152,33 @@ Delete a custom model by exact UUID or exact name.
 ## Workflow Example
 
 ```
-1. Ask the user for the custom model name. Do not import until they provide a non-empty name.
+1. Ask the user to accept import terms (storage cost, license, source). Wait for explicit yes.
 
-2. Ask the user to accept import terms (storage cost, license, source). Wait for explicit yes.
-
-3. Import a model from HuggingFace:
+2. Import a model from HuggingFace:
    genai-custom-models-import
      name: "my-mistral-7b"
      source_type: "SOURCE_TYPE_HUGGINGFACE"
      source_ref: { "repo_id": "mistralai/Mistral-7B-v0.1", "access_type": "ACCESS_TYPE_PUBLIC" }
      accept_terms_and_conditions: true
 
-4. Check import status by listing models:
+3. Check import status by listing models:
    genai-custom-models-list
      status: "STATUS_IMPORTING"
 
-5. Once ready, update metadata:
+4. Once ready, update metadata:
    genai-custom-models-update-metadata
-     uuid: "<uuid from step 3>"
+     uuid: "<uuid from step 2>"
      description: "Production model for customer support"
      tags: { "tags": ["production", "v1"] }
+
+5. For a Spaces-imported model, also fill in the capability fields the importer
+   could not infer:
+   genai-custom-models-update-metadata
+     uuid: "<spaces-model-uuid>"
+     input_modalities: ["text", "image"]
+     output_modalities: ["text"]
+     parameters: "7000000000"
+     license: "apache-2.0"
 
 6. Confirm deletion with the user (permanent removal). Wait for explicit yes.
 

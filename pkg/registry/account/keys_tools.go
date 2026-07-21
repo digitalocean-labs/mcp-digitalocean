@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -125,6 +126,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: k.createKey,
 			Tool: mcp.NewTool("key-create",
+				common.WithHints(common.HintsAction),
 				mcp.WithDescription("Create a new SSH key"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the SSH key")),
 				mcp.WithString("PublicKey", mcp.Required(), mcp.Description("Public key content")),
@@ -133,6 +135,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: k.deleteKey,
 			Tool: mcp.NewTool("key-delete",
+				common.WithHints(common.HintsDelete),
 				mcp.WithDescription("Delete an SSH key"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the SSH key to delete")),
 			),
@@ -140,6 +143,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: k.getKey,
 			Tool: mcp.NewTool("key-get",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Get a specific SSH key by ID"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the SSH key")),
 			),
@@ -147,6 +151,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: k.listKeys,
 			Tool: mcp.NewTool("key-list",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("List SSH keys with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultKeysPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultKeysPageSize), mcp.Description("Items per page")),

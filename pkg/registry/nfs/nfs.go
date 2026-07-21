@@ -7,6 +7,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -274,6 +276,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.createFileShare,
 			Tool: mcp.NewTool(
 				"nfs-file-share-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new file share"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the file share")),
 				mcp.WithNumber("SizeGibibytes", mcp.Required(), mcp.Description("Size of the file share in GiB")),
@@ -286,6 +290,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.listFileShares,
 			Tool: mcp.NewTool(
 				"nfs-file-share-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List nfs file shares with optional Region filters. Supports pagination."),
 				mcp.WithString("Region", mcp.Description("Optional region filtering parameter")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number of the results to fetch")),
@@ -296,6 +302,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.getFileShareByID,
 			Tool: mcp.NewTool(
 				"nfs-file-share-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a file share by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the file share to get")),
 			),
@@ -304,6 +312,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.deleteFileShare,
 			Tool: mcp.NewTool(
 				"nfs-file-share-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a file share by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the file share to delete")),
 			),
@@ -312,6 +322,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.listNfsSnapshots,
 			Tool: mcp.NewTool(
 				"nfs-snapshot-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all NFS snapshots - supports pagination and filtering by region and share ID"),
 				mcp.WithString("Region", mcp.Description("Optional region of the NFS snapshot")),
 				mcp.WithString("ShareID", mcp.Description("Optional ID of the NFS share to list snapshots for")),
@@ -323,6 +335,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.getNfsSnapshotByID,
 			Tool: mcp.NewTool(
 				"nfs-snapshot-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a NFS snapshot by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the NFS snapshot to get")),
 			),
@@ -331,6 +345,8 @@ func (n *NfsTool) Tools() []server.ServerTool {
 			Handler: n.deleteNfsSnapshot,
 			Tool: mcp.NewTool(
 				"nfs-snapshot-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a NFS snapshot by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the NFS snapshot to delete")),
 			),

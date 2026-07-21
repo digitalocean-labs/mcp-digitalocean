@@ -7,6 +7,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type VolumeActionsTool struct {
@@ -178,6 +180,8 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: v.attachVolume,
 			Tool: mcp.NewTool("volume-attach",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Attach a volume to a droplet"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to attach")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to attach the volume to")),
@@ -186,6 +190,8 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: v.detachVolume,
 			Tool: mcp.NewTool("volume-detach",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Detach a volume from a droplet"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to detach")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to detach the volume from")),
@@ -194,6 +200,8 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: v.getVolumeAction,
 			Tool: mcp.NewTool("volume-action-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a volume action by ID"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("The ID of the action")),
@@ -202,6 +210,8 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: v.listVolumeActions,
 			Tool: mcp.NewTool("volume-action-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List volume actions"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultVolumeListPage), mcp.Description("Page number")),
@@ -211,6 +221,8 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 		{
 			Handler: v.resizeVolume,
 			Tool: mcp.NewTool("volume-resize",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Resize a volume"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to resize")),
 				mcp.WithNumber("SizeGigaBytes", mcp.Required(), mcp.Description("The size of the volume in GB")),

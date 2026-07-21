@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // SubscriptionTool provides container registry subscription management tools
@@ -75,12 +77,16 @@ func (s *SubscriptionTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getSubscription,
 			Tool: mcp.NewTool("docr-subscription-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the current container registry subscription information"),
 			),
 		},
 		{
 			Handler: s.updateSubscription,
 			Tool: mcp.NewTool("docr-subscription-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update the container registry subscription tier"),
 				mcp.WithString("TierSlug", mcp.Required(), mcp.Description("Subscription tier slug to update to (e.g., 'starter', 'basic', 'professional')")),
 			),

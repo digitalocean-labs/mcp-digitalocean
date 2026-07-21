@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -93,6 +94,7 @@ func (i *InvoiceTools) Tools() []server.ServerTool {
 		{
 			Handler: i.listInvoices,
 			Tool: mcp.NewTool("invoice-list",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("List invoices with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultInvoicesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultInvoicesPageSize), mcp.Description("Items per page")),
@@ -101,6 +103,7 @@ func (i *InvoiceTools) Tools() []server.ServerTool {
 		{
 			Handler: i.getInvoice,
 			Tool: mcp.NewTool("get-invoice",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Get a specific invoice"),
 				mcp.WithString("InvoiceUUID", mcp.Required(), mcp.Description("The UUID of the invoice")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultInvoicesPage), mcp.Description("Page number")),

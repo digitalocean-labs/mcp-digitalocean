@@ -175,6 +175,22 @@
                           }
                         },
                         "type": "object"
+                      },
+                      "requests_per_second": {
+                        "properties": {
+                          "per_instance": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "request_duration": {
+                        "properties": {
+                          "p95_milliseconds": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
                       }
                     },
                     "type": "object"
@@ -864,6 +880,22 @@
                           "percent": {
                             "type": "integer",
                             "description": "The average target CPU utilization for the component."
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "requests_per_second": {
+                        "properties": {
+                          "per_instance": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "request_duration": {
+                        "properties": {
+                          "p95_milliseconds": {
+                            "type": "integer"
                           }
                         },
                         "type": "object"

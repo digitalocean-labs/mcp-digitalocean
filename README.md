@@ -174,6 +174,7 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 | docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
 | genai-custom-models      | https://genai-custom-models.mcp.digitalocean.com/mcp        | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform. |
+| genai-inferencerouter    | https://genai-inferencerouter.mcp.digitalocean.com/mcp      | Create, list, get, and delete GenAI model routers. |
 | dedicated-inference      | https://dedicated-inference.mcp.digitalocean.com/mcp        | Manage Dedicated Inference instances for GPU-accelerated model serving. |
 | inference-modelcatalog   | https://inference-modelcatalog.mcp.digitalocean.com/mcp     | Browse the DigitalOcean Inference model catalog, search for models, and get model cards. |
 | insights                 | https://insights.mcp.digitalocean.com/mcp                   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
@@ -609,6 +610,7 @@ Each service provides a detailed README describing all available tools, resource
 - [GenAI evaluation](pkg/registry/genai/README.md)
 - [GenAI Batch Inference Service](pkg/registry/genai-batchinference/README.md)
 - [GenAI Custom Models Service](pkg/registry/genai-custom-models/README.md)
+- [GenAI Inference Router](pkg/registry/genai-inferencerouter/README.md)
 - [NFS Service](pkg/registry/nfs/README.md)
 - [Volumes Service](pkg/registry/volumes/README.md)
 

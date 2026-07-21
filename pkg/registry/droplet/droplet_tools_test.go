@@ -85,6 +85,52 @@ func TestDropletTool_createDroplet(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name: "Successful create with ImageSlug (1-click marketplace image)",
+			args: map[string]any{
+				"Name":       "marketplace-droplet",
+				"Size":       "s-1vcpu-1gb",
+				"ImageSlug":  "wordpress-20-04",
+				"Region":     "nyc1",
+				"Backup":     false,
+				"Monitoring": false,
+			},
+			mockSetup: func(m *MockDropletsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:       "marketplace-droplet",
+						Region:     "nyc1",
+						Size:       "s-1vcpu-1gb",
+						Image:      godo.DropletCreateImage{Slug: "wordpress-20-04"},
+						Backups:    false,
+						Monitoring: false,
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "Error when neither ImageID nor ImageSlug provided",
+			args: map[string]any{
+				"Name":   "no-image-droplet",
+				"Size":   "s-1vcpu-1gb",
+				"Region": "nyc1",
+			},
+			mockSetup:   func(m *MockDropletsService) {},
+			expectError: true,
+		},
+		{
+			name: "Error when both ImageID and ImageSlug provided",
+			args: map[string]any{
+				"Name":      "both-image-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"ImageSlug": "wordpress-20-04",
+				"Region":    "nyc1",
+			},
+			mockSetup:   func(m *MockDropletsService) {},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range tests {

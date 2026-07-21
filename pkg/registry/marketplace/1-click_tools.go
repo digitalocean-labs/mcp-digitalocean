@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type OneClickTool struct {
@@ -122,6 +123,8 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 		{
 			Handler: o.listOneClickApps,
 			Tool: mcp.NewTool("1-click-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List available 1-click applications from the DigitalOcean marketplace"),
 				mcp.WithString("Type", mcp.Description("Type of 1-click apps to list (e.g., 'droplet', 'kubernetes'). Defaults to 'droplet'")),
 			),
@@ -129,6 +132,8 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 		{
 			Handler: o.installKubernetesApps,
 			Tool: mcp.NewTool("1-click-kubernetes-app-install",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Install 1-click applications on a Kubernetes cluster"),
 				mcp.WithString("ClusterUUID", mcp.Required(), mcp.Description("UUID of the Kubernetes cluster to install apps on")),
 				mcp.WithArray("AppSlugs", mcp.Required(), mcp.Description("Array of app slugs to install"), mcp.Items(map[string]any{"type": "string"})),

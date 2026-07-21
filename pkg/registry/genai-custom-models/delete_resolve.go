@@ -1,15 +1,10 @@
 package genaicustommodels
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/digitalocean/godo"
 )
 
 var customModelUUIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
@@ -58,49 +53,6 @@ type DeleteModelUnresolvedOutput struct {
 type deleteTarget struct {
 	UUID string
 	Name string
-}
-
-// listAllCustomModels fetches every custom model page from the API.
-func listAllCustomModels(ctx context.Context, client *godo.Client) ([]*CustomModel, error) {
-	const perPage = 100
-	var all []*CustomModel
-	page := 1
-
-	for {
-		q := url.Values{}
-		q.Set("page", fmt.Sprintf("%d", page))
-		q.Set("per_page", fmt.Sprintf("%d", perPage))
-		path := customModelsAPIPath + "?" + q.Encode()
-
-		apiReq, err := newRequestWithContext(ctx, client, http.MethodGet, path, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-
-		var output ListCustomModelsOutput
-		resp, err := client.Do(ctx, apiReq, &output)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list custom models: %w", err)
-		}
-		if resp.StatusCode >= 400 {
-			return nil, fmt.Errorf("failed to list custom models: status %d", resp.StatusCode)
-		}
-
-		all = append(all, output.Models...)
-
-		if len(output.Models) == 0 {
-			break
-		}
-		if output.Meta != nil && output.Meta.Pages > 0 && page >= output.Meta.Pages {
-			break
-		}
-		if len(output.Models) < perPage {
-			break
-		}
-		page++
-	}
-
-	return all, nil
 }
 
 // resolveCustomModelUUIDByName finds a single model by exact name, or partial name matches.
@@ -269,26 +221,6 @@ func buildDeleteUnresolvedOutput(query, queryField string, matches []*CustomMode
 		RequiresExactMatch:      true,
 		DoNotSubstituteFromList: true,
 	}
-}
-
-func getCustomModelByUUID(ctx context.Context, client *godo.Client, uuid string) (*CustomModel, error) {
-	apiReq, err := newRequestWithContext(ctx, client, http.MethodGet, customModelsAPIPath+"/"+uuid, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	var output GetCustomModelOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get custom model: %w", err)
-	}
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("failed to get custom model: status %d", resp.StatusCode)
-	}
-	if output.Model == nil {
-		return nil, fmt.Errorf("custom model %q not found", uuid)
-	}
-	return output.Model, nil
 }
 
 func marshalDeleteUnresolvedResult(out *DeleteModelUnresolvedOutput) (string, error) {

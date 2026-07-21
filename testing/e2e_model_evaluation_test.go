@@ -3,7 +3,9 @@
 package testing
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -179,6 +181,57 @@ func TestModelEvalGetRun(t *testing.T) {
 	require.NotEmpty(t, out.Run.Name)
 	require.NotEmpty(t, out.Run.Status)
 	t.Logf("got run %s: name=%s status=%s", out.Run.EvalRunUUID, out.Run.Name, out.Run.Status)
+}
+
+// TestModelEvalUpdateRun renames an existing run via genai-model-eval-update-run and
+// restores the original name afterwards to keep the test non-destructive.
+// Skipped if no runs exist.
+func TestModelEvalUpdateRun(t *testing.T) {
+	t.Parallel()
+
+	type runSummary struct {
+		EvalRunUUID string `json:"eval_run_uuid"`
+		Name        string `json:"name"`
+		Status      string `json:"status"`
+	}
+	type listRunsResponse struct {
+		Runs  []runSummary `json:"runs"`
+		Count int          `json:"count"`
+	}
+
+	listOut := callTool[listRunsResponse](t, "genai-model-eval-list-runs", map[string]any{
+		"page":     float64(1),
+		"per_page": float64(1),
+	})
+
+	if listOut.Count == 0 {
+		t.Skip("no model evaluation runs exist, skipping update-run test")
+	}
+
+	runUUID := listOut.Runs[0].EvalRunUUID
+	originalName := listOut.Runs[0].Name
+	require.NotEmpty(t, runUUID)
+	require.NotEmpty(t, originalName)
+
+	newName := fmt.Sprintf("%s-e2e-%d", originalName, time.Now().Unix())
+
+	// The update-run handler returns the run summary directly.
+	updated := callTool[runSummary](t, "genai-model-eval-update-run", map[string]any{
+		"eval_run_uuid": runUUID,
+		"name":          newName,
+	})
+
+	require.Equal(t, runUUID, updated.EvalRunUUID)
+	require.Equal(t, newName, updated.Name, "run name should be updated")
+	t.Logf("updated run %s name: %q -> %q", runUUID, originalName, newName)
+
+	// Restore the original name so repeated runs stay idempotent.
+	restored := callTool[runSummary](t, "genai-model-eval-update-run", map[string]any{
+		"eval_run_uuid": runUUID,
+		"name":          originalName,
+	})
+	require.Equal(t, originalName, restored.Name, "run name should be restored to original")
+	t.Logf("restored run %s name to %q", runUUID, originalName)
 }
 
 // TestModelEvalGetResultsDownloadURL gets a download URL for a completed run.

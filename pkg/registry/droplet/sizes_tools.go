@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -81,6 +82,8 @@ func (s *SizesTool) Tools() []server.ServerTool {
 			Handler: s.listSizes,
 			Tool: mcp.NewTool(
 				"size-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all available droplet sizes. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultSizesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultSizesPageSize), mcp.Description("Items per page")),

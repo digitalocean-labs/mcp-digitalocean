@@ -64,8 +64,9 @@ func (r *RegionTools) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
 			Handler: r.listRegions,
-			Tool: mcp.NewTool(
-				"region-list",
+			Tool: mcp.NewTool("region-list",
+				WithHints(HintsRead),
+				WithRisk(RiskLow),
 				mcp.WithDescription("List all available regions with features and droplet size availability. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultRegionsPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultRegionsPageSize), mcp.Description("Items per page")),

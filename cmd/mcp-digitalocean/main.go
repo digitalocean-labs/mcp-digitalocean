@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	middleware "mcp-digitalocean/internal"
+	"mcp-digitalocean/internal/oauthmeta"
+	"mcp-digitalocean/internal/openaichallenge"
 	"mcp-digitalocean/internal/wslogging"
 	"mcp-digitalocean/pkg/registry"
 
@@ -23,12 +26,15 @@ import (
 
 const (
 	mcpName                 = "mcp-digitalocean"
-	mcpVersion              = "1.0.59"
+	mcpVersion              = "1.0.67"
 	wsLoggingContextTimeout = 15 * time.Second
-
 	// resourceIdentifierHeader is sent on every request to the public API so the
 	// backend can validate the OAuth audience / resource indicator for this server.
 	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
+	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
+	// protocol on. It matches mcp-go's default so existing clients are unaffected.
+	mcpEndpointPath = "/mcp"
+
 )
 
 // getEnv retrieves the value of the environment variable named by the key.
@@ -50,6 +56,8 @@ func main() {
 	wsLoggingURL := flag.String("ws-logging-url", getEnv("WS_LOGGING_URL", ""), "WebSocket URL for WebSocket logging (optional)")
 	wsLoggingToken := flag.String("ws-logging-token", getEnv("WS_LOGGING_TOKEN", ""), "Authentication token for WebSocket logging (optional)")
 	enableToolErrorLogging := flag.Bool("enable-tool-error-logging", getEnv("ENABLE_TOOL_ERROR_LOGGING", "false") == "true", "Enable logging of tool errors")
+	serverURLFlag := flag.String("mcp-resource-url", getEnv("MCP_RESOURCE_URL", ""), "This server's public base URL advertised in the OAuth protected resource metadata. When empty, it is derived from each request (remote transport only, optional)")
+	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	encryptedResourceIdentifier := flag.String("encrypted-resource-identifier", getEnv("ENCRYPTED_RESOURCE_IDENTIFIER", ""), "Encrypted resource identifier for every remote MCP server")
 	flag.Parse()
@@ -136,6 +144,41 @@ func main() {
 
 	svr := server.NewMCPServer(mcpName, mcpVersion, opts...)
 
+	// For remote (non-stdio) transports, serve the OAuth protected resource
+	// metadata document and challenge unauthenticated requests. The resource is
+	// taken from --mcp-resource-url when set, otherwise derived from each
+	// request's scheme and host.
+	var (
+		wellKnownHandler       http.HandlerFunc
+		openaiChallengeHandler http.HandlerFunc
+		requireAuth            func(http.Handler) http.Handler
+	)
+	if *transport != "stdio" {
+		authServer := oauthmeta.ProdAuthorizationServer
+		serverURL := strings.TrimSpace(*serverURLFlag)
+
+		wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
+			Resource:               serverURL,
+			AuthorizationServers:   []string{authServer},
+			BearerMethodsSupported: []string{"header"},
+		})
+
+		challengeCfg := oauthmeta.ChallengeConfig{
+			Resource: serverURL,
+			Scopes:   []string{"read", "write"},
+		}
+		requireAuth = func(next http.Handler) http.Handler {
+			return oauthmeta.RequireBearer(next, challengeCfg)
+		}
+
+		logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
+
+		if token := strings.TrimSpace(*openaiAppsVerificationTokenFlag); token != "" && token != "OPENAI_APPS_VERIFICATION_TOKEN" {
+			openaiChallengeHandler = openaichallenge.Handler(token)
+			logger.Info("serving OpenAI app domain verification", "path", openaichallenge.WellKnownPath)
+		}
+	}
+
 	// by default, we create a new client per request.
 	getClientFn := func(ctx context.Context) (*godo.Client, error) {
 		return clientFromContext(ctx, *endpointFlag, *userAgent, *encryptedResourceIdentifier)
@@ -166,7 +209,7 @@ func main() {
 	}
 
 	// start our server.
-	err = runServer(ctx, svr, logger, *bindAddr, transport)
+	err = runServer(ctx, svr, logger, *bindAddr, transport, wellKnownHandler, openaiChallengeHandler, requireAuth)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			logger.Info("shutting down mcp server")
@@ -230,7 +273,7 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	return godo.New(oauthClient, opts...)
 }
 
-func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string) error {
+func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string, wellKnownHandler http.HandlerFunc, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler) error {
 	logger.Info("starting MCP server", "name", mcpName, "version", mcpVersion, "transport", *transport)
 	switch *transport {
 	case "stdio":
@@ -243,10 +286,42 @@ func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bi
 	default:
 		errC := make(chan error, 1)
 		logger.Info("http server started", "bind_addr", bindAddr)
-		httpServer := server.NewStreamableHTTPServer(s,
+
+		// When extra routing is needed (the public OAuth metadata route and/or the
+		// bearer-token guard on the MCP endpoint), we own the mux and hand it to the
+		// streamable server via WithStreamableHTTPServer. The MCP protocol endpoint
+		// is registered explicitly so its behavior is unchanged; the well-known
+		// route is served alongside it and is intentionally left unauthenticated.
+		var streamableOpts []server.StreamableHTTPOption
+		streamableOpts = append(streamableOpts,
 			server.WithHTTPContextFunc(middleware.AuthFromRequest),
 			server.WithStateLess(true),
 		)
+
+		useCustomMux := wellKnownHandler != nil || openaiChallengeHandler != nil || requireAuth != nil
+		var mux *http.ServeMux
+		if useCustomMux {
+			mux = http.NewServeMux()
+			streamableOpts = append(streamableOpts, server.WithStreamableHTTPServer(&http.Server{Handler: mux}))
+		}
+
+		httpServer := server.NewStreamableHTTPServer(s, streamableOpts...)
+
+		if mux != nil {
+			// We provided a custom *http.Server, so routing is our responsibility.
+			var mcpHandler http.Handler = httpServer
+			if requireAuth != nil {
+				mcpHandler = requireAuth(httpServer)
+			}
+			mux.Handle(mcpEndpointPath, mcpHandler)
+			if wellKnownHandler != nil {
+				mux.HandleFunc(oauthmeta.WellKnownPath, wellKnownHandler)
+			}
+			if openaiChallengeHandler != nil {
+				mux.HandleFunc(openaichallenge.WellKnownPath, openaiChallengeHandler)
+			}
+		}
+
 		go func() {
 			errC <- httpServer.Start(bindAddr)
 		}()

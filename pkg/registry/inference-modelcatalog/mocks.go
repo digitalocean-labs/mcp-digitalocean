@@ -105,6 +105,22 @@ func (mr *MockGradientAIServiceMockRecorder) CancelIndexingJob(ctx, indexingJobU
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelIndexingJob", reflect.TypeOf((*MockGradientAIService)(nil).CancelIndexingJob), ctx, indexingJobUUID)
 }
 
+// CancelModelEvaluationRun mocks base method.
+func (m *MockGradientAIService) CancelModelEvaluationRun(ctx context.Context, evalRunUUID string) (*godo.ModelEvaluationRunCancelResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelModelEvaluationRun", ctx, evalRunUUID)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunCancelResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CancelModelEvaluationRun indicates an expected call of CancelModelEvaluationRun.
+func (mr *MockGradientAIServiceMockRecorder) CancelModelEvaluationRun(ctx, evalRunUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelModelEvaluationRun", reflect.TypeOf((*MockGradientAIService)(nil).CancelModelEvaluationRun), ctx, evalRunUUID)
+}
+
 // CreateAgent mocks base method.
 func (m *MockGradientAIService) CreateAgent(arg0 context.Context, arg1 *godo.AgentCreateRequest) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -153,6 +169,22 @@ func (mr *MockGradientAIServiceMockRecorder) CreateAnthropicAPIKey(ctx, anthropi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).CreateAnthropicAPIKey), ctx, anthropicAPIKeyCreateRequest)
 }
 
+// CreateCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) CreateCustomEvaluationMetric(ctx context.Context, createRequest *godo.CreateCustomEvaluationMetricRequest) (*godo.EvaluationMetric, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCustomEvaluationMetric", ctx, createRequest)
+	ret0, _ := ret[0].(*godo.EvaluationMetric)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateCustomEvaluationMetric indicates an expected call of CreateCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) CreateCustomEvaluationMetric(ctx, createRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).CreateCustomEvaluationMetric), ctx, createRequest)
+}
+
 // CreateFunctionRoute mocks base method.
 func (m *MockGradientAIService) CreateFunctionRoute(arg0 context.Context, arg1 string, arg2 *godo.FunctionRouteCreateRequest) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -169,6 +201,22 @@ func (mr *MockGradientAIServiceMockRecorder) CreateFunctionRoute(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFunctionRoute", reflect.TypeOf((*MockGradientAIService)(nil).CreateFunctionRoute), arg0, arg1, arg2)
 }
 
+// CreateInferenceRouter mocks base method.
+func (m *MockGradientAIService) CreateInferenceRouter(arg0 context.Context, arg1 *godo.InferenceRouterCreateRequest) (*godo.InferenceRouter, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInferenceRouter", arg0, arg1)
+	ret0, _ := ret[0].(*godo.InferenceRouter)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateInferenceRouter indicates an expected call of CreateInferenceRouter.
+func (mr *MockGradientAIServiceMockRecorder) CreateInferenceRouter(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInferenceRouter", reflect.TypeOf((*MockGradientAIService)(nil).CreateInferenceRouter), arg0, arg1)
+}
+
 // CreateKnowledgeBase mocks base method.
 func (m *MockGradientAIService) CreateKnowledgeBase(ctx context.Context, knowledgeBaseCreate *godo.KnowledgeBaseCreateRequest) (*godo.KnowledgeBase, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -183,6 +231,38 @@ func (m *MockGradientAIService) CreateKnowledgeBase(ctx context.Context, knowled
 func (mr *MockGradientAIServiceMockRecorder) CreateKnowledgeBase(ctx, knowledgeBaseCreate any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateKnowledgeBase", reflect.TypeOf((*MockGradientAIService)(nil).CreateKnowledgeBase), ctx, knowledgeBaseCreate)
+}
+
+// CreateModelEvalDatasetUploadPresignedURLs mocks base method.
+func (m *MockGradientAIService) CreateModelEvalDatasetUploadPresignedURLs(ctx context.Context, createRequest *godo.CreateModelEvalDatasetUploadPresignedURLsRequest) (*godo.CreateModelEvalDatasetUploadPresignedURLsResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateModelEvalDatasetUploadPresignedURLs", ctx, createRequest)
+	ret0, _ := ret[0].(*godo.CreateModelEvalDatasetUploadPresignedURLsResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateModelEvalDatasetUploadPresignedURLs indicates an expected call of CreateModelEvalDatasetUploadPresignedURLs.
+func (mr *MockGradientAIServiceMockRecorder) CreateModelEvalDatasetUploadPresignedURLs(ctx, createRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateModelEvalDatasetUploadPresignedURLs", reflect.TypeOf((*MockGradientAIService)(nil).CreateModelEvalDatasetUploadPresignedURLs), ctx, createRequest)
+}
+
+// CreateModelEvaluationRun mocks base method.
+func (m *MockGradientAIService) CreateModelEvaluationRun(ctx context.Context, createRequest *godo.CreateModelEvaluationRunRequest) (*godo.ModelEvaluationRunCreateResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateModelEvaluationRun", ctx, createRequest)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunCreateResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateModelEvaluationRun indicates an expected call of CreateModelEvaluationRun.
+func (mr *MockGradientAIServiceMockRecorder) CreateModelEvaluationRun(ctx, createRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateModelEvaluationRun", reflect.TypeOf((*MockGradientAIService)(nil).CreateModelEvaluationRun), ctx, createRequest)
 }
 
 // CreateOpenAIAPIKey mocks base method.
@@ -265,6 +345,53 @@ func (mr *MockGradientAIServiceMockRecorder) DeleteAnthropicAPIKey(ctx, id any) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).DeleteAnthropicAPIKey), ctx, id)
 }
 
+// DeleteCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) DeleteCustomEvaluationMetric(ctx context.Context, metricUUID string) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCustomEvaluationMetric", ctx, metricUUID)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCustomEvaluationMetric indicates an expected call of DeleteCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) DeleteCustomEvaluationMetric(ctx, metricUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).DeleteCustomEvaluationMetric), ctx, metricUUID)
+}
+
+// DeleteCustomModel mocks base method.
+func (m *MockGradientAIService) DeleteCustomModel(ctx context.Context, uuid string) (*godo.CustomModelDeleteResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCustomModel", ctx, uuid)
+	ret0, _ := ret[0].(*godo.CustomModelDeleteResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DeleteCustomModel indicates an expected call of DeleteCustomModel.
+func (mr *MockGradientAIServiceMockRecorder) DeleteCustomModel(ctx, uuid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCustomModel", reflect.TypeOf((*MockGradientAIService)(nil).DeleteCustomModel), ctx, uuid)
+}
+
+// DeleteEvaluationDataset mocks base method.
+func (m *MockGradientAIService) DeleteEvaluationDataset(ctx context.Context, datasetUUID string) (*godo.EvaluationDatasetDeleteResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEvaluationDataset", ctx, datasetUUID)
+	ret0, _ := ret[0].(*godo.EvaluationDatasetDeleteResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DeleteEvaluationDataset indicates an expected call of DeleteEvaluationDataset.
+func (mr *MockGradientAIServiceMockRecorder) DeleteEvaluationDataset(ctx, datasetUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEvaluationDataset", reflect.TypeOf((*MockGradientAIService)(nil).DeleteEvaluationDataset), ctx, datasetUUID)
+}
+
 // DeleteFunctionRoute mocks base method.
 func (m *MockGradientAIService) DeleteFunctionRoute(arg0 context.Context, arg1, arg2 string) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -279,6 +406,22 @@ func (m *MockGradientAIService) DeleteFunctionRoute(arg0 context.Context, arg1, 
 func (mr *MockGradientAIServiceMockRecorder) DeleteFunctionRoute(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFunctionRoute", reflect.TypeOf((*MockGradientAIService)(nil).DeleteFunctionRoute), arg0, arg1, arg2)
+}
+
+// DeleteInferenceRouter mocks base method.
+func (m *MockGradientAIService) DeleteInferenceRouter(arg0 context.Context, arg1 string) (*godo.InferenceRouterDeleteResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInferenceRouter", arg0, arg1)
+	ret0, _ := ret[0].(*godo.InferenceRouterDeleteResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DeleteInferenceRouter indicates an expected call of DeleteInferenceRouter.
+func (mr *MockGradientAIServiceMockRecorder) DeleteInferenceRouter(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInferenceRouter", reflect.TypeOf((*MockGradientAIService)(nil).DeleteInferenceRouter), arg0, arg1)
 }
 
 // DeleteKnowledgeBase mocks base method.
@@ -312,6 +455,38 @@ func (m *MockGradientAIService) DeleteKnowledgeBaseDataSource(ctx context.Contex
 func (mr *MockGradientAIServiceMockRecorder) DeleteKnowledgeBaseDataSource(ctx, knowledgeBaseID, dataSourceID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteKnowledgeBaseDataSource", reflect.TypeOf((*MockGradientAIService)(nil).DeleteKnowledgeBaseDataSource), ctx, knowledgeBaseID, dataSourceID)
+}
+
+// DeleteModelEvaluationPreset mocks base method.
+func (m *MockGradientAIService) DeleteModelEvaluationPreset(ctx context.Context, evalPresetUUID string) (*godo.ModelEvaluationPresetDeleteResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteModelEvaluationPreset", ctx, evalPresetUUID)
+	ret0, _ := ret[0].(*godo.ModelEvaluationPresetDeleteResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DeleteModelEvaluationPreset indicates an expected call of DeleteModelEvaluationPreset.
+func (mr *MockGradientAIServiceMockRecorder) DeleteModelEvaluationPreset(ctx, evalPresetUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteModelEvaluationPreset", reflect.TypeOf((*MockGradientAIService)(nil).DeleteModelEvaluationPreset), ctx, evalPresetUUID)
+}
+
+// DeleteModelEvaluationRun mocks base method.
+func (m *MockGradientAIService) DeleteModelEvaluationRun(ctx context.Context, evalRunUUID string) (*godo.ModelEvaluationRunDeleteResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteModelEvaluationRun", ctx, evalRunUUID)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunDeleteResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DeleteModelEvaluationRun indicates an expected call of DeleteModelEvaluationRun.
+func (mr *MockGradientAIServiceMockRecorder) DeleteModelEvaluationRun(ctx, evalRunUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteModelEvaluationRun", reflect.TypeOf((*MockGradientAIService)(nil).DeleteModelEvaluationRun), ctx, evalRunUUID)
 }
 
 // DeleteOpenAIAPIKey mocks base method.
@@ -378,6 +553,22 @@ func (mr *MockGradientAIServiceMockRecorder) GetAnthropicAPIKey(ctx, id any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).GetAnthropicAPIKey), ctx, id)
 }
 
+// GetCustomModel mocks base method.
+func (m *MockGradientAIService) GetCustomModel(ctx context.Context, uuid string) (*godo.CustomModel, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCustomModel", ctx, uuid)
+	ret0, _ := ret[0].(*godo.CustomModel)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetCustomModel indicates an expected call of GetCustomModel.
+func (mr *MockGradientAIServiceMockRecorder) GetCustomModel(ctx, uuid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCustomModel", reflect.TypeOf((*MockGradientAIService)(nil).GetCustomModel), ctx, uuid)
+}
+
 // GetIndexingJob mocks base method.
 func (m *MockGradientAIService) GetIndexingJob(ctx context.Context, indexingJobUUID string) (*godo.IndexingJobResponse, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -392,6 +583,22 @@ func (m *MockGradientAIService) GetIndexingJob(ctx context.Context, indexingJobU
 func (mr *MockGradientAIServiceMockRecorder) GetIndexingJob(ctx, indexingJobUUID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIndexingJob", reflect.TypeOf((*MockGradientAIService)(nil).GetIndexingJob), ctx, indexingJobUUID)
+}
+
+// GetInferenceRouter mocks base method.
+func (m *MockGradientAIService) GetInferenceRouter(arg0 context.Context, arg1 string) (*godo.InferenceRouter, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInferenceRouter", arg0, arg1)
+	ret0, _ := ret[0].(*godo.InferenceRouter)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetInferenceRouter indicates an expected call of GetInferenceRouter.
+func (mr *MockGradientAIServiceMockRecorder) GetInferenceRouter(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInferenceRouter", reflect.TypeOf((*MockGradientAIService)(nil).GetInferenceRouter), arg0, arg1)
 }
 
 // GetKnowledgeBase mocks base method.
@@ -427,6 +634,54 @@ func (mr *MockGradientAIServiceMockRecorder) GetModelByUUID(arg0, arg1 any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModelByUUID", reflect.TypeOf((*MockGradientAIService)(nil).GetModelByUUID), arg0, arg1)
 }
 
+// GetModelEvaluationPreset mocks base method.
+func (m *MockGradientAIService) GetModelEvaluationPreset(ctx context.Context, evalPresetUUID string) (*godo.ModelEvaluationPresetGetResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetModelEvaluationPreset", ctx, evalPresetUUID)
+	ret0, _ := ret[0].(*godo.ModelEvaluationPresetGetResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetModelEvaluationPreset indicates an expected call of GetModelEvaluationPreset.
+func (mr *MockGradientAIServiceMockRecorder) GetModelEvaluationPreset(ctx, evalPresetUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModelEvaluationPreset", reflect.TypeOf((*MockGradientAIService)(nil).GetModelEvaluationPreset), ctx, evalPresetUUID)
+}
+
+// GetModelEvaluationRun mocks base method.
+func (m *MockGradientAIService) GetModelEvaluationRun(ctx context.Context, evalRunUUID string, opt *godo.ModelEvaluationRunGetOptions) (*godo.ModelEvaluationRunGetResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetModelEvaluationRun", ctx, evalRunUUID, opt)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunGetResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetModelEvaluationRun indicates an expected call of GetModelEvaluationRun.
+func (mr *MockGradientAIServiceMockRecorder) GetModelEvaluationRun(ctx, evalRunUUID, opt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModelEvaluationRun", reflect.TypeOf((*MockGradientAIService)(nil).GetModelEvaluationRun), ctx, evalRunUUID, opt)
+}
+
+// GetModelEvaluationRunResultsDownloadURL mocks base method.
+func (m *MockGradientAIService) GetModelEvaluationRunResultsDownloadURL(ctx context.Context, evalRunUUID string) (*godo.ModelEvaluationRunResultsDownloadURLResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetModelEvaluationRunResultsDownloadURL", ctx, evalRunUUID)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunResultsDownloadURLResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetModelEvaluationRunResultsDownloadURL indicates an expected call of GetModelEvaluationRunResultsDownloadURL.
+func (mr *MockGradientAIServiceMockRecorder) GetModelEvaluationRunResultsDownloadURL(ctx, evalRunUUID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModelEvaluationRunResultsDownloadURL", reflect.TypeOf((*MockGradientAIService)(nil).GetModelEvaluationRunResultsDownloadURL), ctx, evalRunUUID)
+}
+
 // GetOpenAIAPIKey mocks base method.
 func (m *MockGradientAIService) GetOpenAIAPIKey(ctx context.Context, openaiApiKeyId string) (*godo.OpenAiApiKey, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -441,6 +696,22 @@ func (m *MockGradientAIService) GetOpenAIAPIKey(ctx context.Context, openaiApiKe
 func (mr *MockGradientAIServiceMockRecorder) GetOpenAIAPIKey(ctx, openaiApiKeyId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenAIAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).GetOpenAIAPIKey), ctx, openaiApiKeyId)
+}
+
+// ImportCustomModel mocks base method.
+func (m *MockGradientAIService) ImportCustomModel(ctx context.Context, importRequest *godo.CustomModelImportRequest) (*godo.CustomModelImportResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportCustomModel", ctx, importRequest)
+	ret0, _ := ret[0].(*godo.CustomModelImportResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ImportCustomModel indicates an expected call of ImportCustomModel.
+func (mr *MockGradientAIServiceMockRecorder) ImportCustomModel(ctx, importRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportCustomModel", reflect.TypeOf((*MockGradientAIService)(nil).ImportCustomModel), ctx, importRequest)
 }
 
 // ListAgentAPIKeys mocks base method.
@@ -555,6 +826,22 @@ func (mr *MockGradientAIServiceMockRecorder) ListAvailableModels(arg0, arg1 any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAvailableModels", reflect.TypeOf((*MockGradientAIService)(nil).ListAvailableModels), arg0, arg1)
 }
 
+// ListCustomModels mocks base method.
+func (m *MockGradientAIService) ListCustomModels(ctx context.Context, opt *godo.CustomModelListOptions) (*godo.CustomModelListResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCustomModels", ctx, opt)
+	ret0, _ := ret[0].(*godo.CustomModelListResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListCustomModels indicates an expected call of ListCustomModels.
+func (mr *MockGradientAIServiceMockRecorder) ListCustomModels(ctx, opt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCustomModels", reflect.TypeOf((*MockGradientAIService)(nil).ListCustomModels), ctx, opt)
+}
+
 // ListDatacenterRegions mocks base method.
 func (m *MockGradientAIService) ListDatacenterRegions(arg0 context.Context, arg1, arg2 *bool) ([]*godo.DatacenterRegions, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -569,6 +856,22 @@ func (m *MockGradientAIService) ListDatacenterRegions(arg0 context.Context, arg1
 func (mr *MockGradientAIServiceMockRecorder) ListDatacenterRegions(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDatacenterRegions", reflect.TypeOf((*MockGradientAIService)(nil).ListDatacenterRegions), arg0, arg1, arg2)
+}
+
+// ListEvaluationDatasets mocks base method.
+func (m *MockGradientAIService) ListEvaluationDatasets(ctx context.Context, opt *godo.EvaluationDatasetListOptions) (*godo.EvaluationDatasetListResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEvaluationDatasets", ctx, opt)
+	ret0, _ := ret[0].(*godo.EvaluationDatasetListResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListEvaluationDatasets indicates an expected call of ListEvaluationDatasets.
+func (mr *MockGradientAIServiceMockRecorder) ListEvaluationDatasets(ctx, opt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEvaluationDatasets", reflect.TypeOf((*MockGradientAIService)(nil).ListEvaluationDatasets), ctx, opt)
 }
 
 // ListIndexingJobDataSources mocks base method.
@@ -603,6 +906,38 @@ func (mr *MockGradientAIServiceMockRecorder) ListIndexingJobs(ctx, opt any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIndexingJobs", reflect.TypeOf((*MockGradientAIService)(nil).ListIndexingJobs), ctx, opt)
 }
 
+// ListInferenceRouterTaskPresets mocks base method.
+func (m *MockGradientAIService) ListInferenceRouterTaskPresets(arg0 context.Context, arg1 *godo.ListOptions) ([]*godo.InferenceRouterTaskPreset, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListInferenceRouterTaskPresets", arg0, arg1)
+	ret0, _ := ret[0].([]*godo.InferenceRouterTaskPreset)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListInferenceRouterTaskPresets indicates an expected call of ListInferenceRouterTaskPresets.
+func (mr *MockGradientAIServiceMockRecorder) ListInferenceRouterTaskPresets(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInferenceRouterTaskPresets", reflect.TypeOf((*MockGradientAIService)(nil).ListInferenceRouterTaskPresets), arg0, arg1)
+}
+
+// ListInferenceRouters mocks base method.
+func (m *MockGradientAIService) ListInferenceRouters(arg0 context.Context, arg1 *godo.ListOptions) ([]*godo.InferenceRouterSummary, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListInferenceRouters", arg0, arg1)
+	ret0, _ := ret[0].([]*godo.InferenceRouterSummary)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListInferenceRouters indicates an expected call of ListInferenceRouters.
+func (mr *MockGradientAIServiceMockRecorder) ListInferenceRouters(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInferenceRouters", reflect.TypeOf((*MockGradientAIService)(nil).ListInferenceRouters), arg0, arg1)
+}
+
 // ListKnowledgeBaseDataSources mocks base method.
 func (m *MockGradientAIService) ListKnowledgeBaseDataSources(ctx context.Context, knowledgeBaseID string, opt *godo.ListOptions) ([]godo.KnowledgeBaseDataSource, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -633,6 +968,54 @@ func (m *MockGradientAIService) ListKnowledgeBases(ctx context.Context, opt *god
 func (mr *MockGradientAIServiceMockRecorder) ListKnowledgeBases(ctx, opt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListKnowledgeBases", reflect.TypeOf((*MockGradientAIService)(nil).ListKnowledgeBases), ctx, opt)
+}
+
+// ListModelEvaluationMetrics mocks base method.
+func (m *MockGradientAIService) ListModelEvaluationMetrics(ctx context.Context) (*godo.ModelEvaluationMetricListResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListModelEvaluationMetrics", ctx)
+	ret0, _ := ret[0].(*godo.ModelEvaluationMetricListResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListModelEvaluationMetrics indicates an expected call of ListModelEvaluationMetrics.
+func (mr *MockGradientAIServiceMockRecorder) ListModelEvaluationMetrics(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListModelEvaluationMetrics", reflect.TypeOf((*MockGradientAIService)(nil).ListModelEvaluationMetrics), ctx)
+}
+
+// ListModelEvaluationPresets mocks base method.
+func (m *MockGradientAIService) ListModelEvaluationPresets(ctx context.Context) (*godo.ModelEvaluationPresetListResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListModelEvaluationPresets", ctx)
+	ret0, _ := ret[0].(*godo.ModelEvaluationPresetListResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListModelEvaluationPresets indicates an expected call of ListModelEvaluationPresets.
+func (mr *MockGradientAIServiceMockRecorder) ListModelEvaluationPresets(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListModelEvaluationPresets", reflect.TypeOf((*MockGradientAIService)(nil).ListModelEvaluationPresets), ctx)
+}
+
+// ListModelEvaluationRuns mocks base method.
+func (m *MockGradientAIService) ListModelEvaluationRuns(ctx context.Context, opt *godo.ModelEvaluationRunListOptions) (*godo.ModelEvaluationRunListResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListModelEvaluationRuns", ctx, opt)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunListResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListModelEvaluationRuns indicates an expected call of ListModelEvaluationRuns.
+func (mr *MockGradientAIServiceMockRecorder) ListModelEvaluationRuns(ctx, opt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListModelEvaluationRuns", reflect.TypeOf((*MockGradientAIService)(nil).ListModelEvaluationRuns), ctx, opt)
 }
 
 // ListOpenAIAPIKeys mocks base method.
@@ -779,6 +1162,38 @@ func (mr *MockGradientAIServiceMockRecorder) UpdateAnthropicAPIKey(ctx, id, anth
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnthropicAPIKey", reflect.TypeOf((*MockGradientAIService)(nil).UpdateAnthropicAPIKey), ctx, id, anthropicAPIKeyUpdateRequest)
 }
 
+// UpdateCustomEvaluationMetric mocks base method.
+func (m *MockGradientAIService) UpdateCustomEvaluationMetric(ctx context.Context, metricUUID string, updateRequest *godo.UpdateCustomEvaluationMetricRequest) (*godo.EvaluationMetric, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCustomEvaluationMetric", ctx, metricUUID, updateRequest)
+	ret0, _ := ret[0].(*godo.EvaluationMetric)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateCustomEvaluationMetric indicates an expected call of UpdateCustomEvaluationMetric.
+func (mr *MockGradientAIServiceMockRecorder) UpdateCustomEvaluationMetric(ctx, metricUUID, updateRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCustomEvaluationMetric", reflect.TypeOf((*MockGradientAIService)(nil).UpdateCustomEvaluationMetric), ctx, metricUUID, updateRequest)
+}
+
+// UpdateCustomModelMetadata mocks base method.
+func (m *MockGradientAIService) UpdateCustomModelMetadata(ctx context.Context, uuid string, updateRequest *godo.CustomModelMetadataUpdateRequest) (*godo.CustomModel, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCustomModelMetadata", ctx, uuid, updateRequest)
+	ret0, _ := ret[0].(*godo.CustomModel)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateCustomModelMetadata indicates an expected call of UpdateCustomModelMetadata.
+func (mr *MockGradientAIServiceMockRecorder) UpdateCustomModelMetadata(ctx, uuid, updateRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCustomModelMetadata", reflect.TypeOf((*MockGradientAIService)(nil).UpdateCustomModelMetadata), ctx, uuid, updateRequest)
+}
+
 // UpdateFunctionRoute mocks base method.
 func (m *MockGradientAIService) UpdateFunctionRoute(arg0 context.Context, arg1, arg2 string, arg3 *godo.FunctionRouteUpdateRequest) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -795,6 +1210,22 @@ func (mr *MockGradientAIServiceMockRecorder) UpdateFunctionRoute(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFunctionRoute", reflect.TypeOf((*MockGradientAIService)(nil).UpdateFunctionRoute), arg0, arg1, arg2, arg3)
 }
 
+// UpdateInferenceRouter mocks base method.
+func (m *MockGradientAIService) UpdateInferenceRouter(arg0 context.Context, arg1 string, arg2 *godo.InferenceRouterUpdateRequest) (*godo.InferenceRouter, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInferenceRouter", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.InferenceRouter)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateInferenceRouter indicates an expected call of UpdateInferenceRouter.
+func (mr *MockGradientAIServiceMockRecorder) UpdateInferenceRouter(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInferenceRouter", reflect.TypeOf((*MockGradientAIService)(nil).UpdateInferenceRouter), arg0, arg1, arg2)
+}
+
 // UpdateKnowledgeBase mocks base method.
 func (m *MockGradientAIService) UpdateKnowledgeBase(ctx context.Context, knowledgeBaseID string, update *godo.UpdateKnowledgeBaseRequest) (*godo.KnowledgeBase, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -809,6 +1240,22 @@ func (m *MockGradientAIService) UpdateKnowledgeBase(ctx context.Context, knowled
 func (mr *MockGradientAIServiceMockRecorder) UpdateKnowledgeBase(ctx, knowledgeBaseID, update any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateKnowledgeBase", reflect.TypeOf((*MockGradientAIService)(nil).UpdateKnowledgeBase), ctx, knowledgeBaseID, update)
+}
+
+// UpdateModelEvaluationRun mocks base method.
+func (m *MockGradientAIService) UpdateModelEvaluationRun(ctx context.Context, evalRunUUID string, updateRequest *godo.UpdateModelEvaluationRunRequest) (*godo.ModelEvaluationRunUpdateResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateModelEvaluationRun", ctx, evalRunUUID, updateRequest)
+	ret0, _ := ret[0].(*godo.ModelEvaluationRunUpdateResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateModelEvaluationRun indicates an expected call of UpdateModelEvaluationRun.
+func (mr *MockGradientAIServiceMockRecorder) UpdateModelEvaluationRun(ctx, evalRunUUID, updateRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateModelEvaluationRun", reflect.TypeOf((*MockGradientAIService)(nil).UpdateModelEvaluationRun), ctx, evalRunUUID, updateRequest)
 }
 
 // UpdateOpenAIAPIKey mocks base method.

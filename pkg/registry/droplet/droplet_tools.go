@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // DropletTool provides droplet management tools
@@ -27,10 +28,27 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	args := req.GetArguments()
 	dropletName := args["Name"].(string)
 	size := args["Size"].(string)
-	imageID := args["ImageID"].(float64)
 	region := args["Region"].(string)
 	backup, _ := args["Backup"].(bool)         // Defaults to false
 	monitoring, _ := args["Monitoring"].(bool) // Defaults to false
+
+	imageID, hasID := args["ImageID"].(float64)
+	imageSlug, hasSlug := args["ImageSlug"].(string)
+	hasSlug = hasSlug && imageSlug != ""
+
+	if !hasID && !hasSlug {
+		return mcp.NewToolResultError("exactly one of ImageID or ImageSlug must be provided"), nil
+	}
+	if hasID && hasSlug {
+		return mcp.NewToolResultError("exactly one of ImageID or ImageSlug must be provided, not both"), nil
+	}
+
+	var image godo.DropletCreateImage
+	if hasSlug {
+		image = godo.DropletCreateImage{Slug: imageSlug}
+	} else {
+		image = godo.DropletCreateImage{ID: int(imageID)}
+	}
 
 	// Handle SSH keys if provided
 	var sshKeys []godo.DropletCreateSSHKey
@@ -61,7 +79,7 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	dropletCreateRequest := &godo.DropletCreateRequest{
 		Name:       dropletName,
 		Size:       size,
-		Image:      godo.DropletCreateImage{ID: int(imageID)},
+		Image:      image,
 		Region:     region,
 		Backups:    backup,
 		Monitoring: monitoring,
@@ -312,10 +330,13 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.createDroplet,
 			Tool: mcp.NewTool("droplet-create",
-				mcp.WithDescription("Create a new droplet"),
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskHigh),
+				mcp.WithDescription("Create a new droplet. Supports standard distribution images via ImageID and 1-click marketplace app images via ImageSlug. Exactly one of ImageID or ImageSlug must be provided."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the droplet")),
 				mcp.WithString("Size", mcp.Required(), mcp.Description("Slug of the droplet size (e.g., s-1vcpu-1gb)")),
-				mcp.WithNumber("ImageID", mcp.Required(), mcp.Description("ID of the image to use")),
+				mcp.WithNumber("ImageID", mcp.Description("Numeric ID of the image to use. Mutually exclusive with ImageSlug.")),
+				mcp.WithString("ImageSlug", mcp.Description("Slug of the image to use (e.g., ubuntu-22-04-x64, wordpress-20-04). Use this for 1-click marketplace app images; slugs can be discovered via the 1-click-list tool. Mutually exclusive with ImageID.")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Slug of the region (e.g., nyc3)")),
 				mcp.WithBoolean("Backup", mcp.DefaultBool(false), mcp.Description("Whether to enable backups")),
 				mcp.WithBoolean("Monitoring", mcp.DefaultBool(false), mcp.Description("Whether to enable monitoring")),
@@ -326,6 +347,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.deleteDroplet,
 			Tool: mcp.NewTool("droplet-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to delete")),
 			),
@@ -333,6 +356,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.enablePrivateNetworking,
 			Tool: mcp.NewTool("droplet-enable-private-net",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Enable private networking on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -340,6 +365,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDropletKernels,
 			Tool: mcp.NewTool("droplet-kernels",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get available kernels for a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -347,6 +374,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDropletByID,
 			Tool: mcp.NewTool("droplet-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a droplet by its ID"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Droplet ID")),
 			),
@@ -354,6 +383,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDropletBackupPolicy,
 			Tool: mcp.NewTool("droplet-backup-policy",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a droplet's backup policy"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Droplet ID")),
 			),
@@ -361,6 +392,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDropletActionByID,
 			Tool: mcp.NewTool("droplet-action",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a droplet action by droplet ID and action ID"),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("Droplet ID")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("Action ID")),
@@ -369,6 +402,8 @@ func (d *DropletTool) Tools() []server.ServerTool {
 		{
 			Handler: d.getDroplets,
 			Tool: mcp.NewTool("droplet-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all droplets for the user. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(50), mcp.Description("Items per page")),

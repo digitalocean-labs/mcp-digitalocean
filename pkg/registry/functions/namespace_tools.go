@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type NamespaceTool struct {
@@ -197,12 +199,16 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listNamespaces,
 			Tool: mcp.NewTool("functions-list-namespaces",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all DigitalOcean Functions namespaces. Returns namespace metadata including api_host, region, label, and UUID."),
 			),
 		},
 		{
 			Handler: t.getNamespace,
 			Tool: mcp.NewTool("functions-get-namespace",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a DigitalOcean Functions namespace by ID. Returns full namespace details including api_host and key for data plane access."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -210,6 +216,8 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createNamespace,
 			Tool: mcp.NewTool("functions-create-namespace",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new DigitalOcean Functions namespace."),
 				mcp.WithString("Label", mcp.Required(), mcp.Description("A human-readable label for the namespace")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("The region slug where the namespace will be created (e.g. nyc1, sfo1)")),
@@ -218,14 +226,17 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deleteNamespace,
 			Tool: mcp.NewTool("functions-delete-namespace",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a DigitalOcean Functions namespace. This permanently removes the namespace and all its functions, packages, and triggers."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace to delete")),
-				mcp.WithDestructiveHintAnnotation(true),
 			),
 		},
 		{
 			Handler: t.listAccessKeys,
 			Tool: mcp.NewTool("functions-list-access-keys",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List access keys for a DigitalOcean Functions namespace. Returns metadata only (name, id, creation/expiry timestamps) — secret values are NOT returned and cannot be retrieved once a key has been created.\n\nKeys whose names start with `mcp-do-` are reserved for this MCP server's own internal use. They are managed automatically and must not be deleted by agents."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -233,6 +244,8 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createAccessKey,
 			Tool: mcp.NewTool("functions-create-access-key",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create an access key for a DigitalOcean Functions namespace. The returned secret appears only in this response and cannot be retrieved later — store it immediately.\n\nAccess keys are credentials for programmatic access to a namespace's OpenWhisk data plane and are typically used by third-party tooling or CI. Agents should not need to call this tool as part of normal deploy or CRUD flows — the MCP server manages its own data-plane auth internally, and `doctl serverless connect <hint>` uses the user's existing DigitalOcean API token. Only call this tool when the user explicitly asks for an access key.\n\nPrefix rules:\n- The prefix `mcp-do-` is reserved for the MCP server's internal use. Never create keys with this prefix; any you do create will be auto-deleted on the next MCP call that touches the namespace.\n- For any other key you create on behalf of the user, pick a descriptive name they can recognize later.\n- Always set `ExpiresIn` to a bounded value (e.g. `\"24h\"`) unless the user explicitly asks for a non-expiring key; access keys count toward a 200-per-account limit.\n\nRequires the `function:admin` scope on the caller's API token."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("A name for the access key. Never use the `mcp-do-` prefix — it is reserved for the MCP server.")),
@@ -242,10 +255,11 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deleteAccessKey,
 			Tool: mcp.NewTool("functions-delete-access-key",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete an access key for a DigitalOcean Functions namespace. This is irreversible — once deleted, the key's secret can never be used again.\n\nDo NOT delete keys whose names start with `mcp-do-` — those are managed by the MCP server itself. Deleting them causes unnecessary API churn as the server will recreate them on the next use.\n\nDo NOT delete keys with any other name prefix without explicit user consent — those belong to the user or to other tooling."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("KeyID", mcp.Required(), mcp.Description("The ID of the access key to delete")),
-				mcp.WithDestructiveHintAnnotation(true),
 			),
 		},
 	}

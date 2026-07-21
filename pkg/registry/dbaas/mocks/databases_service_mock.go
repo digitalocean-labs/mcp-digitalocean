@@ -320,6 +320,22 @@ func (mr *MockDatabasesServiceMockRecorder) Get(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockDatabasesService)(nil).Get), arg0, arg1)
 }
 
+// GetAdvancedPostgresSQLConfig mocks base method.
+func (m *MockDatabasesService) GetAdvancedPostgresSQLConfig(arg0 context.Context, arg1 string) (*godo.AdvancedPostgresConfig, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAdvancedPostgresSQLConfig", arg0, arg1)
+	ret0, _ := ret[0].(*godo.AdvancedPostgresConfig)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetAdvancedPostgresSQLConfig indicates an expected call of GetAdvancedPostgresSQLConfig.
+func (mr *MockDatabasesServiceMockRecorder) GetAdvancedPostgresSQLConfig(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAdvancedPostgresSQLConfig", reflect.TypeOf((*MockDatabasesService)(nil).GetAdvancedPostgresSQLConfig), arg0, arg1)
+}
+
 // GetCA mocks base method.
 func (m *MockDatabasesService) GetCA(arg0 context.Context, arg1 string) (*godo.DatabaseCA, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -350,6 +366,22 @@ func (m *MockDatabasesService) GetDB(arg0 context.Context, arg1, arg2 string) (*
 func (mr *MockDatabasesServiceMockRecorder) GetDB(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDB", reflect.TypeOf((*MockDatabasesService)(nil).GetDB), arg0, arg1, arg2)
+}
+
+// GetDOSettings mocks base method.
+func (m *MockDatabasesService) GetDOSettings(arg0 context.Context, arg1 string) (*godo.DOSettings, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDOSettings", arg0, arg1)
+	ret0, _ := ret[0].(*godo.DOSettings)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetDOSettings indicates an expected call of GetDOSettings.
+func (mr *MockDatabasesServiceMockRecorder) GetDOSettings(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDOSettings", reflect.TypeOf((*MockDatabasesService)(nil).GetDOSettings), arg0, arg1)
 }
 
 // GetEvictionPolicy mocks base method.
@@ -622,6 +654,22 @@ func (m *MockDatabasesService) GetSQLMode(arg0 context.Context, arg1 string) (st
 func (mr *MockDatabasesServiceMockRecorder) GetSQLMode(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSQLMode", reflect.TypeOf((*MockDatabasesService)(nil).GetSQLMode), arg0, arg1)
+}
+
+// GetStorageAutoscale mocks base method.
+func (m *MockDatabasesService) GetStorageAutoscale(arg0 context.Context, arg1 string) (*godo.DatabaseStorageAutoscale, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStorageAutoscale", arg0, arg1)
+	ret0, _ := ret[0].(*godo.DatabaseStorageAutoscale)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetStorageAutoscale indicates an expected call of GetStorageAutoscale.
+func (mr *MockDatabasesServiceMockRecorder) GetStorageAutoscale(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageAutoscale", reflect.TypeOf((*MockDatabasesService)(nil).GetStorageAutoscale), arg0, arg1)
 }
 
 // GetTopic mocks base method.
@@ -1006,6 +1054,36 @@ func (mr *MockDatabasesServiceMockRecorder) StopOnlineMigration(ctx, databaseID,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopOnlineMigration", reflect.TypeOf((*MockDatabasesService)(nil).StopOnlineMigration), ctx, databaseID, migrationID)
 }
 
+// UpdateAdvancedPostgresSQLConfig mocks base method.
+func (m *MockDatabasesService) UpdateAdvancedPostgresSQLConfig(arg0 context.Context, arg1 string, arg2 *godo.AdvancedPostgresConfigUpdate) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAdvancedPostgresSQLConfig", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAdvancedPostgresSQLConfig indicates an expected call of UpdateAdvancedPostgresSQLConfig.
+func (mr *MockDatabasesServiceMockRecorder) UpdateAdvancedPostgresSQLConfig(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAdvancedPostgresSQLConfig", reflect.TypeOf((*MockDatabasesService)(nil).UpdateAdvancedPostgresSQLConfig), arg0, arg1, arg2)
+}
+
+// UpdateDOSettings mocks base method.
+func (m *MockDatabasesService) UpdateDOSettings(arg0 context.Context, arg1 string, arg2 *godo.DatabaseUpdateDOSettingsRequest) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDOSettings", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateDOSettings indicates an expected call of UpdateDOSettings.
+func (mr *MockDatabasesServiceMockRecorder) UpdateDOSettings(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDOSettings", reflect.TypeOf((*MockDatabasesService)(nil).UpdateDOSettings), arg0, arg1, arg2)
+}
+
 // UpdateFirewallRules mocks base method.
 func (m *MockDatabasesService) UpdateFirewallRules(arg0 context.Context, arg1 string, arg2 *godo.DatabaseUpdateFirewallRulesRequest) (*godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1201,6 +1279,21 @@ func (m *MockDatabasesService) UpdateRedisConfig(arg0 context.Context, arg1 stri
 func (mr *MockDatabasesServiceMockRecorder) UpdateRedisConfig(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRedisConfig", reflect.TypeOf((*MockDatabasesService)(nil).UpdateRedisConfig), arg0, arg1, arg2)
+}
+
+// UpdateStorageAutoscale mocks base method.
+func (m *MockDatabasesService) UpdateStorageAutoscale(arg0 context.Context, arg1 string, arg2 *godo.DatabaseStorageAutoscale) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStorageAutoscale", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateStorageAutoscale indicates an expected call of UpdateStorageAutoscale.
+func (mr *MockDatabasesServiceMockRecorder) UpdateStorageAutoscale(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStorageAutoscale", reflect.TypeOf((*MockDatabasesService)(nil).UpdateStorageAutoscale), arg0, arg1, arg2)
 }
 
 // UpdateTopic mocks base method.

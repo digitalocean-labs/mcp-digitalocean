@@ -96,6 +96,7 @@ type CustomModel struct {
 	TeamID               json.Number                    `json:"team_id,omitempty"`
 	ConfigJSON           map[string]interface{}         `json:"config_json,omitempty"`
 	StorageRegion        string                         `json:"storage_region,omitempty"`
+	ErrorMessage         string                         `json:"error_message,omitempty"`
 }
 
 // PaginationLinks holds pagination links from the API.
@@ -165,9 +166,13 @@ type ImportCustomModelOutput struct {
 
 // UpdateCustomModelMetadataInput is the request body for updating model metadata.
 type UpdateCustomModelMetadataInput struct {
-	Name        *string          `json:"name,omitempty"`
-	Description *string          `json:"description,omitempty"`
-	Tags        *CustomModelTags `json:"tags,omitempty"`
+	Name             *string          `json:"name,omitempty"`
+	Description      *string          `json:"description,omitempty"`
+	Tags             *CustomModelTags `json:"tags,omitempty"`
+	InputModalities  []string         `json:"input_modalities,omitempty"`
+	OutputModalities []string         `json:"output_modalities,omitempty"`
+	Parameters       string           `json:"parameters,omitempty"`
+	License          string           `json:"license,omitempty"`
 }
 
 // UpdateCustomModelMetadataOutput is the response from updating model metadata.
@@ -186,30 +191,42 @@ type GetCustomModelOutput struct {
 	Model *CustomModel `json:"model"`
 }
 
-// UnifiedModel is a normalized representation that can hold either a catalog model
-// or a custom model, identified by the Source field.
-type UnifiedModel struct {
+// CatalogSearchRow is one catalog model row in unified search output.
+type CatalogSearchRow struct {
 	UUID             string   `json:"uuid"`
 	Name             string   `json:"name"`
-	Description      string   `json:"description,omitempty"`
 	Source           string   `json:"source"`
-	Status           string   `json:"status,omitempty"`
 	Provider         string   `json:"provider,omitempty"`
 	Type             string   `json:"type,omitempty"`
-	Architecture     string   `json:"architecture,omitempty"`
 	ContextWindow    string   `json:"context_window,omitempty"`
 	Capabilities     []string `json:"capabilities,omitempty"`
 	InputModalities  []string `json:"input_modalities,omitempty"`
 	OutputModalities []string `json:"output_modalities,omitempty"`
 }
 
+// CustomSearchRow is one custom model row in unified search output.
+type CustomSearchRow struct {
+	UUID             string   `json:"uuid"`
+	Name             string   `json:"name"`
+	Source           string   `json:"source"`
+	Status           string   `json:"status"`
+	Architecture     string   `json:"architecture,omitempty"`
+	InputModalities  []string `json:"input_modalities,omitempty"`
+	OutputModalities []string `json:"output_modalities,omitempty"`
+	ErrorMessage     string   `json:"error_message,omitempty"`
+}
+
 // UnifiedSearchResponse is the response from the unified model search tool.
 type UnifiedSearchResponse struct {
-	Query   string          `json:"query"`
-	Results []*UnifiedModel `json:"results"`
-	Counts  struct {
-		Catalog int `json:"catalog"`
-		Custom  int `json:"custom"`
-		Total   int `json:"total"`
-	} `json:"counts"`
+	Query         string              `json:"query"`
+	CatalogModels []CatalogSearchRow  `json:"catalog_models"`
+	CustomModels  []CustomSearchRow   `json:"custom_models"`
+	Counts        UnifiedSearchCounts `json:"counts"`
+}
+
+// UnifiedSearchCounts holds per-source result counts.
+type UnifiedSearchCounts struct {
+	Catalog int `json:"catalog"`
+	Custom  int `json:"custom"`
+	Total   int `json:"total"`
 }

@@ -173,7 +173,7 @@ func (et *EvaluationTool) listEvaluationMetrics(ctx context.Context, req mcp.Cal
 	}
 
 	// Make API call
-	apiReq, err := newGodoRequestWithContext(ctx, client, "GET", genAIAPIPath+"/evaluation_metrics", nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, genAIAPIPath+"/evaluation_metrics", nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -236,7 +236,7 @@ func (et *EvaluationTool) listEvaluationTestCases(ctx context.Context, req mcp.C
 		path += "?" + enc
 	}
 
-	apiReq, err := newGodoRequestWithContext(ctx, client, "GET", path, nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -308,7 +308,7 @@ func (et *EvaluationTool) createEvaluationDataset(ctx context.Context, req mcp.C
 		},
 	}
 
-	presignedReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_datasets/file_upload_presigned_urls", presignedInput)
+	presignedReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_datasets/file_upload_presigned_urls", presignedInput)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create presigned URL request", err), nil
 	}
@@ -354,7 +354,7 @@ func (et *EvaluationTool) createEvaluationDataset(ctx context.Context, req mcp.C
 		},
 	}
 
-	datasetReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_datasets", datasetInput)
+	datasetReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_datasets", datasetInput)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create dataset request", err), nil
 	}
@@ -438,7 +438,7 @@ func (et *EvaluationTool) createEvaluationTestCase(ctx context.Context, req mcp.
 		input.AgentWorkspaceName = &workspaceName
 	}
 
-	apiReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_test_cases", input)
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_test_cases", input)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -514,7 +514,7 @@ func (et *EvaluationTool) updateEvaluationTestCase(ctx context.Context, req mcp.
 	}
 
 	path := genAIAPIPath + "/evaluation_test_cases/" + testCaseUUID
-	apiReq, err := newGodoRequestWithContext(ctx, client, "PUT", path, input)
+	apiReq, err := client.NewRequest(ctx, http.MethodPut, path, input)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -574,7 +574,7 @@ func (et *EvaluationTool) runEvaluationTestCase(ctx context.Context, req mcp.Cal
 		RunName:              runName,
 	}
 
-	apiReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_runs", input)
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_runs", input)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -618,7 +618,7 @@ func (et *EvaluationTool) getEvaluationRun(ctx context.Context, req mcp.CallTool
 	}
 
 	path := genAIAPIPath + "/evaluation_runs/" + runUUID
-	apiReq, err := newGodoRequestWithContext(ctx, client, "GET", path, nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
 	}
@@ -692,7 +692,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 	}
 
 	// Step 2: List metrics
-	metricsReq, err := newGodoRequestWithContext(ctx, client, "GET", genAIAPIPath+"/evaluation_metrics", nil)
+	metricsReq, err := client.NewRequest(ctx, http.MethodGet, genAIAPIPath+"/evaluation_metrics", nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 2: failed to create request", err), nil
 	}
@@ -737,7 +737,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 		},
 	}
 
-	presignedReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_datasets/file_upload_presigned_urls", presignedInput)
+	presignedReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_datasets/file_upload_presigned_urls", presignedInput)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 4: failed to create presigned URL request", err), nil
 	}
@@ -781,7 +781,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 		},
 	}
 
-	datasetReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_datasets", datasetInput)
+	datasetReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_datasets", datasetInput)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 4: failed to create dataset request", err), nil
 	}
@@ -797,7 +797,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 	// Step 5: Find or create test case
 	testCasesQ := url.Values{}
 	testCasesQ.Set("agent_workspace_name", workspaceName)
-	testCasesReq, err := newGodoRequestWithContext(ctx, client, "GET", genAIAPIPath+"/evaluation_test_cases?"+testCasesQ.Encode(), nil)
+	testCasesReq, err := client.NewRequest(ctx, http.MethodGet, genAIAPIPath+"/evaluation_test_cases?"+testCasesQ.Encode(), nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 5: failed to create request", err), nil
 	}
@@ -820,7 +820,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 				StarMetric:   defaultStarMetric(metricUUIDs),
 			}
 
-			updateReq, err := newGodoRequestWithContext(ctx, client, "PUT", genAIAPIPath+"/evaluation_test_cases/"+testCaseUUID, updateInput)
+			updateReq, err := client.NewRequest(ctx, http.MethodPut, genAIAPIPath+"/evaluation_test_cases/"+testCaseUUID, updateInput)
 			if err != nil {
 				return mcp.NewToolResultErrorFromErr("step 5: failed to create update request", err), nil
 			}
@@ -844,7 +844,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 			AgentWorkspaceName: &workspaceName,
 		}
 
-		createReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_test_cases", createInput)
+		createReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_test_cases", createInput)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("step 5: failed to create request", err), nil
 		}
@@ -865,7 +865,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 		RunName:              runName,
 	}
 
-	runReq, err := newGodoRequestWithContext(ctx, client, "POST", genAIAPIPath+"/evaluation_runs", runInput)
+	runReq, err := client.NewRequest(ctx, http.MethodPost, genAIAPIPath+"/evaluation_runs", runInput)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 6: failed to create request", err), nil
 	}
@@ -893,7 +893,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 			return mcp.NewToolResultError("step 7: evaluation polling timed out"), nil
 		}
 
-		getReq, err := newGodoRequestWithContext(ctx, client, "GET", genAIAPIPath+"/evaluation_runs/"+evaluationRunUUID, nil)
+		getReq, err := client.NewRequest(ctx, http.MethodGet, genAIAPIPath+"/evaluation_runs/"+evaluationRunUUID, nil)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("step 7: failed to create request", err), nil
 		}
@@ -1094,6 +1094,10 @@ func isCSVFile(path string) bool {
 	return len(path) > 4 && path[len(path)-4:] == ".csv"
 }
 
+func isJSONLFile(path string) bool {
+	return len(path) > 6 && path[len(path)-6:] == ".jsonl"
+}
+
 func getFileName(path string) string {
 	for i := len(path) - 1; i >= 0; i-- {
 		if path[i] == '/' || path[i] == '\\' {
@@ -1144,25 +1148,4 @@ func derefString(s *string) string {
 		return ""
 	}
 	return *s
-}
-
-// newGodoRequestWithContext mirrors godo.Client.NewRequest (URL, JSON body, headers) then rebuilds
-// the request with http.NewRequestWithContext so ctx is set at construction time.
-func newGodoRequestWithContext(ctx context.Context, client *godo.Client, method, urlPath string, body interface{}) (*http.Request, error) {
-	req0, err := client.NewRequest(ctx, method, urlPath, body)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, req0.Method, req0.URL.String(), req0.Body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header = req0.Header.Clone()
-	if req0.ContentLength > 0 {
-		req.ContentLength = req0.ContentLength
-	}
-	if req0.GetBody != nil {
-		req.GetBody = req0.GetBody
-	}
-	return req, nil
 }

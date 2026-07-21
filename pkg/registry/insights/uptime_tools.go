@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -223,6 +224,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.getUptimeCheck,
 			Tool: mcp.NewTool("uptimecheck-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get UptimeCheck information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 			),
@@ -230,6 +233,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.getUptimeCheckState,
 			Tool: mcp.NewTool("uptimecheck-get-state",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get UptimeCheck information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 			),
@@ -237,6 +242,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.listUptimeChecks,
 			Tool: mcp.NewTool("uptimecheck-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List UptimeChecks with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultChecksPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultChecksPageSize), mcp.Description("Items per page")),
@@ -245,6 +252,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.createUptimeCheck,
 			Tool: mcp.NewTool("uptimecheck-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a new UptimeCheck"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the UptimeCheck")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of the UptimeCheck. value : HTTPS, HTTP or PING")),
@@ -257,6 +266,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.updateUptimeCheck,
 			Tool: mcp.NewTool("uptimecheck-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update a UptimeCheck"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the UptimeCheck")),
@@ -270,6 +281,8 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 		{
 			Handler: c.deleteUptimeCheck,
 			Tool: mcp.NewTool("uptimecheck-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a uptimeCheck"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the uptimeCheck to delete")),
 			),

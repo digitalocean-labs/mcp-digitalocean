@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // RegistryTool provides container registry management tools
@@ -203,6 +205,8 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.get,
 			Tool: mcp.NewTool("docr-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a container registry by name"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 			),
@@ -210,12 +214,16 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.list,
 			Tool: mcp.NewTool("docr-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all container registries"),
 			),
 		},
 		{
 			Handler: r.create,
 			Tool: mcp.NewTool("docr-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new container registry"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("SubscriptionTierSlug", mcp.Description("Subscription tier slug (e.g., 'starter', 'basic', 'professional')")),
@@ -225,6 +233,8 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.delete,
 			Tool: mcp.NewTool("docr-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry to delete")),
 			),
@@ -232,6 +242,11 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.dockerCredentials,
 			Tool: mcp.NewTool("docr-docker-credentials",
+				common.WithHints(common.HintsRead),
+				// Read-only (does not mutate the registry) but mints Docker
+				// credentials that can grant write access when ReadWrite=true,
+				// so the blast radius is medium, not low.
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Get Docker credentials for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithBoolean("ReadWrite", mcp.Description("Whether the credentials should have read-write access (default: false, read-only)")),
@@ -241,12 +256,16 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 		{
 			Handler: r.getOptions,
 			Tool: mcp.NewTool("docr-options",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get available container registry options including subscription tiers and regions"),
 			),
 		},
 		{
 			Handler: r.validateName,
 			Tool: mcp.NewTool("docr-validate-name",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Check if a container registry name is available"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name to validate for availability")),
 			),

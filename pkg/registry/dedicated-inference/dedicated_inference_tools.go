@@ -8,6 +8,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // DedicatedInferenceTool provides Dedicated Inference lifecycle management tools.
@@ -223,6 +225,8 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 			Handler: d.createDedicatedInference,
 			Tool: mcp.NewTool(
 				"dedicated-inference-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Create a new Dedicated Inference instance (CreateDedicatedInferenceV2). See spec/dedicated-inference-create-schema.json for the HTTP/API-aligned request shape. Tool arguments use UpperCamelCase; returns instance and optional initial auth token."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the dedicated inference instance")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug for deployment (e.g. nyc2, tor1, atl1)")),
@@ -237,6 +241,8 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 			Handler: d.getDedicatedInference,
 			Tool: mcp.NewTool(
 				"dedicated-inference-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get details of a Dedicated Inference instance (GetDedicatedInferenceV2) by ID."),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance")),
 			),
@@ -245,6 +251,8 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 			Handler: d.listDedicatedInferences,
 			Tool: mcp.NewTool(
 				"dedicated-inference-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List Dedicated Inference instances (ListDedicatedInferenceV2) with optional filters and pagination."),
 				mcp.WithString("Region", mcp.Description("Filter by region slug (e.g. nyc2)")),
 				mcp.WithString("Name", mcp.Description("Filter by instance name")),
@@ -256,6 +264,8 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 			Handler: d.updateDedicatedInference,
 			Tool: mcp.NewTool(
 				"dedicated-inference-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a Dedicated Inference instance (UpdateDedicatedInferenceV2). See spec/dedicated-inference-update-schema.json for the HTTP/API-aligned body shape."),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance to update")),
 				mcp.WithString("Name", mcp.Description("New name for the instance")),
@@ -271,8 +281,9 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 			Handler: d.deleteDedicatedInference,
 			Tool: mcp.NewTool(
 				"dedicated-inference-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a Dedicated Inference instance (DeleteDedicatedInferenceV2)."),
-				mcp.WithDestructiveHintAnnotation(true),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance to delete")),
 			),
 		},

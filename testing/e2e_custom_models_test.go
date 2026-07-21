@@ -16,76 +16,69 @@ import (
 const e2eHFRepoID = "Qwen/Qwen2.5-0.5B"
 
 // TestCustomModelsListModels calls genai-custom-models-list against the live GenAI API.
+// Unfiltered list returns one custom-models table with every UUID (including STATUS_FAILED).
 func TestCustomModelsListModels(t *testing.T) {
 	t.Parallel()
 
-	type customModel struct {
-		UUID   string `json:"uuid"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
-	type listResponse struct {
-		Models       []customModel `json:"models"`
-		Count        int           `json:"count"`
-		MaxThreshold int           `json:"max_threshold"`
-	}
+	ctx, c := getTestClient(t)
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{Name: "genai-custom-models-list", Arguments: map[string]any{}},
+	})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
 
-	out := callTool[listResponse](t, "genai-custom-models-list", map[string]any{})
-
-	require.GreaterOrEqual(t, out.Count, 0)
-	require.Len(t, out.Models, out.Count)
-	t.Logf("listed %d custom model(s)", out.Count)
+	text := callToolResultText(resp)
+	require.Contains(t, text, "## Custom Models")
+	require.Contains(t, text, "| UUID | Name | Source | Status | Architecture |")
+	require.Contains(t, text, "STATUS_FAILED")
+	require.NotContains(t, text, "## Model Catalog")
+	require.Greater(t, strings.Count(text, "STATUS_FAILED"), 1, "failed models should appear as table rows, not only in a summary")
+	t.Logf("unfiltered custom list returned table (%d bytes)", len(text))
 }
 
 // TestCustomModelsListModelsWithPagination tests pagination on custom models list.
 func TestCustomModelsListModelsWithPagination(t *testing.T) {
 	t.Parallel()
 
-	type customModel struct {
-		UUID   string `json:"uuid"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
-	type listResponse struct {
-		Models []customModel `json:"models"`
-		Count  int           `json:"count"`
-	}
-
-	out := callTool[listResponse](t, "genai-custom-models-list", map[string]any{
-		"page":     float64(1),
-		"per_page": float64(5),
+	ctx, c := getTestClient(t)
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "genai-custom-models-list",
+			Arguments: map[string]any{
+				"page":     float64(1),
+				"per_page": float64(5),
+			},
+		},
 	})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
 
-	require.GreaterOrEqual(t, out.Count, 0)
-	require.LessOrEqual(t, out.Count, 5, "per_page=5 should return at most 5 models")
-	require.Len(t, out.Models, out.Count)
-	t.Logf("listed %d custom model(s) with pagination", out.Count)
+	text := callToolResultText(resp)
+	require.Contains(t, text, "## Custom Models")
+	require.Contains(t, text, "| UUID | Name | Source | Status | Architecture |")
+	require.NotContains(t, text, "## Model Catalog")
+	t.Logf("paginated list returned custom table (%d bytes)", len(text))
 }
 
 // TestCustomModelsListModelsWithStatusFilter tests status filtering on custom models list.
 func TestCustomModelsListModelsWithStatusFilter(t *testing.T) {
 	t.Parallel()
 
-	type customModel struct {
-		UUID   string `json:"uuid"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
-	type listResponse struct {
-		Models []customModel `json:"models"`
-		Count  int           `json:"count"`
-	}
-
-	out := callTool[listResponse](t, "genai-custom-models-list", map[string]any{
-		"status": "STATUS_READY",
+	ctx, c := getTestClient(t)
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "genai-custom-models-list",
+			Arguments: map[string]any{"status": "STATUS_READY"},
+		},
 	})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
 
-	require.GreaterOrEqual(t, out.Count, 0)
-	require.Len(t, out.Models, out.Count)
-	for _, m := range out.Models {
-		require.Equal(t, "STATUS_READY", m.Status, "all models should have STATUS_READY")
-	}
-	t.Logf("listed %d custom model(s) with STATUS_READY filter", out.Count)
+	text := callToolResultText(resp)
+	require.Contains(t, text, "## Custom Models")
+	require.Contains(t, text, "STATUS_READY")
+	require.NotContains(t, text, "## Model Catalog")
+	t.Logf("status-filtered list returned custom table (%d bytes)", len(text))
 }
 
 // TestCustomModelsImportHuggingFaceResolvesCommitSHA imports without commit_sha and

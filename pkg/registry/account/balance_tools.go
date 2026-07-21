@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // BalanceTools provides tool-based handlers for DigitalOcean account balance.
@@ -46,6 +47,7 @@ func (b *BalanceTools) Tools() []server.ServerTool {
 		{
 			Handler: b.getBalance,
 			Tool: mcp.NewTool("balance-get",
+				common.WithHints(common.HintsRead),
 				mcp.WithDescription("Get balance information for the user account"),
 			),
 		},

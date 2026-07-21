@@ -9,14 +9,17 @@ This directory contains tools for managing DigitalOcean Droplets, Images, and Si
 ### Droplet Tools
 
 - **droplet-create**  
-  Create a new Droplet.  
+  Create a new Droplet. Supports standard distribution images via `ImageID` and 1-click marketplace app images via `ImageSlug`. Exactly one of `ImageID` or `ImageSlug` must be provided.  
   **Arguments:**  
   - `Name` (string, required): Name of the Droplet  
   - `Size` (string, required): Slug of the Droplet size (e.g., `s-1vcpu-1gb`)  
-  - `ImageID` (number, required): ID of the image to use  
+  - `ImageID` (number, optional): Numeric ID of the image to use. Mutually exclusive with `ImageSlug`.  
+  - `ImageSlug` (string, optional): Slug of the image to use (e.g., `ubuntu-22-04-x64`, `wordpress-20-04`). Use this for 1-click marketplace app images; slugs can be discovered via the `1-click-list` tool. Mutually exclusive with `ImageID`.  
   - `Region` (string, required): Slug of the region (e.g., `nyc3`)  
   - `Backup` (boolean, optional, default: false): Enable backups  
-  - `Monitoring` (boolean, optional, default: false): Enable monitoring
+  - `Monitoring` (boolean, optional, default: false): Enable monitoring  
+  - `SSHKeys` (array of strings, optional): SSH key IDs (numbers) or fingerprints to add to the droplet  
+  - `Tags` (array of strings, optional): Tag names to apply to the droplet
 
 - **droplet-delete**  
   Delete a Droplet.  
