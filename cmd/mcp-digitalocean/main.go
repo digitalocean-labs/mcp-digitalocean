@@ -25,6 +25,10 @@ const (
 	mcpName                 = "mcp-digitalocean"
 	mcpVersion              = "1.0.59"
 	wsLoggingContextTimeout = 15 * time.Second
+
+	// resourceIdentifierHeader is sent on every request to the public API so the
+	// backend can validate the OAuth audience / resource indicator for this server.
+	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
 )
 
 // getEnv retrieves the value of the environment variable named by the key.
@@ -47,6 +51,7 @@ func main() {
 	wsLoggingToken := flag.String("ws-logging-token", getEnv("WS_LOGGING_TOKEN", ""), "Authentication token for WebSocket logging (optional)")
 	enableToolErrorLogging := flag.Bool("enable-tool-error-logging", getEnv("ENABLE_TOOL_ERROR_LOGGING", "false") == "true", "Enable logging of tool errors")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
+	encryptedResourceIdentifier := flag.String("encrypted-resource-identifier", getEnv("ENCRYPTED_RESOURCE_IDENTIFIER", ""), "Encrypted resource identifier for every remote MCP server")
 	flag.Parse()
 
 	var level slog.Level
@@ -133,12 +138,12 @@ func main() {
 
 	// by default, we create a new client per request.
 	getClientFn := func(ctx context.Context) (*godo.Client, error) {
-		return clientFromContext(ctx, *endpointFlag, *userAgent)
+		return clientFromContext(ctx, *endpointFlag, *userAgent, *encryptedResourceIdentifier)
 	}
 
 	// if using stdio, we can re-use the client.
 	if *transport == "stdio" {
-		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent)
+		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent, *encryptedResourceIdentifier)
 		if err != nil {
 			logger.Error("Failed to create DigitalOcean client: " + err.Error())
 			os.Exit(1)
@@ -173,7 +178,7 @@ func main() {
 	}
 }
 
-func clientFromContext(ctx context.Context, endpoint string, userAgent string) (*godo.Client, error) {
+func clientFromContext(ctx context.Context, endpoint string, userAgent string, encryptedResourceIdentifier string) (*godo.Client, error) {
 	auth, ok := ctx.Value(middleware.AuthKey{}).(string)
 	if !ok || strings.TrimSpace(auth) == "" {
 		return nil, errors.New("no auth header found")
@@ -182,7 +187,7 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string) (
 	if token == "" {
 		return nil, errors.New("no bearer token found")
 	}
-	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent)
+	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent, encryptedResourceIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create godo client: %w", err)
 	}
@@ -191,7 +196,7 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string) (
 }
 
 // newGodoClientWithTokenAndEndpoint initializes a new godo client with a custom user agent and endpoint.
-func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string) (*godo.Client, error) {
+func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string, encryptedResourceIdentifier string) (*godo.Client, error) {
 	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
 	oauthClient := oauth2.NewClient(ctx, ts)
@@ -207,10 +212,22 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 		mcpUserAgent = fmt.Sprintf("%s/%s", userAgent, mcpVersion)
 	}
 
-	return godo.New(oauthClient,
+	opts := []godo.ClientOpt{
 		godo.WithRetryAndBackoffs(retry),
 		godo.SetBaseURL(endpoint),
-		godo.SetUserAgent(mcpUserAgent))
+		godo.SetUserAgent(mcpUserAgent),
+	}
+
+	// When running as a remote MCP server, attach the encrypted resource identifier
+	// as a header on every request to the public API so the backend can validate
+	// the OAuth audience / resource indicator for this server.
+	if encryptedResourceIdentifier != "" {
+		opts = append(opts, godo.SetRequestHeaders(map[string]string{
+			resourceIdentifierHeader: encryptedResourceIdentifier,
+		}))
+	}
+
+	return godo.New(oauthClient, opts...)
 }
 
 func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string) error {
