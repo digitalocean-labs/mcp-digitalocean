@@ -28,13 +28,12 @@ const (
 	mcpName                 = "mcp-digitalocean"
 	mcpVersion              = "1.0.67"
 	wsLoggingContextTimeout = 15 * time.Second
-	// resourceIdentifierHeader is sent on every request to the public API so the
-	// backend can validate the OAuth audience / resource indicator for this server.
-	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
 	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
 	// protocol on. It matches mcp-go's default so existing clients are unaffected.
 	mcpEndpointPath = "/mcp"
-
+	// resourceIdentifierHeader is sent on every request to the public API so the
+	// backend can validate the OAuth audience / resource indicator for this server.
+	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
 )
 
 // getEnv retrieves the value of the environment variable named by the key.
