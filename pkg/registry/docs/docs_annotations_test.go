@@ -25,6 +25,8 @@ var expectedAnnotations = map[string]struct {
 	"docs-get-page":         {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"docs-find-for-service": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"docs-get-quickstart":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"docs-troubleshoot":     {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"docs-get-related":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {

@@ -9,8 +9,6 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-
-	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
