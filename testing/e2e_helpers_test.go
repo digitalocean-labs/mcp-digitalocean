@@ -353,6 +353,8 @@ func deleteResourceWithGodo(t *testing.T, ctx context.Context, gclient *godo.Cli
 	case "nfs-file-share":
 		// Nfs delete region is deprecated and ignored, passing empty string for godo client
 		_, err = gclient.Nfs.Delete(ctx, idString, "")
+	case "vector-db":
+		_, err = gclient.VectorDBs.Delete(ctx, idString)
 	default:
 		t.Logf("[Delete] Failed %s %s: unsupported resource type", resourceType, formatID(id))
 		return
@@ -635,6 +637,24 @@ func WaitForNfsShareActive(t *testing.T, shareID string, timeout time.Duration) 
 	return *n
 }
 
+func WaitForVectorDBCondition(t *testing.T, id string, condition func(*godo.VectorDB) bool, interval, timeout time.Duration) (*godo.VectorDB, error) {
+	t.Helper()
+
+	ctx := context.Background()
+	gclient, err := testhelpers.MustGodoClient(ctx, t.Name())
+	require.NoError(t, err)
+
+	return testhelpers.WaitForVectorDB(ctx, gclient, id, condition, interval, timeout)
+}
+
+func WaitForVectorDBActive(t *testing.T, id string, timeout time.Duration) godo.VectorDB {
+	t.Helper()
+
+	v, err := WaitForVectorDBCondition(t, id, testhelpers.IsVectorDBActive, resourcePollInterval, timeout)
+	require.NoError(t, err, "WaitForVectorDBActive failed")
+	return *v
+}
+
 func WaitForDropletDeletion(t *testing.T, dropletID int, interval, timeout time.Duration) error {
 	t.Helper()
 
@@ -809,4 +829,59 @@ func CreateTestNfsShare(t *testing.T, namePrefix string) godo.Nfs {
 	t.Logf("[Created] nfs share %s: Name=%s, Region=%s Size=%d", share.ID, share.Name, share.Region, share.SizeGib)
 
 	return share
+}
+
+// vectorDBTestRegion returns the region used for vector database E2E tests.
+// Vector databases are currently only available in tor1; TEST_REGION overrides.
+func vectorDBTestRegion() string {
+	if rg := os.Getenv("TEST_REGION"); rg != "" {
+		return rg
+	}
+	return "tor1"
+}
+
+// getDefaultProjectID resolves the caller's default project ID via godo. The
+// vector-db-create tool requires a project ID (write-only), and there is no
+// projects MCP tool, so it is resolved out-of-band. TEST_PROJECT_ID overrides.
+func getDefaultProjectID(t *testing.T) string {
+	t.Helper()
+
+	if id := os.Getenv("TEST_PROJECT_ID"); id != "" {
+		return id
+	}
+
+	ctx := context.Background()
+	gclient, err := testhelpers.MustGodoClient(ctx, t.Name())
+	require.NoError(t, err)
+
+	project, _, err := gclient.Projects.GetDefault(ctx)
+	require.NoError(t, err, "failed to get default project")
+	require.NotEmpty(t, project.ID, "default project ID is empty")
+
+	return project.ID
+}
+
+// CreateTestVectorDB creates a small managed Weaviate vector database (in tor1
+// by default) and registers API cleanup.
+func CreateTestVectorDB(t *testing.T, namePrefix string) godo.VectorDB {
+	t.Helper()
+
+	dbName := fmt.Sprintf("%s-%d", namePrefix, time.Now().Unix())
+	region := vectorDBTestRegion()
+	projectID := getDefaultProjectID(t)
+
+	t.Logf("Creating vector database: %s (Region: %s, Size: small)...", dbName, region)
+
+	vectorDB := callTool[godo.VectorDB](t, "vector-db-create", map[string]any{
+		"Name":      dbName,
+		"Region":    region,
+		"Size":      "small",
+		"ProjectId": projectID,
+	})
+
+	RegisterResourceCleanup(t, "vector-db", vectorDB.ID)
+
+	t.Logf("[Created] vector database %s: Name=%s, Region=%s Size=%s Status=%s", vectorDB.ID, vectorDB.Name, vectorDB.Region, vectorDB.Size, vectorDB.Status)
+
+	return vectorDB
 }

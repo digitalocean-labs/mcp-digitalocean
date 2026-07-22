@@ -33,6 +33,7 @@ const (
 	actionStatusErrored   = "errored"
 	dropletStatusActive   = "active"
 	imageStatusAvailable  = "available"
+	vectorDBStatusActive  = "active"
 )
 
 // WaitForAction polls for a droplet action to complete or error.
@@ -101,6 +102,16 @@ func WaitForNfsShare(ctx context.Context, client *godo.Client, shareID string, p
 	)
 }
 
+// WaitForVectorDB polls until the predicate returns true.
+func WaitForVectorDB(ctx context.Context, client *godo.Client, id string, predicate func(*godo.VectorDB) bool, interval, timeout time.Duration) (*godo.VectorDB, error) {
+	return waitForResource(ctx, interval, timeout,
+		func() (*godo.VectorDB, *godo.Response, error) {
+			return client.VectorDBs.Get(ctx, id)
+		},
+		predicate,
+	)
+}
+
 // WaitForDropletDeleted checks for 404 status.
 func WaitForDropletDeleted(ctx context.Context, client *godo.Client, dropletID int, interval, timeout time.Duration) error {
 	_, err := WaitForDroplet(ctx, client, dropletID, nil, interval, timeout)
@@ -126,6 +137,11 @@ func IsImageAvailable(i *godo.Image) bool {
 // IsNfsShareActive checks if the NFS share status is active.
 func IsNfsShareActive(n *godo.Nfs) bool {
 	return n != nil && n.Status == godo.NfsShareActive
+}
+
+// IsVectorDBActive checks if the vector database status is active.
+func IsVectorDBActive(v *godo.VectorDB) bool {
+	return v != nil && v.Status == vectorDBStatusActive
 }
 
 // MustGodoClient returns a client or error if the token is missing.
