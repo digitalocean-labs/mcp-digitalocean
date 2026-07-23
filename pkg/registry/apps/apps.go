@@ -401,7 +401,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 				"apps-update",
 				"Updates an existing application on DigitalOcean App Platform. The app ID and the AppSpec must be provided in the request.",
 				appUpdateSchemaJSON,
-				common.WithHints(common.HintsToggle),
+				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
 			),
 		},

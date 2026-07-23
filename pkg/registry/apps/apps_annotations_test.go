@@ -33,7 +33,7 @@ var expectedAnnotations = map[string]struct {
 	"apps-delete":                {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
 	"apps-get-info":              {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"apps-create-app-from-spec":  {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
-	"apps-update":                {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"apps-update":                {false, false, false, false, common.OpUpdate, common.RiskMedium, false, false},
 	"apps-get-logs":              {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
