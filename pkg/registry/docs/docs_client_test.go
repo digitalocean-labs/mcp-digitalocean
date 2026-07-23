@@ -116,6 +116,17 @@ func TestSearchIndex(t *testing.T) {
 			query:         "",
 			expectMinimum: 0,
 		},
+		{
+			name:          "matches URL path segments",
+			query:         "quickstart",
+			expectMinimum: 3,
+		},
+		{
+			name:          "all terms boost ranks multi-term match higher",
+			query:         "create droplet",
+			expectMinimum: 1,
+			expectFirst:   "How to Create a Droplet",
+		},
 	}
 
 	for _, tc := range tests {

@@ -267,7 +267,9 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 	return cleaned, nil
 }
 
-// SearchIndex searches the docs index using simple text matching with ranking.
+// SearchIndex searches the docs index using text matching with ranked scoring.
+// Scoring considers title, description, section, and URL path segments.
+// Entries matching all query terms are boosted above partial matches.
 func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 	terms := strings.Fields(strings.ToLower(query))
 	if len(terms) == 0 {
@@ -290,11 +292,16 @@ func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 		titleLower := strings.ToLower(entry.Title)
 		descLower := strings.ToLower(entry.Description)
 		sectionLower := strings.ToLower(entry.Section)
+		urlLower := strings.ToLower(entry.URL)
 		score := 0
+		matchedTerms := 0
 
 		for i, term := range terms {
+			termMatched := false
+
 			if strings.Contains(titleLower, term) {
 				score += 10
+				termMatched = true
 			}
 			// Exact word boundary match in title
 			if wordRegexes[i].MatchString(titleLower) {
@@ -302,10 +309,26 @@ func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 			}
 			if strings.Contains(descLower, term) {
 				score += 3
+				termMatched = true
 			}
 			if strings.Contains(sectionLower, term) {
 				score += 2
+				termMatched = true
 			}
+			// Match against URL path segments (e.g., "manage-domains" matches "domain")
+			if strings.Contains(urlLower, term) {
+				score += 4
+				termMatched = true
+			}
+
+			if termMatched {
+				matchedTerms++
+			}
+		}
+
+		// Boost entries that match all query terms
+		if len(terms) > 1 && matchedTerms == len(terms) {
+			score += 15
 		}
 
 		if score > 0 {
