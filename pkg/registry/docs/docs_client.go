@@ -233,6 +233,10 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 			pageURL = "/" + pageURL
 		}
 		pageURL = docsBase + pageURL
+	} else if pageURL != docsBase && !strings.HasPrefix(pageURL, docsBase+"/") {
+		// Keep the docs tools closed-world: absolute URLs outside the docs
+		// site are rejected rather than proxied.
+		return "", fmt.Errorf("refusing to fetch %s: only %s pages are supported", url, docsBase)
 	}
 
 	// Try index.html.md for raw markdown
