@@ -630,6 +630,8 @@ Each service provides a detailed README describing all available tools, resource
 - Delete a VPC peering connection: `vpc-peering-delete`
 - Search DigitalOcean documentation: `docs-search`
 - Get a quickstart guide for a service: `docs-get-quickstart`
+- Find troubleshooting docs for an error: `docs-troubleshoot`
+- Discover pages related to a docs page: `docs-get-related`
 
 ## Contributing
 

@@ -74,12 +74,21 @@ func (c *cache) set(key string, data any, ttl time.Duration) {
 	c.store[key] = cacheEntry{data: data, expiresAt: time.Now().Add(ttl)}
 }
 
+// RelatedLink represents a link found within a docs page.
+type RelatedLink struct {
+	URL      string
+	Title    string
+	Category string // "how-to", "reference", "support", "getting-started", "concept", "details", "other"
+}
+
 // DocsService defines the interface for fetching and searching DigitalOcean documentation.
 type DocsService interface {
 	GetDocsIndex() (*DocsIndex, error)
 	GetServiceIndex(service string) (*DocsIndex, error)
 	FetchDocPage(url string) (string, error)
 	FindQuickstart(service string) (string, string, error)
+	FindTroubleshootPage(symptom string) ([]DocsEntry, error)
+	ExtractRelatedLinks(url string) ([]RelatedLink, error)
 }
 
 // DocsClient fetches and searches DigitalOcean documentation.
@@ -382,7 +391,202 @@ func (d *DocsClient) FindQuickstart(service string) (string, string, error) {
 	return "", "", fmt.Errorf("no quickstart found for service %q", service)
 }
 
+// FindTroubleshootPage searches for troubleshooting/support pages matching a symptom or error message.
+// It prioritizes entries from support sections and pages with troubleshooting-style titles.
+func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
+	index, err := d.GetDocsIndex()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load docs index: %w", err)
+	}
+
+	terms := strings.Fields(strings.ToLower(symptom))
+	if len(terms) == 0 {
+		return nil, fmt.Errorf("symptom query must not be empty")
+	}
+
+	type scored struct {
+		entry DocsEntry
+		score int
+	}
+
+	var results []scored
+
+	for _, entry := range index.Entries {
+		titleLower := strings.ToLower(entry.Title)
+		descLower := strings.ToLower(entry.Description)
+		urlLower := strings.ToLower(entry.URL)
+		sectionLower := strings.ToLower(entry.Section)
+		score := 0
+		matchedTerms := 0
+
+		for _, term := range terms {
+			termMatched := false
+			if strings.Contains(titleLower, term) {
+				score += 10
+				termMatched = true
+			}
+			if strings.Contains(descLower, term) {
+				score += 3
+				termMatched = true
+			}
+			if strings.Contains(urlLower, term) {
+				score += 2
+				termMatched = true
+			}
+			if termMatched {
+				matchedTerms++
+			}
+		}
+
+		if score == 0 {
+			continue
+		}
+
+		// Boost support/troubleshooting pages
+		if strings.Contains(sectionLower, "support") || strings.Contains(urlLower, "/support/") {
+			score += 20
+		}
+
+		// Boost troubleshooting-style titles
+		for _, prefix := range troubleshootPrefixes {
+			if strings.HasPrefix(titleLower, prefix) {
+				score += 10
+				break
+			}
+		}
+
+		// Boost entries matching all terms
+		if len(terms) > 1 && matchedTerms == len(terms) {
+			score += 15
+		}
+
+		results = append(results, scored{entry: entry, score: score})
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].score > results[j].score
+	})
+
+	entries := make([]DocsEntry, len(results))
+	for i, r := range results {
+		entries[i] = r.entry
+	}
+	return entries, nil
+}
+
+var troubleshootPrefixes = []string{
+	"why do i",
+	"why does",
+	"why is",
+	"why am i",
+	"why can't",
+	"why are",
+	"how do i fix",
+	"how do i troubleshoot",
+	"how to troubleshoot",
+	"my app",
+	"my container",
+	"my database",
+}
+
+// ExtractRelatedLinks fetches a docs page and extracts outbound docs.digitalocean.com links.
+func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
+	content, err := d.FetchDocPage(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch page %s: %w", url, err)
+	}
+
+	// Normalize source URL for self-link filtering
+	sourceBase := normalizeDocURL(url)
+
+	seen := make(map[string]bool)
+	var links []RelatedLink
+
+	for _, match := range mdLinkRe.FindAllStringSubmatch(content, -1) {
+		title := match[1]
+		linkURL := match[2]
+
+		// Only include docs.digitalocean.com links
+		if !strings.Contains(linkURL, "docs.digitalocean.com") {
+			continue
+		}
+
+		// Skip images, screenshots, and non-documentation assets
+		lowerURL := strings.ToLower(linkURL)
+		if strings.Contains(lowerURL, "/screenshots/") ||
+			strings.HasSuffix(lowerURL, ".png") ||
+			strings.HasSuffix(lowerURL, ".jpg") ||
+			strings.HasSuffix(lowerURL, ".svg") ||
+			strings.Contains(lowerURL, "/llms.txt") {
+			continue
+		}
+
+		// Skip self-referencing links (same page, possibly different anchor)
+		if normalizeDocURL(linkURL) == sourceBase {
+			continue
+		}
+
+		// Deduplicate
+		if seen[linkURL] {
+			continue
+		}
+		seen[linkURL] = true
+
+		links = append(links, RelatedLink{
+			URL:      linkURL,
+			Title:    title,
+			Category: categorizeDocLink(linkURL),
+		})
+	}
+
+	return links, nil
+}
+
+// normalizeDocURL strips anchors and index.html.md suffixes for comparison.
+func normalizeDocURL(url string) string {
+	// Strip anchor
+	if idx := strings.Index(url, "#"); idx != -1 {
+		url = url[:idx]
+	}
+	// Strip index.html.md suffix
+	url = strings.TrimSuffix(url, "index.html.md")
+	// Ensure trailing slash for consistent comparison
+	if !strings.HasSuffix(url, "/") {
+		url += "/"
+	}
+	// Normalize relative to absolute
+	if !strings.HasPrefix(url, "http") {
+		if !strings.HasPrefix(url, "/") {
+			url = "/" + url
+		}
+		url = docsBase + url
+	}
+	return strings.ToLower(url)
+}
+
+// categorizeDocLink categorizes a docs URL by its path pattern.
+func categorizeDocLink(url string) string {
+	lower := strings.ToLower(url)
+	switch {
+	case strings.Contains(lower, "/how-to/"):
+		return "how-to"
+	case strings.Contains(lower, "/reference/"):
+		return "reference"
+	case strings.Contains(lower, "/support/") || strings.HasSuffix(lower, "/support"):
+		return "support"
+	case strings.Contains(lower, "/getting-started/") || strings.Contains(lower, "/quickstart"):
+		return "getting-started"
+	case strings.Contains(lower, "/concepts/"):
+		return "concept"
+	case strings.Contains(lower, "/details/"):
+		return "details"
+	default:
+		return "other"
+	}
+}
+
 var entryRe = regexp.MustCompile(`^-\s+\[([^\]]+)\]\(([^)]+)\)(?::\s*(.+))?$`)
+var mdLinkRe = regexp.MustCompile(`\[([^\]]+)\]\((https://docs\.digitalocean\.com[^)]+)\)`)
 var excessiveNewlines = regexp.MustCompile(`\n{3,}`)
 var htmlTags = regexp.MustCompile(`<[^>]+>`)
 

@@ -27,6 +27,17 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
   **Arguments:**
     - `Service` (string, required): DigitalOcean service name (e.g., `"droplets"`, `"kubernetes"`, `"app platform"`)
 
+- **docs-troubleshoot**
+  Search for troubleshooting pages matching an error message or symptom. Returns the full content of the best matching support page, plus links to related pages.
+  **Arguments:**
+    - `Symptom` (string, required): Error message, symptom description, or keywords (e.g., `"520 status code"`, `"deployment failed health check"`)
+    - `Limit` (number, default: 5): Maximum number of results to return
+
+- **docs-get-related**
+  Extract and categorize all outbound documentation links from a specific docs page. Returns links grouped by type (how-to, reference, support, getting-started, concept, details).
+  **Arguments:**
+    - `URL` (string, required): Full URL or path of the docs page to extract links from
+
 ---
 
 ## How It Works
@@ -60,6 +71,17 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
   Tool: `docs-get-quickstart`
   Arguments:
     - `Service`: `"databases"`
+
+- **Diagnose an error:**
+  Tool: `docs-troubleshoot`
+  Arguments:
+    - `Symptom`: `"520 status code from my app"`
+    - `Limit`: `3`
+
+- **Find related pages:**
+  Tool: `docs-get-related`
+  Arguments:
+    - `URL`: `"/products/app-platform/how-to/manage-domains/"`
 
 ---
 
