@@ -9,6 +9,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 const (
@@ -392,6 +394,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.unifiedSearch,
 			Tool: mcp.NewTool(
 				"genai-models-unified-search",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("PRIMARY tool for listing or searching models. Use when the user asks to list all models, show available models, or search by partial name. Returns two markdown tables (Model Catalog and Custom Models) with one row per model: custom columns are UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message; catalog columns include Provider, Type, Context Window, Capabilities, and modalities. Empty query lists everything; partial query returns nearest matches."),
 				mcp.WithString("query", mcp.Description("Partial model name or search string (optional). Empty returns all models in both tables.")),
 			),
@@ -400,6 +404,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.listModels,
 			Tool: mcp.NewTool(
 				"genai-custom-models-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all custom models in one markdown table (one row per model, every UUID shown including STATUS_FAILED). Columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message. Do not summarize the table in the response. For catalog + custom together use genai-models-unified-search. Optional status/page/per_page filters."),
 				mcp.WithString("status", mcp.Description("Filter by status: STATUS_IMPORTING, STATUS_READY, STATUS_FAILED, STATUS_DELETED")),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
@@ -410,6 +416,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.importModel,
 			Tool: mcp.NewTool(
 				"genai-custom-models-import",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription(genaiCustomModelsImportToolDescription),
 				mcp.WithString("name", mcp.Description("Optional display name for the custom model (leading/trailing whitespace is trimmed when provided).")),
 				mcp.WithString("source_type", mcp.Required(), mcp.Description("Source type: SOURCE_TYPE_HUGGINGFACE, SOURCE_TYPE_SPACES_BUCKET, SOURCE_TYPE_SDK_UPLOAD, SOURCE_TYPE_FINE_TUNING")),
@@ -424,6 +432,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.updateMetadata,
 			Tool: mcp.NewTool(
 				"genai-custom-models-update-metadata",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update the metadata of an existing custom model. Editable fields include name, description, tags, input/output modalities, parameters, and license."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to update")),
 				mcp.WithString("name", mcp.Description("New name for the model")),
@@ -439,6 +449,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.getModel,
 			Tool: mcp.NewTool(
 				"genai-custom-models-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the full catalog card for a custom model, including its status, architecture, source info, size, license, tags, active deployments, and cost estimate."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to retrieve")),
 			),
@@ -447,6 +459,8 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 			Handler: cmt.deleteModel,
 			Tool: mcp.NewTool(
 				"genai-custom-models-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription(genaiCustomModelsDeleteToolDescription),
 				mcp.WithString("name", mcp.Description("Exact custom model name the user provided or confirmed (character-for-character, whitespace trimmed). Use this OR uuid. Partial names return candidates only.")),
 				mcp.WithString("uuid", mcp.Description("Exact full custom model UUID (8-4-4-4-12 hex). Use this OR name. Partial uuids return candidates only; never delete on a partial uuid even if one match.")),
