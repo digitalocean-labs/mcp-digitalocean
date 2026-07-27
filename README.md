@@ -1,5 +1,7 @@
 # MCP DigitalOcean Integration
 
+[![MCP Toplist](https://mcptoplist.com/badge/pulsemcp%2Fdigitalocean.svg)](https://mcptoplist.com/server/pulsemcp%2Fdigitalocean)
+
 MCP DigitalOcean Integration is an open-source project that provides a comprehensive interface for managing DigitalOcean resources and performing actions using the [DigitalOcean API](https://docs.digitalocean.com/reference/api/). Built on top of the [godo](https://github.com/digitalocean/godo) library and the [MCP framework](https://github.com/mark3labs/mcp-go), this project exposes a wide range of tools to simplify cloud infrastructure management.
 
 > **DISCLAIMER:** "Use of MCP technology to interact with your DigitalOcean account [can come with risks](https://www.wiz.io/blog/mcp-security-research-briefing)"
