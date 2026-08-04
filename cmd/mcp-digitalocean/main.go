@@ -16,6 +16,7 @@ import (
 	middleware "mcp-digitalocean/internal"
 	"mcp-digitalocean/internal/oauthmeta"
 	"mcp-digitalocean/internal/openaichallenge"
+	"mcp-digitalocean/internal/resourceid"
 	"mcp-digitalocean/internal/wslogging"
 	"mcp-digitalocean/pkg/registry"
 
@@ -31,6 +32,14 @@ const (
 	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
 	// protocol on. It matches mcp-go's default so existing clients are unaffected.
 	mcpEndpointPath = "/mcp"
+	// resourceIdentifierHeader carries the AES-256-GCM ciphertext of this
+	// server's MCP resource URL so the backend can decrypt and validate the
+	// OAuth audience / resource indicator.
+	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
+	// oauthTokenPrefix marks a token issued through the OAuth flow. Only those
+	// tokens carry an audience the backend can validate, so personal access
+	// tokens must not be sent with the resource identifier header.
+	oauthTokenPrefix = "doo_"
 )
 
 // getEnv retrieves the value of the environment variable named by the key.
@@ -55,6 +64,7 @@ func main() {
 	serverURLFlag := flag.String("mcp-resource-url", getEnv("MCP_RESOURCE_URL", ""), "This server's public base URL advertised in the OAuth protected resource metadata. When empty, it is derived from each request (remote transport only, optional)")
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
+	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "Base64-encoded AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
 	flag.Parse()
 
 	var level slog.Level
@@ -174,14 +184,36 @@ func main() {
 		}
 	}
 
+	// When a resource encryption key is configured, encrypt this server's MCP
+	// resource URL and attach the ciphertext as a header on every public API
+	// request. The backend decrypts with the same key to validate the audience.
+	var encryptedResourceHeader string
+	if keyB64 := strings.TrimSpace(*resourceEncryptionKey); keyB64 != "" {
+		resourceURL := strings.TrimSpace(*serverURLFlag)
+		if resourceURL == "" {
+			logger.Error("--mcp-resource-url / MCP_RESOURCE_URL is required when --encrypted-resource-key is set")
+			os.Exit(1)
+		}
+		key, err := resourceid.DecodeKey(keyB64)
+		if err != nil {
+			logger.Error("invalid resource encryption key", "error", err)
+			os.Exit(1)
+		}
+		encryptedResourceHeader, err = resourceid.EncryptResourceIdentifier(key, resourceURL)
+		if err != nil {
+			logger.Error("failed to encrypt MCP resource URL", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	// by default, we create a new client per request.
 	getClientFn := func(ctx context.Context) (*godo.Client, error) {
-		return clientFromContext(ctx, *endpointFlag, *userAgent)
+		return clientFromContext(ctx, *endpointFlag, *userAgent, encryptedResourceHeader)
 	}
 
 	// if using stdio, we can re-use the client.
 	if *transport == "stdio" {
-		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent)
+		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent, "")
 		if err != nil {
 			logger.Error("Failed to create DigitalOcean client: " + err.Error())
 			os.Exit(1)
@@ -216,7 +248,7 @@ func main() {
 	}
 }
 
-func clientFromContext(ctx context.Context, endpoint string, userAgent string) (*godo.Client, error) {
+func clientFromContext(ctx context.Context, endpoint string, userAgent string, encryptedResourceHeader string) (*godo.Client, error) {
 	auth, ok := ctx.Value(middleware.AuthKey{}).(string)
 	if !ok || strings.TrimSpace(auth) == "" {
 		return nil, errors.New("no auth header found")
@@ -225,7 +257,7 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string) (
 	if token == "" {
 		return nil, errors.New("no bearer token found")
 	}
-	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent)
+	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent, encryptedResourceHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create godo client: %w", err)
 	}
@@ -234,7 +266,7 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string) (
 }
 
 // newGodoClientWithTokenAndEndpoint initializes a new godo client with a custom user agent and endpoint.
-func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string) (*godo.Client, error) {
+func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string, encryptedResourceHeader string) (*godo.Client, error) {
 	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
 	oauthClient := oauth2.NewClient(ctx, ts)
@@ -250,10 +282,22 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 		mcpUserAgent = fmt.Sprintf("%s/%s", userAgent, mcpVersion)
 	}
 
-	return godo.New(oauthClient,
+	opts := []godo.ClientOpt{
 		godo.WithRetryAndBackoffs(retry),
 		godo.SetBaseURL(endpoint),
-		godo.SetUserAgent(mcpUserAgent))
+		godo.SetUserAgent(mcpUserAgent),
+	}
+
+	// When running as a remote MCP server, attach the encrypted MCP resource URL
+	// as a header on every request to the public API so the backend can decrypt
+	// and validate the OAuth audience / resource indicator for this server.
+	if encryptedResourceHeader != "" && strings.HasPrefix(cleanToken, oauthTokenPrefix) {
+		opts = append(opts, godo.SetRequestHeaders(map[string]string{
+			resourceIdentifierHeader: encryptedResourceHeader,
+		}))
+	}
+
+	return godo.New(oauthClient, opts...)
 }
 
 func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string, wellKnownHandler http.HandlerFunc, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler) error {
