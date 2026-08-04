@@ -1,10 +1,14 @@
-package docs
+package genaicustommodels
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"mcp-digitalocean/pkg/registry/common"
+
+	"github.com/digitalocean/godo"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 // expectedAnnotations is the per-tool annotation contract enforced by
@@ -12,25 +16,33 @@ import (
 // changing an annotation in code without updating the row, fails the test.
 //
 // Order: readOnly, destructive, idempotent, openWorld, operation, risk,
-// parallelizable, streamingSafe. All docs tools are read-only lookups against
-// published DigitalOcean documentation, so every row maps to the
-// common.HintsRead profile at low risk.
+// parallelizable, streamingSafe. See annotations.go for the rationale behind
+// the six profile categories these rows map to. permission is not listed
+// per row because it is derived 1:1 from the tool name and asserted
+// generically. risk is set per tool (via common.WithRisk) because it varies
+// within a single hint profile.
 var expectedAnnotations = map[string]struct {
 	readOnly, destructive, idempotent, openWorld bool
 	operation                                    common.Operation
 	risk                                         common.Risk
 	parallelizable, streamingSafe                bool
 }{
-	"docs-search":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"docs-get-page":         {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"docs-find-for-service": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"docs-get-quickstart":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"docs-troubleshoot":     {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"docs-get-related":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	// custom_models_tools.go
+	"genai-models-unified-search":         {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-custom-models-list":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-custom-models-import":          {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"genai-custom-models-update-metadata": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"genai-custom-models-get":             {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-custom-models-delete":          {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
-	all := NewDocsTool().Tools()
+	clientFn := func(context.Context) (*godo.Client, error) {
+		return godo.NewFromToken("test-token"), nil
+	}
+
+	var all []server.ServerTool
+	all = append(all, NewCustomModelsTool(clientFn).Tools()...)
 
 	if len(all) != len(expectedAnnotations) {
 		t.Fatalf("tool count mismatch: registered=%d, expected=%d (add new tools to expectedAnnotations)", len(all), len(expectedAnnotations))

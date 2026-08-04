@@ -9,6 +9,8 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // BatchInferenceTool provides GenAI Batch Inference lifecycle management tools.
@@ -203,6 +205,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.createFile,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-create-file",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a presigned URL for uploading a batch inference JSONL input file. The file must have a .jsonl extension. Upload the file to the returned URL via HTTP PUT before creating a batch job."),
 				mcp.WithString("FileName", mcp.Required(), mcp.Description("Name of the JSONL file to upload (must end in .jsonl)")),
 			),
@@ -211,6 +215,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.uploadInputFile,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-upload-file",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Upload JSONL content to the presigned S3 URL returned by create-file. The content should be newline-delimited JSON (one request per line). Must be called after create-file and before create."),
 				mcp.WithString("UploadURL", mcp.Required(), mcp.Description("Presigned upload URL from create-file response")),
 				mcp.WithString("Content", mcp.Required(), mcp.Description("JSONL content to upload (newline-delimited JSON)")),
@@ -220,6 +226,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.createJob,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new batch inference job. Requires a previously uploaded file (via create-file). For OpenAI provider, the Endpoint argument is also required."),
 				mcp.WithString("Provider", mcp.Required(), mcp.Description("Batch provider: 'openai' or 'anthropic'")),
 				mcp.WithString("FileID", mcp.Required(), mcp.Description("UUID of a previously uploaded .jsonl file")),
@@ -232,6 +240,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.getJob,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the current status and metadata of a batch inference job by its ID."),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job")),
 			),
@@ -240,6 +250,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.getJobResults,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-get-results",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the results download URL for a completed batch inference job. Returns a presigned download URL and output file ID. Fails if the job has not completed."),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job")),
 			),
@@ -248,8 +260,9 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.cancelJob,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-cancel",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Request cancellation of a batch inference job. The job may not be cancelled immediately; poll with get to check status."),
-				mcp.WithDestructiveHintAnnotation(true),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job to cancel")),
 			),
 		},
@@ -257,6 +270,8 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			Handler: b.listJobs,
 			Tool: mcp.NewTool(
 				"genai-batch-inference-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List batch inference jobs with optional status filter and cursor-based pagination. Returns Relay-style edges with per-row cursors and page_info."),
 				mcp.WithString("Status", mcp.Description("Filter by job status (e.g. 'completed', 'in_progress', 'failed')")),
 				mcp.WithNumber("Limit", mcp.Description("Maximum number of jobs to return per page")),

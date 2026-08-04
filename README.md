@@ -186,6 +186,7 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 | genai-evaluation         | https://genai-evaluation.mcp.digitalocean.com/mcp           | Manage and run evaluation workflows in DigitalOcean's GenAI platform. |
 | nfs                      | https://nfs.mcp.digitalocean.com/mcp                        | Manage DigitalOcean NFS file shares and file share snapshots. |
 | volumes                  | https://volumes.mcp.digitalocean.com/mcp                    | Manage DigitalOcean block storage volumes and volume snapshots. |
+| vector-databases         | https://vector-databases.mcp.digitalocean.com/mcp           | Create, list, resize, delete, and inspect managed Weaviate vector database clusters. |
 
 ---
 
@@ -613,6 +614,7 @@ Each service provides a detailed README describing all available tools, resource
 - [GenAI Inference Router](pkg/registry/genai-inferencerouter/README.md)
 - [NFS Service](pkg/registry/nfs/README.md)
 - [Volumes Service](pkg/registry/volumes/README.md)
+- [Vector Databases Service](pkg/registry/vectordb/README.md)
 
 ## Example Tools
 
@@ -628,6 +630,8 @@ Each service provides a detailed README describing all available tools, resource
 - Delete a VPC peering connection: `vpc-peering-delete`
 - Search DigitalOcean documentation: `docs-search`
 - Get a quickstart guide for a service: `docs-get-quickstart`
+- Find troubleshooting docs for an error: `docs-troubleshoot`
+- Discover pages related to a docs page: `docs-get-related`
 
 ## Contributing
 

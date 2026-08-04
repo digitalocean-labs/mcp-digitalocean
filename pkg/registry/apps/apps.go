@@ -9,6 +9,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 
 	_ "embed"
 )
@@ -334,17 +335,33 @@ func (a *AppPlatformTool) getAppLogs(ctx context.Context, req mcp.CallToolReques
 	return mcp.NewToolResultText(string(logsJSON)), nil
 }
 
+// newRawSchemaTool builds a raw-schema tool and applies the shared annotation
+// options. mcp.NewToolWithRawSchema does not accept ToolOptions, but the hint
+// and risk options only set annotations and _meta (never the input schema), so
+// applying them here is safe.
+func newRawSchemaTool(name, description string, schema []byte, opts ...mcp.ToolOption) mcp.Tool {
+	tool := mcp.NewToolWithRawSchema(name, description, schema)
+	for _, opt := range opts {
+		opt(&tool)
+	}
+	return tool
+}
+
 func (a *AppPlatformTool) Tools() []server.ServerTool {
 	tools := []server.ServerTool{
 		{
 			Handler: a.getDeploymentStatus,
 			Tool: mcp.NewTool("apps-get-deployment-status",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Retrieves the active deployment for an application on DigitalOcean App Platform. This is useful for getting the current state of an app's latest deployment and it's health status."),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID of the app to retrieve active deployment for"))),
 		},
 		{
 			Handler: a.listApps,
 			Tool: mcp.NewTool("apps-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all applications on DigitalOcean App Platform. By default, we only return a summary of the apps. To get detailed information about an app, use the `apps-get-info` with the app id."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultPage), mcp.Description("The page number to retrieve (default is 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultPageSize), mcp.Description("The number of items per page (default is 200)")),
@@ -353,37 +370,46 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 		{
 			Handler: a.deleteApp,
 			Tool: mcp.NewTool("apps-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete an existing app on DigitalOcean App Platform. This is a destructive operation and cannot be undone."),
-				mcp.WithDestructiveHintAnnotation(true),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID of the app we want to delete.")),
 			),
 		},
 		{
 			Handler: a.getAppInfo,
 			Tool: mcp.NewTool("apps-get-info",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get information about an application on DigitalOcean App Platform"),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID of the app to retrieve information for")),
 			),
 		},
 		{
 			Handler: a.createAppFromAppSpec,
-			Tool: mcp.NewToolWithRawSchema(
+			Tool: newRawSchemaTool(
 				"apps-create-app-from-spec",
 				"Creates an application from a given app spec. Within the app spec, a source has to be provided. The source can be a Git repository, a Dockerfile, or a container image.",
 				appCreateSchemaJSON,
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 			),
 		},
 		{
 			Handler: a.updateApp,
-			Tool: mcp.NewToolWithRawSchema(
+			Tool: newRawSchemaTool(
 				"apps-update",
 				"Updates an existing application on DigitalOcean App Platform. The app ID and the AppSpec must be provided in the request.",
 				appUpdateSchemaJSON,
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
 			),
 		},
 		{
 			Handler: a.getAppLogs,
 			Tool: mcp.NewTool("apps-get-logs",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Retrieves app logs for a specific app deployment and component on DigitalOcean App Platform. Returns both live and historic log URLs."),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID")),
 				mcp.WithString("DeploymentID", mcp.Required(), mcp.Description("The deployment ID")),
