@@ -36,6 +36,10 @@ const (
 	// server's MCP resource URL so the backend can decrypt and validate the
 	// OAuth audience / resource indicator.
 	resourceIdentifierHeader = "X-Encrypted-Resource-Identifier"
+	// oauthTokenPrefix marks a token issued through the OAuth flow. Only those
+	// tokens carry an audience the backend can validate, so personal access
+	// tokens must not be sent with the resource identifier header.
+	oauthTokenPrefix = "doo_"
 )
 
 // getEnv retrieves the value of the environment variable named by the key.
@@ -187,7 +191,7 @@ func main() {
 	if keyB64 := strings.TrimSpace(*resourceEncryptionKey); keyB64 != "" {
 		resourceURL := strings.TrimSpace(*serverURLFlag)
 		if resourceURL == "" {
-			logger.Error("--mcp-resource-url / MCP_RESOURCE_URL is required when --encrypted-resource-identifier is set")
+			logger.Error("--mcp-resource-url / MCP_RESOURCE_URL is required when --encrypted-resource-key is set")
 			os.Exit(1)
 		}
 		key, err := resourceid.DecodeKey(keyB64)
@@ -287,7 +291,7 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	// When running as a remote MCP server, attach the encrypted MCP resource URL
 	// as a header on every request to the public API so the backend can decrypt
 	// and validate the OAuth audience / resource indicator for this server.
-	if encryptedResourceHeader != "" {
+	if encryptedResourceHeader != "" && strings.HasPrefix(cleanToken, oauthTokenPrefix) {
 		opts = append(opts, godo.SetRequestHeaders(map[string]string{
 			resourceIdentifierHeader: encryptedResourceHeader,
 		}))
