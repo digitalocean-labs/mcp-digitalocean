@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 // FirewallTool provides firewall management tools
@@ -410,6 +411,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.getFirewall,
 			Tool: mcp.NewTool("firewall-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get firewall information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall")),
 			),
@@ -417,6 +420,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.listFirewalls,
 			Tool: mcp.NewTool("firewall-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List firewalls with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -425,6 +430,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.createFirewall,
 			Tool: mcp.NewTool("firewall-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new firewall"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the firewall")),
 				mcp.WithString("InboundProtocol", mcp.Required(), mcp.Description("Protocol for inbound rule")),
@@ -446,6 +453,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.deleteFirewall,
 			Tool: mcp.NewTool("firewall-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to delete")),
 			),
@@ -453,6 +462,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.addDroplets,
 			Tool: mcp.NewTool("firewall-add-droplets",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Adds one or more droplets to a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to apply to droplets")),
 				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("Droplet IDs to apply the firewall to"), mcp.Items(map[string]any{
@@ -464,6 +475,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.addTags,
 			Tool: mcp.NewTool("firewall-add-tags",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Adds one or more tags to a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to update tags")),
 				mcp.WithArray("Tags", mcp.Required(), mcp.Description("Tags to apply the firewall to"), mcp.Items(map[string]any{
@@ -476,6 +489,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.removeDroplets,
 			Tool: mcp.NewTool("firewall-remove-droplets",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Removes one or more droplets from a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to remove droplets from")),
 				mcp.WithArray("DropletIDs", mcp.Required(), mcp.Description("Droplet IDs to remove from the firewall"), mcp.Items(map[string]any{
@@ -487,6 +502,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.removeTags,
 			Tool: mcp.NewTool("firewall-remove-tags",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Removes one or more tags from a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to update tags")),
 				mcp.WithArray("Tags", mcp.Required(), mcp.Description("Tags to remove from the firewall"), mcp.Items(map[string]any{
@@ -498,6 +515,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.addRules,
 			Tool: mcp.NewTool("firewall-add-rules",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Add one or more rules to a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to add rules to")),
 				mcp.WithArray("InboundRules", mcp.Description("Inbound rules to add"), mcp.Items(map[string]any{
@@ -551,6 +570,8 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 		{
 			Handler: f.removeRules,
 			Tool: mcp.NewTool("firewall-remove-rules",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Remove one or more rules from a firewall"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall to remove rules from")),
 				mcp.WithArray("InboundRules", mcp.Description("Inbound rules to remove"), mcp.Items(map[string]any{

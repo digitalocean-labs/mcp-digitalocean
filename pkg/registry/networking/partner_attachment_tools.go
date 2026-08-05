@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type PartnerAttachmentTool struct {
@@ -195,6 +196,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.getPartnerAttachment,
 			Tool: mcp.NewTool("partner-attachment-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get partner attachment information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -202,6 +205,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.listPartnerAttachments,
 			Tool: mcp.NewTool("partner-attachment-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List partner attachments with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -210,6 +215,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.createPartnerAttachment,
 			Tool: mcp.NewTool("partner-attachment-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new partner attachment"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the partner attachment")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region for the partner attachment")),
@@ -219,6 +226,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.deletePartnerAttachment,
 			Tool: mcp.NewTool("partner-attachment-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment to delete")),
 			),
@@ -226,6 +235,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.getServiceKey,
 			Tool: mcp.NewTool("partner-attachment-get-service-key",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the service key of a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -233,6 +244,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.getBGPConfig,
 			Tool: mcp.NewTool("partner-attachment-get-bgp-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the BGP configuration of a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -240,6 +253,8 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 		{
 			Handler: p.updatePartnerAttachment,
 			Tool: mcp.NewTool("partner-attachment-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment to update")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the partner attachment")),

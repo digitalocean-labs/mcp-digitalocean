@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type BYOIPPrefixTool struct {
@@ -173,6 +174,8 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getBYOIPPrefix,
 			Tool: mcp.NewTool("byoip-prefix-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get BYOIP prefix information by UUID"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("The UUID of the BYOIP prefix")),
 			),
@@ -180,6 +183,8 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 		{
 			Handler: t.listBYOIPPrefix,
 			Tool: mcp.NewTool("byoip-prefix-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List BYOIP prefixes"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Number of items per page")),
@@ -188,6 +193,8 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 		{
 			Handler: t.getByOIPPrefixResources,
 			Tool: mcp.NewTool("byoip-prefix-resources-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get all resources for a BYOIP prefix"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("The UUID of the BYOIP prefix")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
@@ -197,6 +204,8 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 		{
 			Handler: t.createBYOIPPrefix,
 			Tool: mcp.NewTool("byoip-prefix-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new BYOIP prefix"),
 				mcp.WithString("Prefix", mcp.Required(), mcp.Description("The CIDR of the BYOIP prefix")),
 				mcp.WithString("Signature", mcp.Required(), mcp.Description("The signature for the prefix")),
@@ -206,6 +215,8 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 		{
 			Handler: t.deleteBYOIPPrefix,
 			Tool: mcp.NewTool("byoip-prefix-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a BYOIP prefix"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("The UUID of the BYOIP prefix")),
 			),
