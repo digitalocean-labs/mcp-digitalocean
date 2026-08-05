@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type KeysTool struct {
@@ -241,6 +242,8 @@ func (s *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: s.listSpacesKeys,
 			Tool: mcp.NewTool("spaces-key-list",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List all Spaces keys"),
 				mcp.WithNumber("Page", mcp.Required(), mcp.DefaultNumber(1), mcp.Description("Page number for pagination")),
 				mcp.WithNumber("PerPage", mcp.Required(), mcp.DefaultNumber(10), mcp.Description("Number of items per page"), mcp.Max(100)),
@@ -249,6 +252,8 @@ func (s *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getSpacesKey,
 			Tool: mcp.NewTool("spaces-key-get",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a specific Spaces key"),
 				mcp.WithString("AccessKey", mcp.Required(), mcp.Description("Access Key of the Spaces key to retrieve")),
 			),
@@ -256,6 +261,8 @@ func (s *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: s.createSpacesKey,
 			Tool: mcp.NewTool("spaces-key-create",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Create a new Spaces key. SECURITY WARNING: The returned secret key should NEVER be added to files or committed to source control. Always store the secret key in environment variables (e.g., DO_SPACES_SECRET_KEY) and access it securely at runtime. The secret key should be treated as highly sensitive credential information and should not be displayed in logs or output when possible."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the Spaces key")),
 			),
@@ -263,6 +270,8 @@ func (s *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateSpacesKey,
 			Tool: mcp.NewTool("spaces-key-update",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update an existing Spaces key"),
 				mcp.WithString("AccessKey", mcp.Required(), mcp.Description("Access Key of the Spaces key to update")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the Spaces key")),
@@ -271,6 +280,8 @@ func (s *KeysTool) Tools() []server.ServerTool {
 		{
 			Handler: s.deleteSpacesKey,
 			Tool: mcp.NewTool("spaces-key-delete",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a Spaces key"),
 				mcp.WithString("AccessKey", mcp.Required(), mcp.Description("Access Key of the Spaces key to delete")),
 			),
