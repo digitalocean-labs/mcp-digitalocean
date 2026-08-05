@@ -262,7 +262,7 @@ func (s *KeysTool) Tools() []server.ServerTool {
 			Handler: s.createSpacesKey,
 			Tool: mcp.NewTool("spaces-key-create",
 				common.WithHints(common.HintsCreate),
-				common.WithRisk(common.RiskMedium),
+				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Create a new Spaces key. SECURITY WARNING: The returned secret key should NEVER be added to files or committed to source control. Always store the secret key in environment variables (e.g., DO_SPACES_SECRET_KEY) and access it securely at runtime. The secret key should be treated as highly sensitive credential information and should not be displayed in logs or output when possible."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the Spaces key")),
 			),

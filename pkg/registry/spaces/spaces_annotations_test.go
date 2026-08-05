@@ -30,7 +30,7 @@ var expectedAnnotations = map[string]struct {
 	// keys_tools.go
 	"spaces-key-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"spaces-key-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"spaces-key-create": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"spaces-key-create": {false, false, false, false, common.OpCreate, common.RiskHigh, false, false},
 	"spaces-key-update": {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"spaces-key-delete": {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
 
