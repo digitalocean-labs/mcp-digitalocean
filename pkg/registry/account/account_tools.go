@@ -46,6 +46,7 @@ func (a *AccountTools) Tools() []server.ServerTool {
 			Handler: a.getAccountInformation,
 			Tool: mcp.NewTool("account-get-information",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Retrieves account information for the current user"),
 			),
 		},

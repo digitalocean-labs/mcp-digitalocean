@@ -48,6 +48,7 @@ func (b *BalanceTools) Tools() []server.ServerTool {
 			Handler: b.getBalance,
 			Tool: mcp.NewTool("balance-get",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get balance information for the user account"),
 			),
 		},

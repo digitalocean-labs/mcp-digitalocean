@@ -66,6 +66,7 @@ func (b *BillingTools) Tools() []server.ServerTool {
 			Handler: b.listBillingHistory,
 			Tool: mcp.NewTool("billing-history-list",
 				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List billing history with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultBillingPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultBillingPageSize), mcp.Description("Items per page")),
