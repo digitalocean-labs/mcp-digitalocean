@@ -23,7 +23,7 @@ func TestListOneClickApps(t *testing.T) {
 	t.Run("list droplet 1-click apps", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name:      "1-click-list",
+				Name:      "marketplace-1-click-list",
 				Arguments: map[string]interface{}{},
 			},
 		})
@@ -51,7 +51,7 @@ func TestListOneClickApps(t *testing.T) {
 	t.Run("list kubernetes 1-click apps", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-list",
+				Name: "marketplace-1-click-list",
 				Arguments: map[string]interface{}{
 					"Type": "kubernetes",
 				},
@@ -145,7 +145,7 @@ func TestInstallKubernetesApps(t *testing.T) {
 
 	listResp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
-			Name: "1-click-list",
+			Name: "marketplace-1-click-list",
 			Arguments: map[string]interface{}{
 				"Type": "kubernetes",
 			},
@@ -173,7 +173,7 @@ func TestInstallKubernetesApps(t *testing.T) {
 
 		installResp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": cluster.ID,
 					"AppSlugs":    []string{appSlug},
@@ -209,7 +209,7 @@ func TestInstallKubernetesApps(t *testing.T) {
 
 		installResp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": cluster.ID,
 					"AppSlugs":    appSlugs,
@@ -239,7 +239,7 @@ func TestInstallKubernetesApps_InvalidInputs(t *testing.T) {
 	t.Run("missing cluster UUID", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"AppSlugs": []string{"monitoring"},
 				},
@@ -258,7 +258,7 @@ func TestInstallKubernetesApps_InvalidInputs(t *testing.T) {
 	t.Run("missing app slugs", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": "test-cluster-uuid",
 				},
@@ -277,7 +277,7 @@ func TestInstallKubernetesApps_InvalidInputs(t *testing.T) {
 	t.Run("empty cluster UUID", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": "",
 					"AppSlugs":    []string{"monitoring"},
@@ -297,7 +297,7 @@ func TestInstallKubernetesApps_InvalidInputs(t *testing.T) {
 	t.Run("empty app slugs array", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": "test-cluster-uuid",
 					"AppSlugs":    []string{},
@@ -317,7 +317,7 @@ func TestInstallKubernetesApps_InvalidInputs(t *testing.T) {
 	t.Run("invalid cluster UUID", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
-				Name: "1-click-kubernetes-app-install",
+				Name: "marketplace-1-click-kubernetes-app-install",
 				Arguments: map[string]interface{}{
 					"ClusterUUID": "invalid-cluster-uuid-that-does-not-exist",
 					"AppSlugs":    []string{"monitoring"},
