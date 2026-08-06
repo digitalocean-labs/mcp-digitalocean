@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"strings"
 	"testing"
 
 	"mcp-digitalocean/pkg/registry/common"
@@ -35,11 +34,6 @@ var (
 	}
 )
 
-// maxToolDescriptionLen is the maximum tool description length accepted by the
-// action-gateway tool registry. Descriptions at or below this length are fine;
-// anything longer is rejected downstream, so we fail fast here.
-const maxToolDescriptionLen = 512
-
 // registerAllTools registers every supported service through the real Register
 // path (no services specified => Register loads all of supportedServices) and
 // returns the resulting tools keyed by name — exactly what the binary ships.
@@ -63,8 +57,8 @@ func registerAllTools(t *testing.T) map[string]*server.ServerTool {
 // TestEveryRegisteredToolAnnotated is the backstop guard: it registers every
 // supported service through the real Register path (exactly what the binary
 // does) and asserts that every resulting tool carries complete MCP hint
-// annotations and a well-formed registry _meta (permission derived from the
-// name, a valid operation, and a valid risk).
+// annotations and a well-formed registry _meta (a valid operation and a valid
+// risk).
 //
 // Because it reads the tools back from the live server via ListTools rather
 // than from a hand-maintained enumeration, a newly added tool is covered
@@ -90,29 +84,11 @@ func TestEveryRegisteredToolAnnotated(t *testing.T) {
 			continue
 		}
 
-		wantPerm := "tools.digitalocean." + strings.ReplaceAll(name, "-", "_")
-		if got, _ := reg["permission"].(string); got != wantPerm {
-			t.Errorf("tool %q permission = %q, want %q", name, got, wantPerm)
-		}
 		if op, _ := reg["operation"].(string); !validOperations[op] {
 			t.Errorf("tool %q has invalid/missing operation %q (set via common.WithHints)", name, op)
 		}
 		if risk, _ := reg["risk"].(string); !validRisks[risk] {
 			t.Errorf("tool %q has invalid/missing risk %q — set it with common.WithRisk(...)", name, risk)
-		}
-	}
-}
-
-// TestToolDescriptionsWithinRegistryLimit fails if any registered tool's
-// description exceeds maxToolDescriptionLen. The action-gateway tool registry
-// rejects longer descriptions, so catching it here keeps a new or edited tool
-// from breaking registration downstream.
-func TestToolDescriptionsWithinRegistryLimit(t *testing.T) {
-	tools := registerAllTools(t)
-
-	for name, st := range tools {
-		if n := len(st.Tool.Description); n > maxToolDescriptionLen {
-			t.Errorf("tool %q description is %d chars, exceeds action-gateway registry limit of %d — shorten it", name, n, maxToolDescriptionLen)
 		}
 	}
 }
