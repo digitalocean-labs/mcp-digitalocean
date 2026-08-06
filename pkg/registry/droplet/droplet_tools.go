@@ -2,8 +2,9 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -96,11 +97,11 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("droplet create", err), nil
 	}
-	jsonDroplet, err := json.MarshalIndent(droplet, "", "  ")
+	jsonDroplet, err := response.CompactJSON(droplet)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
 	}
-	return mcp.NewToolResultText(string(jsonDroplet)), nil
+	return mcp.NewToolResultText(jsonDroplet), nil
 }
 
 // deleteDroplet deletes a droplet
@@ -133,12 +134,12 @@ func (d *DropletTool) getDropletNeighbors(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonNeighbors, err := json.MarshalIndent(neighbors, "", "  ")
+	jsonNeighbors, err := response.CompactJSON(neighbors)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonNeighbors)), nil
+	return mcp.NewToolResultText(jsonNeighbors), nil
 }
 
 // enablePrivateNetworking enables private networking on a droplet
@@ -155,12 +156,12 @@ func (d *DropletTool) enablePrivateNetworking(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // getDropletKernels gets available kernels for a droplet
@@ -183,12 +184,12 @@ func (d *DropletTool) getDropletKernels(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonKernels, err := json.MarshalIndent(kernels, "", "  ")
+	jsonKernels, err := response.CompactJSON(kernels)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonKernels)), nil
+	return mcp.NewToolResultText(jsonKernels), nil
 }
 
 // Tools returns a list of tool functions
@@ -207,11 +208,11 @@ func (d *DropletTool) getDropletByID(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(droplet, "", "  ")
+	jsonData, err := response.CompactJSON(droplet)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // getDropletBackupPolicy returns the backup policy for a droplet.
@@ -231,11 +232,11 @@ func (d *DropletTool) getDropletBackupPolicy(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(policy, "", "  ")
+	jsonData, err := response.CompactJSON(policy)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 func (d *DropletTool) getDropletActionByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -257,11 +258,11 @@ func (d *DropletTool) getDropletActionByID(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(action, "", "  ")
+	jsonData, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // getDroplets lists all droplets for a user
@@ -317,12 +318,12 @@ func (d *DropletTool) getDroplets(ctx context.Context, req mcp.CallToolRequest) 
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(filteredDroplets, "", "  ")
+	jsonData, err := response.CompactJSON(filteredDroplets)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 func (d *DropletTool) Tools() []server.ServerTool {

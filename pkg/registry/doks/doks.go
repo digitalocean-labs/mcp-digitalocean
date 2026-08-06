@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"strings"
 
 	"github.com/digitalocean/godo"
@@ -64,12 +65,12 @@ func (d *DoksTool) getDoksCluster(ctx context.Context, req mcp.CallToolRequest) 
 	}
 
 	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
+	clusterJSON, err := response.CompactJSON(cluster)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return mcp.NewToolResultText(clusterJSON), nil
 }
 
 // ListDOKSClusters lists DOKS clusters
@@ -104,12 +105,12 @@ func (d *DoksTool) listDOKSClusters(ctx context.Context, req mcp.CallToolRequest
 	}
 
 	// Marshal the response
-	clustersJSON, err := json.MarshalIndent(clusters, "", "  ")
+	clustersJSON, err := response.CompactJSON(clusters)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(clustersJSON)), nil
+	return mcp.NewToolResultText(clustersJSON), nil
 }
 
 // CreateDOKSCluster creates a new Kubernetes cluster
@@ -140,12 +141,12 @@ func (d *DoksTool) createDOKSCluster(ctx context.Context, req mcp.CallToolReques
 	}
 
 	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
+	clusterJSON, err := response.CompactJSON(cluster)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal cluster", err), nil
 	}
 
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return mcp.NewToolResultText(clusterJSON), nil
 }
 
 // UpdateDOKSCluster updates a Kubernetes cluster
@@ -223,12 +224,12 @@ func (d *DoksTool) updateDOKSCluster(ctx context.Context, req mcp.CallToolReques
 	}
 
 	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
+	clusterJSON, err := response.CompactJSON(cluster)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal cluster", err), nil
 	}
 
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return mcp.NewToolResultText(clusterJSON), nil
 }
 
 // DeleteDOKSCluster deletes a Kubernetes cluster
@@ -309,12 +310,12 @@ func (d *DoksTool) getDOKSClusterUpgrades(ctx context.Context, req mcp.CallToolR
 	}
 
 	// Marshal the response
-	upgradesJSON, err := json.MarshalIndent(upgrades, "", "  ")
+	upgradesJSON, err := response.CompactJSON(upgrades)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal upgrades", err), nil
 	}
 
-	return mcp.NewToolResultText(string(upgradesJSON)), nil
+	return mcp.NewToolResultText(upgradesJSON), nil
 }
 
 // GetDOKSClusterKubeConfig gets the kubeconfig for a cluster
@@ -380,12 +381,12 @@ func (d *DoksTool) getDOKSClusterCredentials(ctx context.Context, req mcp.CallTo
 	result.ExpiresAt = credentials.ExpiresAt.String()
 
 	// Marshal the response
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
+	resultJSON, err := response.CompactJSON(result)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	return mcp.NewToolResultText(resultJSON), nil
 }
 
 // CreateDOKSNodePool creates a new node pool for a cluster
@@ -426,12 +427,12 @@ func (d *DoksTool) createDOKSNodePool(ctx context.Context, req mcp.CallToolReque
 	}
 
 	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
+	nodePoolJSON, err := response.CompactJSON(nodePool)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
 	}
 
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return mcp.NewToolResultText(nodePoolJSON), nil
 }
 
 // GetDOKSNodePool gets a node pool for a cluster
@@ -462,12 +463,12 @@ func (d *DoksTool) getDOKSNodePool(ctx context.Context, req mcp.CallToolRequest)
 	}
 
 	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
+	nodePoolJSON, err := response.CompactJSON(nodePool)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
 	}
 
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return mcp.NewToolResultText(nodePoolJSON), nil
 }
 
 // ListDOKSNodePools lists node pools for a cluster
@@ -492,12 +493,12 @@ func (d *DoksTool) listDOKSNodePools(ctx context.Context, req mcp.CallToolReques
 	}
 
 	// Marshal the response
-	nodePoolsJSON, err := json.MarshalIndent(nodePools, "", "  ")
+	nodePoolsJSON, err := response.CompactJSON(nodePools)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal node pools", err), nil
 	}
 
-	return mcp.NewToolResultText(string(nodePoolsJSON)), nil
+	return mcp.NewToolResultText(nodePoolsJSON), nil
 }
 
 // UpdateDOKSNodePool updates a node pool for a cluster
@@ -613,12 +614,12 @@ func (d *DoksTool) updateDOKSNodePool(ctx context.Context, req mcp.CallToolReque
 	}
 
 	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
+	nodePoolJSON, err := response.CompactJSON(nodePool)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
 	}
 
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return mcp.NewToolResultText(nodePoolJSON), nil
 }
 
 // DeleteDOKSNodePool deletes a node pool for a cluster
@@ -763,12 +764,12 @@ func (d *DoksTool) getKubernetesOptions(ctx context.Context, _ mcp.CallToolReque
 	}
 
 	// Marshal the response
-	optionsJSON, err := json.MarshalIndent(options, "", "  ")
+	optionsJSON, err := response.CompactJSON(options)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to marshal kubernetes options", err), nil
 	}
 
-	return mcp.NewToolResultText(string(optionsJSON)), nil
+	return mcp.NewToolResultText(optionsJSON), nil
 }
 
 // getDayFromString converts a day string to the format expected by the API

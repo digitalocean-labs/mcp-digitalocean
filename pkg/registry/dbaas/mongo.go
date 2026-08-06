@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -34,11 +35,11 @@ func (s *MongoTool) getMongoDBConfig(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
+	jsonCfg, err := response.CompactJSON(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return mcp.NewToolResultText(jsonCfg), nil
 }
 
 func (s *MongoTool) updateMongoDBConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

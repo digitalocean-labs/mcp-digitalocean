@@ -3,8 +3,8 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -39,12 +39,12 @@ func (da *DropletActionsTool) rebootDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // passwordResetDroplet resets the password for a droplet
@@ -61,12 +61,12 @@ func (da *DropletActionsTool) passwordResetDroplet(ctx context.Context, req mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // RebuildByImageSlugDroplet rebuilds a droplet using an image slug
@@ -84,12 +84,12 @@ func (da *DropletActionsTool) rebuildByImageSlugDroplet(ctx context.Context, req
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // powerCycleByTag power cycles droplets by tag
@@ -106,12 +106,12 @@ func (da *DropletActionsTool) powerCycleByTag(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // powerOnByTag powers on droplets by tag
@@ -128,12 +128,12 @@ func (da *DropletActionsTool) powerOnByTag(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // powerOffByTag powers off droplets by tag
@@ -150,12 +150,12 @@ func (da *DropletActionsTool) powerOffByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // shutdownByTag shuts down droplets by tag
@@ -172,12 +172,12 @@ func (da *DropletActionsTool) shutdownByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // enableBackupsByTag enables backups on droplets by tag
@@ -194,12 +194,12 @@ func (da *DropletActionsTool) enableBackupsByTag(ctx context.Context, req mcp.Ca
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // disableBackupsByTag disables backups on droplets by tag
@@ -216,12 +216,12 @@ func (da *DropletActionsTool) disableBackupsByTag(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // snapshotByTag takes a snapshot of droplets by tag
@@ -239,12 +239,12 @@ func (da *DropletActionsTool) snapshotByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // enableIPv6ByTag enables IPv6 on droplets by tag
@@ -261,12 +261,12 @@ func (da *DropletActionsTool) enableIPv6ByTag(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // enablePrivateNetworkingByTag enables private networking on droplets by tag
@@ -283,12 +283,12 @@ func (da *DropletActionsTool) enablePrivateNetworkingByTag(ctx context.Context, 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
+	jsonActions, err := response.CompactJSON(actions)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
 	}
 
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return mcp.NewToolResultText(jsonActions), nil
 }
 
 // powerCycleDroplet power cycles a droplet
@@ -305,12 +305,12 @@ func (da *DropletActionsTool) powerCycleDroplet(ctx context.Context, req mcp.Cal
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // powerOnDroplet powers on a droplet
@@ -327,12 +327,12 @@ func (da *DropletActionsTool) powerOnDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // powerOffDroplet powers off a droplet
@@ -349,12 +349,12 @@ func (da *DropletActionsTool) powerOffDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // shutdownDroplet shuts down a droplet
@@ -371,12 +371,12 @@ func (da *DropletActionsTool) shutdownDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // restoreDroplet restores a droplet to a backup image
@@ -394,12 +394,12 @@ func (da *DropletActionsTool) restoreDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // resizeDroplet resizes a droplet
@@ -418,12 +418,12 @@ func (da *DropletActionsTool) resizeDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // rebuildDroplet rebuilds a droplet using a provided image
@@ -441,12 +441,12 @@ func (da *DropletActionsTool) rebuildDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // renameDroplet renames a droplet
@@ -464,12 +464,12 @@ func (da *DropletActionsTool) renameDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // changeKernel changes a droplet's kernel
@@ -487,12 +487,12 @@ func (da *DropletActionsTool) changeKernel(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // enableIPv6 enables IPv6 on a droplet
@@ -509,12 +509,12 @@ func (da *DropletActionsTool) enableIPv6(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // enableBackups enables backups on a droplet
@@ -531,12 +531,12 @@ func (da *DropletActionsTool) enableBackups(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // disableBackups disables backups on a droplet
@@ -553,12 +553,12 @@ func (da *DropletActionsTool) disableBackups(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // snapshotDroplet creates a snapshot of a droplet
@@ -576,12 +576,12 @@ func (da *DropletActionsTool) snapshotDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
+	jsonAction, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return mcp.NewToolResultText(jsonAction), nil
 }
 
 // Tools returns a list of tool functions

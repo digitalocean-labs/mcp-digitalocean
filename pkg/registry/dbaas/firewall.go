@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -37,12 +38,12 @@ func (s *FirewallTool) getFirewallRules(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRules, err := json.MarshalIndent(rules, "", "  ")
+	jsonRules, err := response.CompactJSON(rules)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonRules)), nil
+	return mcp.NewToolResultText(jsonRules), nil
 }
 
 func (s *FirewallTool) updateFirewallRules(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

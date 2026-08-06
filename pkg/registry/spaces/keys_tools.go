@@ -2,8 +2,8 @@ package spaces
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -57,12 +57,12 @@ func (s *KeysTool) createSpacesKey(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
+	jsonKey, err := response.CompactJSON(key)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return mcp.NewToolResultText(jsonKey), nil
 }
 
 func (s *KeysTool) updateSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -110,12 +110,12 @@ func (s *KeysTool) updateSpacesKey(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
+	jsonKey, err := response.CompactJSON(key)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return mcp.NewToolResultText(jsonKey), nil
 }
 
 func (s *KeysTool) deleteSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -194,12 +194,12 @@ func (s *KeysTool) listSpacesKeys(ctx context.Context, req mcp.CallToolRequest) 
 		Meta: resp.Meta,
 	}
 
-	jsonKeys, err := json.MarshalIndent(result, "", "  ")
+	jsonKeys, err := response.CompactJSON(result)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonKeys)), nil
+	return mcp.NewToolResultText(jsonKeys), nil
 }
 
 func (s *KeysTool) getSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -229,12 +229,12 @@ func (s *KeysTool) getSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
+	jsonKey, err := response.CompactJSON(key)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return mcp.NewToolResultText(jsonKey), nil
 }
 
 func (s *KeysTool) Tools() []server.ServerTool {

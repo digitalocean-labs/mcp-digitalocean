@@ -2,8 +2,8 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -188,11 +188,11 @@ func (l *LoadBalancersTool) createLoadBalancer(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
+	jsonLB, err := response.CompactJSON(lb)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return mcp.NewToolResultText(jsonLB), nil
 }
 
 func (l *LoadBalancersTool) deleteLoadBalancer(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -242,11 +242,11 @@ func (l *LoadBalancersTool) getLoadBalancer(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
+	jsonLB, err := response.CompactJSON(lb)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return mcp.NewToolResultText(jsonLB), nil
 }
 
 func (l *LoadBalancersTool) listLoadBalancers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -272,11 +272,11 @@ func (l *LoadBalancersTool) listLoadBalancers(ctx context.Context, req mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLBs, err := json.MarshalIndent(lbs, "", "  ")
+	jsonLBs, err := response.CompactJSON(lbs)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonLBs)), nil
+	return mcp.NewToolResultText(jsonLBs), nil
 }
 
 func (l *LoadBalancersTool) addDroplets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -462,11 +462,11 @@ func (l *LoadBalancersTool) updateLoadBalancer(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
+	jsonLB, err := response.CompactJSON(lb)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return mcp.NewToolResultText(jsonLB), nil
 }
 
 func (l *LoadBalancersTool) addForwardingRules(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

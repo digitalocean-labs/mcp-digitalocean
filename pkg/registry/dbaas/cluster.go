@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"strconv"
 	"strings"
 
@@ -51,11 +52,11 @@ func (s *ClusterTool) listCluster(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonClusters, err := json.MarshalIndent(clusters, "", "  ")
+	jsonClusters, err := response.CompactJSON(clusters)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonClusters)), nil
+	return mcp.NewToolResultText(jsonClusters), nil
 }
 
 func (s *ClusterTool) getCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -73,11 +74,11 @@ func (s *ClusterTool) getCluster(ctx context.Context, req mcp.CallToolRequest) (
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCluster, err := json.MarshalIndent(cluster, "", "  ")
+	jsonCluster, err := response.CompactJSON(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCluster)), nil
+	return mcp.NewToolResultText(jsonCluster), nil
 }
 
 func (s *ClusterTool) createCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -119,11 +120,11 @@ func (s *ClusterTool) createCluster(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCluster, err := json.MarshalIndent(cluster, "", "  ")
+	jsonCluster, err := response.CompactJSON(cluster)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCluster)), nil
+	return mcp.NewToolResultText(jsonCluster), nil
 }
 
 func (s *ClusterTool) deleteCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -194,11 +195,11 @@ func (s *ClusterTool) getCA(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCA, err := json.MarshalIndent(ca, "", "  ")
+	jsonCA, err := response.CompactJSON(ca)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCA)), nil
+	return mcp.NewToolResultText(jsonCA), nil
 }
 
 func (s *ClusterTool) listBackups(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -233,11 +234,11 @@ func (s *ClusterTool) listBackups(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonBackups, err := json.MarshalIndent(backups, "", "  ")
+	jsonBackups, err := response.CompactJSON(backups)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonBackups)), nil
+	return mcp.NewToolResultText(jsonBackups), nil
 }
 
 func (s *ClusterTool) listOptions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -249,11 +250,11 @@ func (s *ClusterTool) listOptions(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonOptions, err := json.MarshalIndent(options, "", "  ")
+	jsonOptions, err := response.CompactJSON(options)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonOptions)), nil
+	return mcp.NewToolResultText(jsonOptions), nil
 }
 
 func (s *ClusterTool) upgradeMajorVersion(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -327,11 +328,11 @@ func (s *ClusterTool) startOnlineMigration(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonStatus, err := json.MarshalIndent(status, "", "  ")
+	jsonStatus, err := response.CompactJSON(status)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonStatus)), nil
+	return mcp.NewToolResultText(jsonStatus), nil
 }
 
 func (s *ClusterTool) stopOnlineMigration(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -369,11 +370,11 @@ func (s *ClusterTool) getOnlineMigrationStatus(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonStatus, err := json.MarshalIndent(status, "", "  ")
+	jsonStatus, err := response.CompactJSON(status)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonStatus)), nil
+	return mcp.NewToolResultText(jsonStatus), nil
 }
 
 func (s *ClusterTool) Tools() []server.ServerTool {

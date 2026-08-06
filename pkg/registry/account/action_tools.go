@@ -2,8 +2,8 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"mcp-digitalocean/pkg/registry/common"
 
@@ -43,11 +43,11 @@ func (a *ActionTools) getAction(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(action, "", "  ")
+	jsonData, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // listActions lists actions with pagination support.
@@ -70,11 +70,11 @@ func (a *ActionTools) listActions(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(actions, "", "  ")
+	jsonData, err := response.CompactJSON(actions)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // Tools returns the list of server tools for actions.

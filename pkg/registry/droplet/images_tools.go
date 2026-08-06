@@ -2,8 +2,8 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -84,12 +84,12 @@ func (i *ImageTool) listImages(ctx context.Context, req mcp.CallToolRequest) (*m
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(filteredImages, "", "  ")
+	jsonData, err := response.CompactJSON(filteredImages)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // getImageByID retrieves a specific image by its numeric ID.
@@ -109,12 +109,12 @@ func (i *ImageTool) getImageByID(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
+	jsonData, err := response.CompactJSON(image)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // createImage creates a new custom image from a URL.
@@ -161,12 +161,12 @@ func (i *ImageTool) createImage(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
+	jsonData, err := response.CompactJSON(image)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // updateImage updates an image's name.
@@ -194,12 +194,12 @@ func (i *ImageTool) updateImage(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
+	jsonData, err := response.CompactJSON(image)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // deleteImage deletes an image/snapshot by its numeric ID.

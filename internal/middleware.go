@@ -38,6 +38,20 @@ const (
 	ToolCallSuccess = "tool_call_success"
 )
 
+// calculateResponseSize calculates the total size of response content in bytes.
+func calculateResponseSize(result *mcp.CallToolResult) int {
+	if result == nil {
+		return 0
+	}
+	totalSize := 0
+	for _, content := range result.Content {
+		if textContent, ok := content.(mcp.TextContent); ok {
+			totalSize += len(textContent.Text)
+		}
+	}
+	return totalSize
+}
+
 // ToolMiddleware wraps a tool handler to log duration and success/error status.
 func (m *ToolLoggingMiddleware) ToolMiddleware(next server.ToolHandlerFunc) server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -70,9 +84,11 @@ func (m *ToolLoggingMiddleware) ToolMiddleware(next server.ToolHandlerFunc) serv
 			return result, err
 		}
 
+		responseSize := calculateResponseSize(result)
 		m.Logger.Info("tool call result",
 			"tool", req.Params.Name,
 			"duration_seconds", time.Since(start).Seconds(),
+			"response_bytes", responseSize,
 			"tool_call_outcome", ToolCallSuccess,
 		)
 

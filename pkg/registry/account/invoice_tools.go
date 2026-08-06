@@ -2,8 +2,8 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -46,11 +46,11 @@ func (i *InvoiceTools) listInvoices(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(invoices, "", "  ")
+	jsonData, err := response.CompactJSON(invoices)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // getInvoice retrieves a specific invoice by UUID.
@@ -80,12 +80,12 @@ func (i *InvoiceTools) getInvoice(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(invoice, "", "  ")
+	jsonData, err := response.CompactJSON(invoice)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // Tools returns the list of server tools for invoices.

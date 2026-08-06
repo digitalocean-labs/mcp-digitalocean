@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"strconv"
 	"strings"
 
@@ -34,11 +35,11 @@ func (s *KafkaTool) getKafkaConfig(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
+	jsonCfg, err := response.CompactJSON(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return mcp.NewToolResultText(jsonCfg), nil
 }
 
 func (s *KafkaTool) updateKafkaConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -119,11 +120,11 @@ func (s *KafkaTool) listTopics(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopics, err := json.MarshalIndent(topics, "", "  ")
+	jsonTopics, err := response.CompactJSON(topics)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonTopics)), nil
+	return mcp.NewToolResultText(jsonTopics), nil
 }
 
 func (s *KafkaTool) createTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -176,11 +177,11 @@ func (s *KafkaTool) createTopic(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopic, err := json.MarshalIndent(topic, "", "  ")
+	jsonTopic, err := response.CompactJSON(topic)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonTopic)), nil
+	return mcp.NewToolResultText(jsonTopic), nil
 }
 
 func (s *KafkaTool) getTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -201,11 +202,11 @@ func (s *KafkaTool) getTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopic, err := json.MarshalIndent(topic, "", "  ")
+	jsonTopic, err := response.CompactJSON(topic)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonTopic)), nil
+	return mcp.NewToolResultText(jsonTopic), nil
 }
 
 func (s *KafkaTool) deleteTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

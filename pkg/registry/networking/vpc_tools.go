@@ -2,8 +2,8 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -39,11 +39,11 @@ func (v *VPCTool) getVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
+	jsonVPC, err := response.CompactJSON(vpc)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonVPC)), nil
+	return mcp.NewToolResultText(jsonVPC), nil
 }
 
 // listVPCs lists VPCs with pagination support
@@ -66,11 +66,11 @@ func (v *VPCTool) listVPCs(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonVPCs, err := json.MarshalIndent(vpcs, "", "  ")
+	jsonVPCs, err := response.CompactJSON(vpcs)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonVPCs)), nil
+	return mcp.NewToolResultText(jsonVPCs), nil
 }
 
 // createVPC creates a new VPC
@@ -103,12 +103,12 @@ func (v *VPCTool) createVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
+	jsonVPC, err := response.CompactJSON(vpc)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonVPC)), nil
+	return mcp.NewToolResultText(jsonVPC), nil
 }
 
 // listVPCMembers lists members of a VPC
@@ -125,12 +125,12 @@ func (v *VPCTool) listVPCMembers(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonMembers, err := json.MarshalIndent(members, "", "  ")
+	jsonMembers, err := response.CompactJSON(members)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonMembers)), nil
+	return mcp.NewToolResultText(jsonMembers), nil
 }
 
 // deleteVPC deletes a VPC

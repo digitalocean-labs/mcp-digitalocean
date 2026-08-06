@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"strconv"
 
 	"github.com/digitalocean/godo"
@@ -42,11 +43,11 @@ func (s *UserTool) getUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
+	jsonUser, err := response.CompactJSON(dbUser)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return mcp.NewToolResultText(jsonUser), nil
 }
 
 func (s *UserTool) listUsers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -83,12 +84,12 @@ func (s *UserTool) listUsers(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUsers, err := json.MarshalIndent(users, "", "  ")
+	jsonUsers, err := response.CompactJSON(users)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonUsers)), nil
+	return mcp.NewToolResultText(jsonUsers), nil
 }
 
 func (s *UserTool) createUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -136,12 +137,12 @@ func (s *UserTool) createUser(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
+	jsonUser, err := response.CompactJSON(dbUser)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return mcp.NewToolResultText(jsonUser), nil
 }
 
 func (s *UserTool) updateUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -185,12 +186,12 @@ func (s *UserTool) updateUser(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
+	jsonUser, err := response.CompactJSON(dbUser)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return mcp.NewToolResultText(jsonUser), nil
 }
 
 func (s *UserTool) deleteUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
