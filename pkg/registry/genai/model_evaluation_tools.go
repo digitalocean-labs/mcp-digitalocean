@@ -1224,6 +1224,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.createCustomMetric,
 			Tool: mcp.NewTool(
 				"genai-model-eval-create-custom-metric",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the scoring_prompt. The created metric appears in genai-model-eval-list-metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) and its metric_uuid can be used in evaluation runs and presets."),
 				mcp.WithString("metric_name", mcp.Required(), mcp.Description("Display name for the custom metric")),
 				mcp.WithString("scoring_prompt", mcp.Required(), mcp.Description("LLM-as-judge scoring prompt describing how the judge model should score a response")),
@@ -1235,6 +1237,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.updateCustomMetric,
 			Tool: mcp.NewTool(
 				"genai-model-eval-update-custom-metric",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Update an existing custom model evaluation metric. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be updated; built-in catalog metrics cannot. Provide at least one field to change."),
 				mcp.WithString("metric_uuid", mcp.Required(), mcp.Description("UUID of the custom metric to update (get it from genai-model-eval-list-metrics or genai-model-eval-create-custom-metric)")),
 				mcp.WithString("metric_name", mcp.Description("New display name for the metric")),
@@ -1247,6 +1251,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 			Handler: met.deleteCustomMetric,
 			Tool: mcp.NewTool(
 				"genai-model-eval-delete-custom-metric",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Delete a custom model evaluation metric by UUID. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be deleted; built-in catalog metrics cannot. After deletion the metric is no longer available for new evaluation runs; completed runs keep their results.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the metric_uuid and that the metric will no longer be usable in new runs; ask for yes/no."),
