@@ -53,6 +53,9 @@ var expectedAnnotations = map[string]struct {
 	"genai-model-eval-delete-preset":            {false, true, true, false, common.OpDelete, common.RiskLow, false, false},
 	"genai-model-eval-delete-dataset":           {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
 	"genai-model-eval-run-workflow":             {false, false, false, false, common.OpUpdate, common.RiskMedium, false, false},
+	"genai-model-eval-create-custom-metric":     {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
+	"genai-model-eval-update-custom-metric":     {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"genai-model-eval-delete-custom-metric":     {false, true, true, false, common.OpDelete, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
