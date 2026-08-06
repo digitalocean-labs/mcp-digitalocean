@@ -35,10 +35,10 @@ const (
 	genaiModelEvalUserMessageDescription = "The end user's verbatim chat message after they reviewed prompt_for_user (typically yes). " +
 		"Copy from the user's message only — never use assistant-generated text. Omit on the first call."
 
-	genaiModelEvalCreateRunToolDescription = "Create a model evaluation run. Provide either an eval_preset_uuid to use a preset, or provide dataset_uuid, judge_model_name, and metric_uuids for inline configuration.\n\n" +
-		"MODEL NAMES: candidate_model_name accepts display or API (inference) names. When candidate_model_uuid / judge_model_uuid are omitted, UUIDs are fetched from the catalog API and shown in the consent preview.\n\n" +
-		"USER CONFIRMATION (chat): (1) Call without user_message — returns prompt_for_user. Post it to the end user and wait for their chat reply. " +
-		"(2) Call again with user_message set to that exact reply and the same arguments. The run is not created until step 2."
+	genaiModelEvalCreateRunToolDescription = "Create a model evaluation run. Provide either eval_preset_uuid, or dataset_uuid + judge_model_name + metric_uuids for inline configuration.\n\n" +
+		"MODEL NAMES: candidate_model_name accepts display or API names; omitted *_model_uuid are resolved from the catalog for the consent preview.\n\n" +
+		"CONFIRMATION (chat): (1) call without user_message to get prompt_for_user, show it to the user, wait for their reply; " +
+		"(2) call again with user_message set to that reply and same arguments. Created only on step 2."
 
 	genaiModelEvalWorkflowToolDescription = "Run a complete model evaluation workflow: upload dataset, create evaluation run, and poll for results.\n\n" +
 		"MODEL NAMES and USER CONSENT: same two-step chat confirmation as genai-model-eval-create-run."
