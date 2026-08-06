@@ -336,7 +336,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the droplet")),
 				mcp.WithString("Size", mcp.Required(), mcp.Description("Slug of the droplet size (e.g., s-1vcpu-1gb)")),
 				mcp.WithNumber("ImageID", mcp.Description("Numeric ID of the image to use. Mutually exclusive with ImageSlug.")),
-				mcp.WithString("ImageSlug", mcp.Description("Slug of the image to use (e.g., ubuntu-22-04-x64, wordpress-20-04). Use this for 1-click marketplace app images; slugs can be discovered via the 1-click-list tool. Mutually exclusive with ImageID.")),
+				mcp.WithString("ImageSlug", mcp.Description("Slug of the image to use (e.g., ubuntu-22-04-x64, wordpress-20-04). Use this for 1-click marketplace app images; slugs can be discovered via the marketplace-1-click-list tool. Mutually exclusive with ImageID.")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Slug of the region (e.g., nyc3)")),
 				mcp.WithBoolean("Backup", mcp.DefaultBool(false), mcp.Description("Whether to enable backups")),
 				mcp.WithBoolean("Monitoring", mcp.DefaultBool(false), mcp.Description("Whether to enable monitoring")),
