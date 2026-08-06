@@ -25,12 +25,11 @@ const (
 		"Omitted or false is rejected. Not required when the tool only returns a name-match list (partial name with no exact match)."
 
 	genaiCustomModelsDeleteToolDescription = "Delete a custom model by exact UUID or exact name.\n\n" +
-		"EXACT IDENTIFIER REQUIRED: Provide uuid OR name (at least one). Only a full UUID (8-4-4-4-12 hex) or an exact model name deletes. " +
-		"Partial uuid or partial name returns candidates only — never deletes, even if only one match. " +
-		"Never substitute a name or uuid from a prior partial-match list.\n\n" +
-		"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed to delete that model. " +
-		"Present name, uuid, and that deletion is permanent; ask for yes/no.\n\n" +
-		"If both uuid and name are set, they must refer to the same model."
+		"EXACT IDENTIFIER: provide uuid OR name. Only a full UUID (8-4-4-4-12 hex) or an exact name deletes; " +
+		"a partial value returns candidates only, never deletes. Never reuse a partial-match value.\n\n" +
+		"CONSENT (every delete): do not pass confirm_deletion: true until the user has explicitly agreed; " +
+		"show name, uuid, and that deletion is permanent, then ask yes/no. " +
+		"If uuid and name are both set, they must match the same model."
 )
 
 // DeleteModelMatchCandidate is a custom model returned when delete-by-name needs disambiguation.
