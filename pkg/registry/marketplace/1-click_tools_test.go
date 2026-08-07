@@ -28,8 +28,8 @@ func TestOneClickTool_Tools(t *testing.T) {
 		toolNames[i] = tool.Tool.Name
 	}
 
-	assert.Contains(t, toolNames, "1-click-list")
-	assert.Contains(t, toolNames, "1-click-kubernetes-app-install")
+	assert.Contains(t, toolNames, "marketplace-1-click-list")
+	assert.Contains(t, toolNames, "marketplace-1-click-kubernetes-app-install")
 }
 
 func setupOneClickToolWithMock(mockOneClick *MockOneClickService) *OneClickTool {

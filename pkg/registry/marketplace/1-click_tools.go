@@ -122,7 +122,7 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
 			Handler: o.listOneClickApps,
-			Tool: mcp.NewTool("1-click-list",
+			Tool: mcp.NewTool("marketplace-1-click-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List available 1-click applications from the DigitalOcean marketplace"),
@@ -131,7 +131,7 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: o.installKubernetesApps,
-			Tool: mcp.NewTool("1-click-kubernetes-app-install",
+			Tool: mcp.NewTool("marketplace-1-click-kubernetes-app-install",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Install 1-click applications on a Kubernetes cluster"),
