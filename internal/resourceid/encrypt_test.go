@@ -48,38 +48,6 @@ func decryptResourceIdentifier(key []byte, ciphertextB64 string) (string, error)
 	return string(plaintext), nil
 }
 
-func TestDecodeKey(t *testing.T) {
-	raw := testKey(t)
-	b64 := base64.StdEncoding.EncodeToString(raw)
-
-	got, err := DecodeKey(b64)
-	if err != nil {
-		t.Fatalf("DecodeKey() error = %v", err)
-	}
-	if len(got) != aes256KeySize {
-		t.Fatalf("DecodeKey() len = %d, want %d", len(got), aes256KeySize)
-	}
-	for i := range raw {
-		if got[i] != raw[i] {
-			t.Fatalf("DecodeKey() mismatch at %d", i)
-		}
-	}
-}
-
-func TestDecodeKey_Invalid(t *testing.T) {
-	cases := []string{
-		"not-base64!!!",
-		base64.StdEncoding.EncodeToString([]byte("too-short")),
-		base64.StdEncoding.EncodeToString(make([]byte, 16)),
-		"",
-	}
-	for _, c := range cases {
-		if _, err := DecodeKey(c); err != ErrInvalidKey {
-			t.Fatalf("DecodeKey(%q) error = %v, want %v", c, err, ErrInvalidKey)
-		}
-	}
-}
-
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	key := testKey(t)
 	plaintext := "https://droplets.mcp.digitalocean.com/mcp"
@@ -122,7 +90,15 @@ func TestEncryptProducesDifferentCiphertexts(t *testing.T) {
 }
 
 func TestEncryptResourceIdentifier_InvalidKey(t *testing.T) {
-	if _, err := EncryptResourceIdentifier([]byte("short"), "https://example.com/mcp"); err != ErrEncryptionFailed {
-		t.Fatalf("EncryptResourceIdentifier() error = %v, want %v", err, ErrEncryptionFailed)
+	cases := [][]byte{
+		[]byte("short"),
+		make([]byte, 16),
+		make([]byte, 64),
+		nil,
+	}
+	for _, key := range cases {
+		if _, err := EncryptResourceIdentifier(key, "https://example.com/mcp"); err != ErrInvalidKey {
+			t.Fatalf("EncryptResourceIdentifier() error = %v, want %v", err, ErrInvalidKey)
+		}
 	}
 }

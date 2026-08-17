@@ -28,8 +28,8 @@ var expectedAnnotations = map[string]struct {
 	parallelizable, streamingSafe                bool
 }{
 	// 1-click_tools.go
-	"1-click-list":                   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"1-click-kubernetes-app-install": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"marketplace-1-click-list":                   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"marketplace-1-click-kubernetes-app-install": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {

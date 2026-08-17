@@ -10,6 +10,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type KafkaTool struct {
@@ -286,6 +287,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.listTopics,
 			Tool: mcp.NewTool("db-cluster-list-topics",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List topics for a Kafka cluster by its ID. Supports pagination and filtering."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The Kafka cluster UUID")),
 				mcp.WithString("page", mcp.Description("Page number (string)")),
@@ -299,6 +302,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.createTopic,
 			Tool: mcp.NewTool("db-cluster-create-topic",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a topic for a Kafka cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -336,6 +341,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getTopic,
 			Tool: mcp.NewTool("db-cluster-get-topic",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a Kafka topic by name."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -344,6 +351,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.deleteTopic,
 			Tool: mcp.NewTool("db-cluster-delete-topic",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a Kafka topic by name."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -352,6 +361,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateTopic,
 			Tool: mcp.NewTool("db-cluster-update-topic",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a Kafka topic's partition count, replication factor, or config."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -389,6 +400,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getKafkaConfig,
 			Tool: mcp.NewTool("db-cluster-get-kafka-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the Kafka config for a cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 			),
@@ -396,6 +409,8 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateKafkaConfig,
 			Tool: mcp.NewTool("db-cluster-update-kafka-config",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update the Kafka cluster configuration."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithObject("config",

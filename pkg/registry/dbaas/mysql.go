@@ -9,6 +9,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type MysqlTool struct {
@@ -125,6 +126,8 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getMySQLConfig,
 			Tool: mcp.NewTool("db-cluster-get-mysql-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the MySQL config for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -132,6 +135,8 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateMySQLConfig,
 			Tool: mcp.NewTool("db-cluster-update-mysql-config",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update the MySQL config for a cluster by its id. Accepts a structured 'config' object."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithObject("config",
@@ -179,6 +184,8 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getSQLMode,
 			Tool: mcp.NewTool("db-cluster-get-sql-mode",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the SQL mode for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -186,6 +193,8 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 		{
 			Handler: s.setSQLMode,
 			Tool: mcp.NewTool("db-cluster-set-sql-mode",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Set the SQL mode for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithString("modes", mcp.Required(), mcp.Description("Comma-separated SQL modes to set")),

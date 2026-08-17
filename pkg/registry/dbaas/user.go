@@ -9,6 +9,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type UserTool struct {
@@ -258,6 +259,8 @@ func (s *UserTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getUser,
 			Tool: mcp.NewTool("db-cluster-get-user",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get a database user by cluster id and user name"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("user", mcp.Required(), mcp.Description("The user name")),
@@ -266,6 +269,8 @@ func (s *UserTool) Tools() []server.ServerTool {
 		{
 			Handler: s.listUsers,
 			Tool: mcp.NewTool("db-cluster-list-users",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("List database users for a cluster"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("page", mcp.Description("Page number for pagination (optional)")),
@@ -275,6 +280,8 @@ func (s *UserTool) Tools() []server.ServerTool {
 		{
 			Handler: s.createUser,
 			Tool: mcp.NewTool("db-cluster-create-user",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Create a new database user for a cluster"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("The user name")),
@@ -285,6 +292,8 @@ func (s *UserTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateUser,
 			Tool: mcp.NewTool("db-cluster-update-user",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update a database user's settings"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("user", mcp.Required(), mcp.Description("The user name")),
@@ -294,6 +303,8 @@ func (s *UserTool) Tools() []server.ServerTool {
 		{
 			Handler: s.deleteUser,
 			Tool: mcp.NewTool("db-cluster-delete-user",
+				common.WithHints(common.HintsDelete),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Delete a database user from a cluster"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("user", mcp.Required(), mcp.Description("The user name to delete")),

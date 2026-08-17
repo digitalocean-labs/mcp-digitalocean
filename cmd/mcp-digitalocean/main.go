@@ -27,7 +27,7 @@ import (
 
 const (
 	mcpName                 = "mcp-digitalocean"
-	mcpVersion              = "1.0.67"
+	mcpVersion              = "1.0.68"
 	wsLoggingContextTimeout = 15 * time.Second
 	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
 	// protocol on. It matches mcp-go's default so existing clients are unaffected.
@@ -64,7 +64,7 @@ func main() {
 	serverURLFlag := flag.String("mcp-resource-url", getEnv("MCP_RESOURCE_URL", ""), "This server's public base URL advertised in the OAuth protected resource metadata. When empty, it is derived from each request (remote transport only, optional)")
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
-	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "Base64-encoded AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
 	flag.Parse()
 
 	var level slog.Level
@@ -188,18 +188,14 @@ func main() {
 	// resource URL and attach the ciphertext as a header on every public API
 	// request. The backend decrypts with the same key to validate the audience.
 	var encryptedResourceHeader string
-	if keyB64 := strings.TrimSpace(*resourceEncryptionKey); keyB64 != "" {
+	if key := strings.TrimSpace(*resourceEncryptionKey); key != "" {
 		resourceURL := strings.TrimSpace(*serverURLFlag)
 		if resourceURL == "" {
 			logger.Error("--mcp-resource-url / MCP_RESOURCE_URL is required when --encrypted-resource-key is set")
 			os.Exit(1)
 		}
-		key, err := resourceid.DecodeKey(keyB64)
-		if err != nil {
-			logger.Error("invalid resource encryption key", "error", err)
-			os.Exit(1)
-		}
-		encryptedResourceHeader, err = resourceid.EncryptResourceIdentifier(key, resourceURL)
+		var err error
+		encryptedResourceHeader, err = resourceid.EncryptResourceIdentifier([]byte(key), resourceURL)
 		if err != nil {
 			logger.Error("failed to encrypt MCP resource URL", "error", err)
 			os.Exit(1)
