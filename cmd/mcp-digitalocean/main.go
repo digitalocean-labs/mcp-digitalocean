@@ -65,6 +65,7 @@ func main() {
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	scopes := flag.String("scopes", getEnv("SCOPES", "read,write"), "Comma-separated list of scopes to request from the DigitalOcean API")
 	flag.Parse()
 
 	var level slog.Level
@@ -170,7 +171,7 @@ func main() {
 
 		challengeCfg := oauthmeta.ChallengeConfig{
 			Resource: serverURL,
-			Scopes:   []string{"read", "write"},
+			Scopes:   strings.Split(*scopes, ","),
 		}
 		requireAuth = func(next http.Handler) http.Handler {
 			return oauthmeta.RequireBearer(next, challengeCfg)
