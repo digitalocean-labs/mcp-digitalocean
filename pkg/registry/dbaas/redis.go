@@ -8,6 +8,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"mcp-digitalocean/pkg/registry/common"
 )
 
 type RedisTool struct {
@@ -84,6 +85,8 @@ func (s *RedisTool) Tools() []server.ServerTool {
 		{
 			Handler: s.getRedisConfig,
 			Tool: mcp.NewTool("db-cluster-get-redis-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
 				mcp.WithDescription("Get the Redis config for a cluster by its id."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -91,6 +94,8 @@ func (s *RedisTool) Tools() []server.ServerTool {
 		{
 			Handler: s.updateRedisConfig,
 			Tool: mcp.NewTool("db-cluster-update-redis-config",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
 				mcp.WithDescription("Update the Redis config for a cluster by its id. Accepts a structured config object."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithObject("config",
