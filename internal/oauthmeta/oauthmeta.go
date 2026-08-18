@@ -3,7 +3,8 @@
 // tokens for this resource server.
 //
 // The document is served at WellKnownPath and is used by MCP clients during the
-// OAuth flow to locate the authorization server and supported bearer methods.
+// OAuth flow to locate the authorization server, supported bearer methods, and
+// scopes_supported (RFC 9728).
 package oauthmeta
 
 import (
@@ -38,6 +39,11 @@ type Config struct {
 	// BearerMethodsSupported lists how the bearer token may be presented.
 	// Valid values per RFC 9728 are "header", "body", and "query".
 	BearerMethodsSupported []string
+
+	// ScopesSupported is advertised as RFC 9728 scopes_supported. MCP clients
+	// that do not take scopes from the 401 WWW-Authenticate challenge use this
+	// list when requesting tokens from the authorization server.
+	ScopesSupported []string
 }
 
 // metadata is the RFC 9728 OAuth 2.0 Protected Resource Metadata document.
@@ -47,6 +53,7 @@ type metadata struct {
 	ResourceName           string   `json:"resource_name,omitempty"`
 	AuthorizationServers   []string `json:"authorization_servers,omitempty"`
 	BearerMethodsSupported []string `json:"bearer_methods_supported,omitempty"`
+	ScopesSupported        []string `json:"scopes_supported,omitempty"`
 }
 
 // Handler returns an http.HandlerFunc that serves the protected resource
@@ -71,6 +78,7 @@ func Handler(cfg Config) http.HandlerFunc {
 			ResourceName:           subdomain(resource),
 			AuthorizationServers:   cfg.AuthorizationServers,
 			BearerMethodsSupported: cfg.BearerMethodsSupported,
+			ScopesSupported:        cfg.ScopesSupported,
 		}, "", "  ")
 		if err != nil {
 			http.Error(w, "failed to encode metadata", http.StatusInternalServerError)
