@@ -23,6 +23,7 @@ import (
 	inferencemodelcatalog "mcp-digitalocean/pkg/registry/inference-modelcatalog"
 	"mcp-digitalocean/pkg/registry/insights"
 	"mcp-digitalocean/pkg/registry/marketplace"
+	"mcp-digitalocean/pkg/registry/microdroplet"
 	"mcp-digitalocean/pkg/registry/networking"
 	"mcp-digitalocean/pkg/registry/nfs"
 	"mcp-digitalocean/pkg/registry/spaces"
@@ -58,6 +59,7 @@ var supportedServices = map[string]struct{}{
 	"functions":              {},
 	"nfs":                    {},
 	"vector-databases":       {},
+	"microdroplets":          {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -242,6 +244,11 @@ func registerVectorDBTools(s *server.MCPServer, getClient getClientFn) error {
 	return nil
 }
 
+func registerMicroDropletTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(microdroplet.NewMicroDropletTool(getClient).Tools()...)
+	return nil
+}
+
 // Register registers the set of tools for the specified services with the MCP server.
 // We either register a subset of tools of the services are specified, or we register all tools if no services are specified.
 func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, servicesToActivate ...string) error {
@@ -338,6 +345,10 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		case "vector-databases":
 			if err := registerVectorDBTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register vector-databases tools: %w", err)
+			}
+		case "microdroplets":
+			if err := registerMicroDropletTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register microdroplets tools: %w", err)
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
