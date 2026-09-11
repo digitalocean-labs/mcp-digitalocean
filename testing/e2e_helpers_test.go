@@ -837,7 +837,7 @@ func vectorDBTestRegion() string {
 	if rg := os.Getenv("TEST_REGION"); rg != "" {
 		return rg
 	}
-	return "tor1"
+	return "atl1"
 }
 
 // getDefaultProjectID resolves the caller's default project ID via godo. The
