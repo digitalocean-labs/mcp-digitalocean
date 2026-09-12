@@ -172,6 +172,60 @@ func TestResolveServiceSlug(t *testing.T) {
 	}
 }
 
+func TestScoreEntryTerms(t *testing.T) {
+	entry := DocsEntry{
+		Title:       "How to Create a Droplet",
+		Description: "Create Droplets from the control panel or API.",
+		Section:     "Droplet How-Tos",
+		URL:         "https://docs.digitalocean.com/products/droplets/how-to/create/",
+	}
+
+	tests := []struct {
+		name           string
+		terms          []string
+		weights        fieldWeights
+		expectScore    int
+		expectAllMatch bool
+	}{
+		{
+			name:           "single term matches all weighted fields",
+			terms:          []string{"droplet"},
+			weights:        fieldWeights{title: 10, description: 3, section: 2, url: 4},
+			expectScore:    19,
+			expectAllMatch: true,
+		},
+		{
+			name:           "zero weight excludes field",
+			terms:          []string{"droplet"},
+			weights:        fieldWeights{title: 10, description: 3, url: 2},
+			expectScore:    15,
+			expectAllMatch: true,
+		},
+		{
+			name:           "unmatched term clears all-match flag",
+			terms:          []string{"droplet", "kubernetes"},
+			weights:        fieldWeights{title: 10, description: 3, section: 2, url: 4},
+			expectScore:    19,
+			expectAllMatch: false,
+		},
+		{
+			name:           "no matches",
+			terms:          []string{"kubernetes"},
+			weights:        fieldWeights{title: 10, description: 3, section: 2, url: 4},
+			expectScore:    0,
+			expectAllMatch: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			score, allMatched := scoreEntryTerms(entry, tc.terms, tc.weights)
+			require.Equal(t, tc.expectScore, score)
+			require.Equal(t, tc.expectAllMatch, allMatched)
+		})
+	}
+}
+
 func TestFetchDocPage_RejectsExternalHosts(t *testing.T) {
 	client := NewDocsClient()
 
