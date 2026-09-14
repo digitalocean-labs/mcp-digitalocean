@@ -31,6 +31,7 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	region := args["Region"].(string)
 	backup, _ := args["Backup"].(bool)         // Defaults to false
 	monitoring, _ := args["Monitoring"].(bool) // Defaults to false
+	userData, _ := args["UserData"].(string)
 
 	imageID, hasID := args["ImageID"].(float64)
 	imageSlug, hasSlug := args["ImageSlug"].(string)
@@ -85,6 +86,7 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 		Monitoring: monitoring,
 		SSHKeys:    sshKeys,
 		Tags:       tags,
+		UserData:   userData,
 	}
 
 	client, err := d.client(ctx)
@@ -342,6 +344,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 				mcp.WithBoolean("Monitoring", mcp.DefaultBool(false), mcp.Description("Whether to enable monitoring")),
 				mcp.WithArray("SSHKeys", mcp.Description("Array of SSH key IDs (numbers) or fingerprints (strings) to add to the droplet"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithArray("Tags", mcp.Description("Array of tag names to apply to the droplet"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithString("UserData", mcp.Description("Cloud-init user data to provide to the droplet")),
 			),
 		},
 		{
