@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"time"
 
 	"github.com/digitalocean/godo"
@@ -59,12 +60,12 @@ func (a *AppPlatformTool) createAppFromAppSpec(ctx context.Context, req mcp.Call
 		return mcp.NewToolResultErrorFromErr("failed to create app", err), nil
 	}
 
-	appJSON, err := json.MarshalIndent(app, "", "  ")
+	appJSON, err := response.CompactJSON(app)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format created app response: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return mcp.NewToolResultText(appJSON), nil
 }
 
 type AppSummary struct {
@@ -120,12 +121,12 @@ func (a *AppPlatformTool) listApps(ctx context.Context, req mcp.CallToolRequest)
 		summaries[i] = toAppSummary(app)
 	}
 
-	appsJSON, err := json.MarshalIndent(summaries, "", "  ")
+	appsJSON, err := response.CompactJSON(summaries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format apps list response: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(appsJSON)), nil
+	return mcp.NewToolResultText(appsJSON), nil
 }
 
 // deleteApp deletes an existing app by its ID
@@ -192,12 +193,12 @@ func (a *AppPlatformTool) getDeploymentStatus(ctx context.Context, req mcp.CallT
 		Deployment: deployments[0],
 	}
 
-	activeDeploymentJSON, err := json.MarshalIndent(deploymentStatus, "", "  ")
+	activeDeploymentJSON, err := response.CompactJSON(deploymentStatus)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal deployment status: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(activeDeploymentJSON)), nil
+	return mcp.NewToolResultText(activeDeploymentJSON), nil
 }
 
 // getAppInfo retrieves an app by its ID
@@ -217,12 +218,12 @@ func (a *AppPlatformTool) getAppInfo(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to get app %s", appID), err), nil
 	}
 
-	appJSON, err := json.MarshalIndent(app.Spec, "", "  ")
+	appJSON, err := response.CompactJSON(app.Spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal app spec: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return mcp.NewToolResultText(appJSON), nil
 }
 
 type AppUpdate struct {
@@ -262,12 +263,12 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 			return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to create deployment for app %s", update.Update.AppID), err), nil
 		}
 
-		deploymentJSON, err := json.MarshalIndent(deployment, "", "  ")
+		deploymentJSON, err := response.CompactJSON(deployment)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal deployment: %w", err)
 		}
 
-		return mcp.NewToolResultText(string(deploymentJSON)), nil
+		return mcp.NewToolResultText(deploymentJSON), nil
 	}
 
 	app, _, err := client.Apps.Update(ctx, update.Update.AppID, update.Update.Request)
@@ -275,12 +276,12 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to update app %s", update.Update.AppID), err), nil
 	}
 
-	appJSON, err := json.MarshalIndent(app, "", "  ")
+	appJSON, err := response.CompactJSON(app)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal updated app: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return mcp.NewToolResultText(appJSON), nil
 }
 
 // getAppLogs retrieves logs for an app deployment
@@ -327,12 +328,12 @@ func (a *AppPlatformTool) getAppLogs(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to get logs for app %s, deployment %s, component %s", appID, deploymentID, component), err), nil
 	}
 
-	logsJSON, err := json.MarshalIndent(logs, "", "  ")
+	logsJSON, err := response.CompactJSON(logs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal app logs: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(logsJSON)), nil
+	return mcp.NewToolResultText(logsJSON), nil
 }
 
 // newRawSchemaTool builds a raw-schema tool and applies the shared annotation

@@ -2,8 +2,9 @@ package marketplace
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -42,7 +43,7 @@ func (o *OneClickTool) listOneClickApps(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to list 1-click apps: %v", err)), nil
 	}
 
-	result, err := json.Marshal(map[string]interface{}{
+	result, err := response.CompactJSON(map[string]interface{}{
 		"apps": apps,
 		"type": oneClickType,
 	})
@@ -50,7 +51,7 @@ func (o *OneClickTool) listOneClickApps(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to marshal response: %v", err)), nil
 	}
 
-	return mcp.NewToolResultText(string(result)), nil
+	return mcp.NewToolResultText(result), nil
 }
 
 func (o *OneClickTool) installKubernetesApps(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -105,17 +106,17 @@ func (o *OneClickTool) installKubernetesApps(ctx context.Context, req mcp.CallTo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	response, _, err := client.OneClick.InstallKubernetes(ctx, installRequest)
+	installResponse, _, err := client.OneClick.InstallKubernetes(ctx, installRequest)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to install Kubernetes apps: %v", err)), nil
 	}
 
-	result, err := json.Marshal(response)
+	result, err := response.CompactJSON(installResponse)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to marshal response: %v", err)), nil
 	}
 
-	return mcp.NewToolResultText(string(result)), nil
+	return mcp.NewToolResultText(result), nil
 }
 
 func (o *OneClickTool) Tools() []server.ServerTool {

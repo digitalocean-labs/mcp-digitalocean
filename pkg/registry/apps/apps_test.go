@@ -223,7 +223,7 @@ func TestListApps(t *testing.T) {
 }
 
 func toJSONString(v any) string {
-	data, err := json.MarshalIndent(v, "", "  ")
+	data, err := json.Marshal(v)
 	if err != nil {
 		return fmt.Sprintf("error marshaling to JSON: %v", err)
 	}

@@ -2,8 +2,8 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -39,11 +39,11 @@ func (f *FirewallTool) getFirewall(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
+	jsonFirewall, err := response.CompactJSON(firewall)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonFirewall)), nil
+	return mcp.NewToolResultText(jsonFirewall), nil
 }
 
 // listFirewalls lists firewalls with pagination support
@@ -66,11 +66,11 @@ func (f *FirewallTool) listFirewalls(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonFirewalls, err := json.MarshalIndent(firewalls, "", "  ")
+	jsonFirewalls, err := response.CompactJSON(firewalls)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonFirewalls)), nil
+	return mcp.NewToolResultText(jsonFirewalls), nil
 }
 
 // createFirewall creates a new firewall
@@ -136,12 +136,12 @@ func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
+	jsonFirewall, err := response.CompactJSON(firewall)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonFirewall)), nil
+	return mcp.NewToolResultText(jsonFirewall), nil
 }
 
 // deleteFirewall deletes a firewall

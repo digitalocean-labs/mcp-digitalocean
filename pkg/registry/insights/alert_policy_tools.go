@@ -2,8 +2,8 @@ package insights
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -45,12 +45,12 @@ func (a *AlertPolicyTool) getAlertPolicy(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
+	jsonAlertPolicy, err := response.CompactJSON(alertPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return mcp.NewToolResultText(jsonAlertPolicy), nil
 }
 
 // listAlertPolicies lists alert policies with pagination support
@@ -74,12 +74,12 @@ func (a *AlertPolicyTool) listAlertPolicies(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicies, err := json.MarshalIndent(alertPolicies, "", "  ")
+	jsonAlertPolicies, err := response.CompactJSON(alertPolicies)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAlertPolicies)), nil
+	return mcp.NewToolResultText(jsonAlertPolicies), nil
 }
 
 // createAlertPolicy creates a new alert policy
@@ -166,12 +166,12 @@ func (a *AlertPolicyTool) createAlertPolicy(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
+	jsonAlertPolicy, err := response.CompactJSON(alertPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return mcp.NewToolResultText(jsonAlertPolicy), nil
 }
 
 // updateAlertPolicy updates an existing alert policy
@@ -263,12 +263,12 @@ func (a *AlertPolicyTool) updateAlertPolicy(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
+	jsonAlertPolicy, err := response.CompactJSON(alertPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return mcp.NewToolResultText(jsonAlertPolicy), nil
 }
 
 // deleteAlertPolicy deletes an alert policy

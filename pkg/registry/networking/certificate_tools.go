@@ -2,8 +2,8 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -48,12 +48,12 @@ func (c *CertificateTool) createCustomCertificate(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
+	jsonCert, err := response.CompactJSON(certificate)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return mcp.NewToolResultText(jsonCert), nil
 }
 
 // createLetsEncryptCertificate creates a new LetsEncrypt certificate
@@ -81,12 +81,12 @@ func (c *CertificateTool) createLetsEncryptCertificate(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
+	jsonCert, err := response.CompactJSON(certificate)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return mcp.NewToolResultText(jsonCert), nil
 }
 
 // deleteCertificate deletes a certificate
@@ -123,12 +123,12 @@ func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
+	jsonCert, err := response.CompactJSON(certificate)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return mcp.NewToolResultText(jsonCert), nil
 }
 
 // listCertificates lists certificates with pagination support
@@ -151,11 +151,11 @@ func (c *CertificateTool) listCertificates(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCerts, err := json.MarshalIndent(certs, "", "  ")
+	jsonCerts, err := response.CompactJSON(certs)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonCerts)), nil
+	return mcp.NewToolResultText(jsonCerts), nil
 }
 
 // Tools returns a list of certificate tools

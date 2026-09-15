@@ -2,8 +2,8 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -67,12 +67,12 @@ func (s *SizesTool) listSizes(ctx context.Context, req mcp.CallToolRequest) (*mc
 		}
 	}
 
-	jsonData, err := json.MarshalIndent(filteredSizes, "", "  ")
+	jsonData, err := response.CompactJSON(filteredSizes)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // Tools returns the list of server tools for droplet sizes.

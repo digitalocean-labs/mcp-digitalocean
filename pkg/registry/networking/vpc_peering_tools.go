@@ -2,8 +2,8 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -38,11 +38,11 @@ func (t *VPCPeeringTool) getVPCPeering(ctx context.Context, req mcp.CallToolRequ
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(peering, "", "  ")
+	jsonData, err := response.CompactJSON(peering)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 func (t *VPCPeeringTool) listVPCPeerings(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -64,11 +64,11 @@ func (t *VPCPeeringTool) listVPCPeerings(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonPeerings, err := json.MarshalIndent(peerings, "", "  ")
+	jsonPeerings, err := response.CompactJSON(peerings)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonPeerings)), nil
+	return mcp.NewToolResultText(jsonPeerings), nil
 }
 
 func (t *VPCPeeringTool) createPeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -92,12 +92,12 @@ func (t *VPCPeeringTool) createPeering(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(peering, "", "  ")
+	jsonData, err := response.CompactJSON(peering)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 func (t *VPCPeeringTool) deletePeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

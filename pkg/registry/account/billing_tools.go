@@ -2,8 +2,8 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -51,12 +51,12 @@ func (b *BillingTools) listBillingHistory(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(billingHistory, "", "  ")
+	jsonData, err := response.CompactJSON(billingHistory)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // Tools returns the list of server tools for billing history.

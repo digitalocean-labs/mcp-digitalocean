@@ -2,9 +2,9 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"mcp-digitalocean/pkg/response"
 	"net/netip"
 
 	"github.com/digitalocean/godo"
@@ -53,11 +53,11 @@ func (t *ReservedIPTool) getReservedIP(ctx context.Context, req mcp.CallToolRequ
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
+	jsonData, err := response.CompactJSON(reservedIP)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // listReservedIPs lists reserved IP addresses with pagination
@@ -92,11 +92,11 @@ func (t *ReservedIPTool) listReservedIPs(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(ips, "", "  ")
+	jsonData, err := response.CompactJSON(ips)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // reserveIP reserves a new IPv4 or IPv6
@@ -125,12 +125,12 @@ func (t *ReservedIPTool) reserveIP(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
+	jsonData, err := response.CompactJSON(reservedIP)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // releaseIP releases a reserved IPv4 or IPv6
@@ -188,12 +188,12 @@ func (t *ReservedIPTool) assignIP(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(action, "", "  ")
+	jsonData, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // unassignIP unassigns a reserved IP from a droplet
@@ -222,12 +222,12 @@ func (t *ReservedIPTool) unassignIP(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(action, "", "  ")
+	jsonData, err := response.CompactJSON(action)
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return mcp.NewToolResultText(jsonData), nil
 }
 
 // Tools returns a list of tools for managing reserved IPs
