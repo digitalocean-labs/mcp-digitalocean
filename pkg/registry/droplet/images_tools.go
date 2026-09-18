@@ -2,7 +2,6 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -69,27 +68,12 @@ func (i *ImageTool) listImages(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 
 	// returning mapped structure to match other tools' verbosity.
-	filteredImages := make([]map[string]any, len(images))
+	summaries := make([]imageSummary, len(images))
 	for idx, image := range images {
-		filteredImages[idx] = map[string]any{
-			"id":            image.ID,
-			"name":          image.Name,
-			"slug":          image.Slug,
-			"distribution":  image.Distribution,
-			"type":          image.Type,
-			"public":        image.Public,
-			"regions":       image.Regions,
-			"created_at":    image.Created,
-			"min_disk_size": image.MinDiskSize,
-		}
+		summaries[idx] = newImageSummary(image)
 	}
 
-	jsonData, err := json.MarshalIndent(filteredImages, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return imageSummariesOut.Result(summaries)
 }
 
 // getImageByID retrieves a specific image by its numeric ID.
@@ -109,12 +93,7 @@ func (i *ImageTool) getImageByID(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return imageOut.Result(image)
 }
 
 // createImage creates a new custom image from a URL.
@@ -161,12 +140,7 @@ func (i *ImageTool) createImage(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return imageOut.Result(image)
 }
 
 // updateImage updates an image's name.
@@ -194,12 +168,7 @@ func (i *ImageTool) updateImage(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(image, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return imageOut.Result(image)
 }
 
 // deleteImage deletes an image/snapshot by its numeric ID.
@@ -231,6 +200,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 				"image-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				imageSummariesOut.Schema(),
 				mcp.WithDescription("List available images (snapshots, backups, distributions, applications)."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultImagesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultImagesPageSize), mcp.Description("Items per page")),
@@ -243,6 +213,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 				"image-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				imageOut.Schema(),
 				mcp.WithDescription("Get a specific image by its numeric ID."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Image ID")),
 			),
@@ -253,6 +224,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 				"image-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				imageOut.Schema(),
 				mcp.WithDescription("Create a custom image from a URL (e.g. QCOW2, ISO)."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the new image")),
 				mcp.WithString("Url", mcp.Required(), mcp.Description("URL to import the image from")),
@@ -268,6 +240,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 				"image-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				imageOut.Schema(),
 				mcp.WithDescription("Update an image's name."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Image ID")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the image")),

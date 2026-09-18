@@ -3,7 +3,6 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -39,12 +38,7 @@ func (da *DropletActionsTool) rebootDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // passwordResetDroplet resets the password for a droplet
@@ -61,12 +55,7 @@ func (da *DropletActionsTool) passwordResetDroplet(ctx context.Context, req mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // RebuildByImageSlugDroplet rebuilds a droplet using an image slug
@@ -84,12 +73,7 @@ func (da *DropletActionsTool) rebuildByImageSlugDroplet(ctx context.Context, req
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // powerCycleByTag power cycles droplets by tag
@@ -106,12 +90,7 @@ func (da *DropletActionsTool) powerCycleByTag(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // powerOnByTag powers on droplets by tag
@@ -128,12 +107,7 @@ func (da *DropletActionsTool) powerOnByTag(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // powerOffByTag powers off droplets by tag
@@ -150,12 +124,7 @@ func (da *DropletActionsTool) powerOffByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // shutdownByTag shuts down droplets by tag
@@ -172,12 +141,7 @@ func (da *DropletActionsTool) shutdownByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // enableBackupsByTag enables backups on droplets by tag
@@ -194,12 +158,7 @@ func (da *DropletActionsTool) enableBackupsByTag(ctx context.Context, req mcp.Ca
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // disableBackupsByTag disables backups on droplets by tag
@@ -216,12 +175,7 @@ func (da *DropletActionsTool) disableBackupsByTag(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // snapshotByTag takes a snapshot of droplets by tag
@@ -239,12 +193,7 @@ func (da *DropletActionsTool) snapshotByTag(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // enableIPv6ByTag enables IPv6 on droplets by tag
@@ -261,12 +210,7 @@ func (da *DropletActionsTool) enableIPv6ByTag(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // enablePrivateNetworkingByTag enables private networking on droplets by tag
@@ -283,12 +227,7 @@ func (da *DropletActionsTool) enablePrivateNetworkingByTag(ctx context.Context, 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionsOut.Result(actions)
 }
 
 // powerCycleDroplet power cycles a droplet
@@ -305,12 +244,7 @@ func (da *DropletActionsTool) powerCycleDroplet(ctx context.Context, req mcp.Cal
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // powerOnDroplet powers on a droplet
@@ -327,12 +261,7 @@ func (da *DropletActionsTool) powerOnDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // powerOffDroplet powers off a droplet
@@ -349,12 +278,7 @@ func (da *DropletActionsTool) powerOffDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // shutdownDroplet shuts down a droplet
@@ -371,12 +295,7 @@ func (da *DropletActionsTool) shutdownDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // restoreDroplet restores a droplet to a backup image
@@ -394,12 +313,7 @@ func (da *DropletActionsTool) restoreDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // resizeDroplet resizes a droplet
@@ -418,12 +332,7 @@ func (da *DropletActionsTool) resizeDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // rebuildDroplet rebuilds a droplet using a provided image
@@ -441,12 +350,7 @@ func (da *DropletActionsTool) rebuildDroplet(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // renameDroplet renames a droplet
@@ -464,12 +368,7 @@ func (da *DropletActionsTool) renameDroplet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // changeKernel changes a droplet's kernel
@@ -487,12 +386,7 @@ func (da *DropletActionsTool) changeKernel(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // enableIPv6 enables IPv6 on a droplet
@@ -509,12 +403,7 @@ func (da *DropletActionsTool) enableIPv6(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // enableBackups enables backups on a droplet
@@ -531,12 +420,7 @@ func (da *DropletActionsTool) enableBackups(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // disableBackups disables backups on a droplet
@@ -553,12 +437,7 @@ func (da *DropletActionsTool) disableBackups(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // snapshotDroplet creates a snapshot of a droplet
@@ -576,12 +455,7 @@ func (da *DropletActionsTool) snapshotDroplet(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // Tools returns a list of tool functions
@@ -592,6 +466,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reboot-droplet",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Reboot a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to reboot")),
 			),
@@ -601,6 +476,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reset-droplet-password",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Reset password for a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -610,6 +486,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("rebuild-droplet-by-slug",
 				common.WithHints(common.HintsReplace),
 				common.WithRisk(common.RiskHigh),
+				actionOut.Schema(),
 				mcp.WithDescription("Rebuild a droplet using an image slug"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to rebuild")),
 				mcp.WithString("ImageSlug", mcp.Required(), mcp.Description("Slug of the image to rebuild from")),
@@ -620,6 +497,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-cycle-droplets-tag",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskHigh),
+				actionsOut.Schema(),
 				mcp.WithDescription("Power cycle droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets to power cycle")),
 			),
@@ -629,6 +507,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-on-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionsOut.Schema(),
 				mcp.WithDescription("Power on droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets to power on")),
 			),
@@ -638,6 +517,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-off-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskHigh),
+				actionsOut.Schema(),
 				mcp.WithDescription("Power off droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets to power off")),
 			),
@@ -647,6 +527,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("shutdown-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskHigh),
+				actionsOut.Schema(),
 				mcp.WithDescription("Shutdown droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets to shutdown")),
 			),
@@ -656,6 +537,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("enable-backups-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionsOut.Schema(),
 				mcp.WithDescription("Enable backups on droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 			),
@@ -665,6 +547,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("disable-backups-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionsOut.Schema(),
 				mcp.WithDescription("Disable backups on droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 			),
@@ -674,6 +557,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("snapshot-droplets-tag",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				actionsOut.Schema(),
 				mcp.WithDescription("Take a snapshot of droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the snapshot")),
@@ -684,6 +568,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("enable-ipv6-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionsOut.Schema(),
 				mcp.WithDescription("Enable IPv6 on droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 			),
@@ -693,6 +578,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("enable-private-net-droplets-tag",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionsOut.Schema(),
 				mcp.WithDescription("Enable private networking on droplets by tag"),
 				mcp.WithString("Tag", mcp.Required(), mcp.Description("Tag of the droplets")),
 			),
@@ -702,6 +588,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-cycle-droplet",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Power cycle a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to power cycle")),
 			),
@@ -711,6 +598,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-on-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Power on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to power on")),
 			),
@@ -720,6 +608,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("power-off-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Power off a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to power off")),
 			),
@@ -729,6 +618,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("shutdown-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Shutdown a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to shutdown")),
 			),
@@ -738,6 +628,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("restore-droplet",
 				common.WithHints(common.HintsReplace),
 				common.WithRisk(common.RiskHigh),
+				actionOut.Schema(),
 				mcp.WithDescription("Restore a droplet from a backup/snapshot"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to restore")),
 				mcp.WithNumber("ImageID", mcp.Required(), mcp.Description("ID of the backup/snapshot image")),
@@ -748,6 +639,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("resize-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Resize a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to resize")),
 				mcp.WithString("Size", mcp.Required(), mcp.Description("Slug of the new size (e.g., s-1vcpu-1gb)")),
@@ -759,6 +651,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("rebuild-droplet",
 				common.WithHints(common.HintsReplace),
 				common.WithRisk(common.RiskHigh),
+				actionOut.Schema(),
 				mcp.WithDescription("Rebuild a droplet from an image"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to rebuild")),
 				mcp.WithNumber("ImageID", mcp.Required(), mcp.Description("ID of the image to rebuild from")),
@@ -769,6 +662,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("rename-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Rename a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet to rename")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the droplet")),
@@ -779,6 +673,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("change-kernel-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Change a droplet's kernel"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 				mcp.WithNumber("KernelID", mcp.Required(), mcp.Description("ID of the kernel to switch to")),
@@ -789,6 +684,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("enable-ipv6-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Enable IPv6 on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -798,6 +694,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("enable-backups-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Enable backups on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -807,6 +704,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("disable-backups-droplet",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Disable backups on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -816,6 +714,7 @@ func (da *DropletActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("snapshot-droplet",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Take a snapshot of a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the snapshot")),
