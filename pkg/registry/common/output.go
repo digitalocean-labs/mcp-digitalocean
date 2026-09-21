@@ -12,16 +12,18 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// Output publishes T under a named field in structuredContent.
-// Schema() and Result() share that field so they cannot drift.
+// Output owns both halves of MCP's structured output contract for one tool:
+// Schema() declares the outputSchema, Result() emits the matching
+// structuredContent. Because one value drives both, they cannot drift.
 //
-// Lists are wrapped ({"actions": [...]}) because MCP expects an object root.
+// A field name wraps the payload, which is how array-returning tools satisfy
+// MCP's object-root requirement:
 //
 //	var actionsOut = common.NewOutput[[]godo.Action]("actions")
 //	mcp.NewTool("action-list", actionsOut.Schema(), ...)
-//	return actionsOut.Result(actions)
+//	return actionsOut.Result(actions) // {"actions": [...]}
 type Output[T any] struct {
-	field string
+	field string // "" publishes T directly, with no envelope
 	once  sync.Once
 	raw   json.RawMessage
 }
@@ -31,20 +33,29 @@ func NewOutput[T any](field string) *Output[T] {
 	return &Output[T]{field: field}
 }
 
-// Field is the structuredContent key.
+// NewObjectOutput publishes T as structuredContent as-is. Use it for result
+// structs that already pair a collection with its metadata, where an envelope
+// would add a redundant second key. T must be a struct or a pointer to one.
+func NewObjectOutput[T any]() *Output[T] {
+	return &Output[T]{}
+}
+
+// Field is the structuredContent key, or "" when T is published directly.
 func (o *Output[T]) Field() string { return o.field }
 
-// Schema declares this Output's envelope as the tool's outputSchema.
+// Schema declares this Output as the tool's outputSchema.
 func (o *Output[T]) Schema() mcp.ToolOption {
 	return mcp.WithRawOutputSchema(o.RawSchema())
 }
 
-// RawSchema returns the generated envelope schema (lazily reflected once).
+// RawSchema is the generated schema, reflected once on first use. Exported so
+// tests can assert that the schema and the emitted payload agree.
 func (o *Output[T]) RawSchema() json.RawMessage {
 	o.once.Do(func() {
-		raw, err := buildEnvelopeSchema[T](o.field)
+		raw, err := buildSchema[T](o.field)
 		if err != nil {
-			// Skip rather than panic; CI guard catches empty schemas.
+			// A tool without an output schema still works, so degrade instead
+			// of failing the server; the registry guard test catches this.
 			return
 		}
 		o.raw = raw
@@ -52,7 +63,8 @@ func (o *Output[T]) RawSchema() json.RawMessage {
 	return o.raw
 }
 
-// Result returns text (unchanged bare payload) plus enveloped structuredContent.
+// Result pairs the text content tools returned before structured output
+// existed with the equivalent structuredContent.
 func (o *Output[T]) Result(payload T) (*mcp.CallToolResult, error) {
 	text, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
@@ -60,12 +72,25 @@ func (o *Output[T]) Result(payload T) (*mcp.CallToolResult, error) {
 	}
 
 	res := mcp.NewToolResultText(string(text))
-	res.StructuredContent = map[string]json.RawMessage{o.field: normalizeNull[T](text)}
+	res.StructuredContent = o.structured(text)
 	return res, nil
 }
 
-// normalizeNull maps JSON null to [] / {} so empty collections satisfy array/object schemas.
-func normalizeNull[T any](encoded json.RawMessage) json.RawMessage {
+// structured shapes the encoded payload for structuredContent, keeping it a
+// JSON object even when the payload itself encodes to null.
+func (o *Output[T]) structured(text json.RawMessage) any {
+	if o.field != "" {
+		return map[string]json.RawMessage{o.field: emptyForNull[T](text)}
+	}
+	if string(text) == "null" {
+		return json.RawMessage("{}")
+	}
+	return text
+}
+
+// emptyForNull maps a null payload to [] or {} so that nil collections still
+// satisfy an "array"/"object" schema.
+func emptyForNull[T any](encoded json.RawMessage) json.RawMessage {
 	if string(encoded) != "null" {
 		return encoded
 	}
@@ -89,128 +114,48 @@ func derefKind(t reflect.Type) reflect.Kind {
 	return t.Kind()
 }
 
-func buildEnvelopeSchema[T any](field string) (json.RawMessage, error) {
-	payload := outputReflector().ReflectFromType(reflect.TypeFor[T]())
-	if payload == nil {
-		return nil, fmt.Errorf("output schema: reflecting %s produced no schema", reflect.TypeFor[T]())
-	}
+// buildSchema reflects T, nesting it under field when one is given and
+// inlining it at the root otherwise.
+func buildSchema[T any](field string) (json.RawMessage, error) {
+	t := reflect.TypeFor[T]()
 
-	// Lift $defs to the envelope root; $ref targets stay "#/$defs/...".
-	defs := payload.Definitions
-	payload.Definitions = nil
-	payload.Version = ""
-	payload.ID = ""
-
-	payloadRaw, err := marshalRelaxed(payload)
-	if err != nil {
-		return nil, fmt.Errorf("output schema: payload schema for %s: %w", reflect.TypeFor[T](), err)
-	}
-
-	envelope := envelopeSchema{
-		Type:       "object",
-		Properties: map[string]json.RawMessage{field: payloadRaw},
-		Required:   []string{field},
-	}
-	if len(defs) > 0 {
-		defsRaw, err := marshalRelaxed(defs)
-		if err != nil {
-			return nil, fmt.Errorf("output schema: $defs for %s: %w", reflect.TypeFor[T](), err)
-		}
-		envelope.Definitions = defsRaw
-	}
-
-	raw, err := json.Marshal(envelope)
-	if err != nil {
-		return nil, fmt.Errorf("output schema: envelope for %s: %w", reflect.TypeFor[T](), err)
-	}
-	return raw, nil
-}
-
-type envelopeSchema struct {
-	Type        string                     `json:"type"`
-	Properties  map[string]json.RawMessage `json:"properties"`
-	Required    []string                   `json:"required"`
-	Definitions json.RawMessage            `json:"$defs,omitempty"`
-}
-
-// ObjectOutput publishes an already-object payload as-is (no envelope).
-// Use for result structs that already pair data with meta, e.g. {repositories, meta}.
-type ObjectOutput[T any] struct {
-	once sync.Once
-	raw  json.RawMessage
-}
-
-// NewObjectOutput publishes T directly as structuredContent.
-func NewObjectOutput[T any]() *ObjectOutput[T] {
-	return &ObjectOutput[T]{}
-}
-
-// Schema declares T as the tool's outputSchema.
-func (o *ObjectOutput[T]) Schema() mcp.ToolOption {
-	return mcp.WithRawOutputSchema(o.RawSchema())
-}
-
-// RawSchema returns the generated schema for T (lazily reflected once).
-func (o *ObjectOutput[T]) RawSchema() json.RawMessage {
-	o.once.Do(func() {
-		raw, err := buildObjectSchema[T]()
-		if err != nil {
-			return
-		}
-		o.raw = raw
-	})
-	return o.raw
-}
-
-// Result returns text plus structuredContent set to the payload object.
-func (o *ObjectOutput[T]) Result(payload T) (*mcp.CallToolResult, error) {
-	text, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	structured := json.RawMessage(text)
-	if string(text) == "null" {
-		structured = json.RawMessage("{}")
-	}
-
-	res := mcp.NewToolResultText(string(text))
-	res.StructuredContent = structured
-	return res, nil
-}
-
-// buildObjectSchema inlines T at the root (ExpandedStruct) so the schema is a
-// real object, not a top-level $ref.
-func buildObjectSchema[T any]() (json.RawMessage, error) {
 	r := outputReflector()
-	r.ExpandedStruct = true
+	// Inlining keeps an envelope-less root an object rather than a bare $ref.
+	r.ExpandedStruct = field == ""
 
-	schema := r.ReflectFromType(reflect.TypeFor[T]())
+	schema := r.ReflectFromType(t)
 	if schema == nil {
-		return nil, fmt.Errorf("output schema: reflecting %s produced no schema", reflect.TypeFor[T]())
+		return nil, fmt.Errorf("output schema: reflecting %s produced no schema", t)
 	}
 
+	// $defs and $schema are only meaningful at the document root, and the
+	// payload's $ref pointers are rooted at "#", so the definitions move up.
 	defs := schema.Definitions
-	schema.Definitions = nil
-	schema.Version = ""
-	schema.ID = ""
+	schema.Definitions, schema.Version, schema.ID = nil, "", ""
 
-	tree, err := relaxedTree(schema)
+	payload, err := relaxedTree(schema)
 	if err != nil {
-		return nil, fmt.Errorf("output schema: root schema for %s: %w", reflect.TypeFor[T](), err)
-	}
-	root, ok := tree.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("output schema: %s did not reflect to an object schema", reflect.TypeFor[T]())
+		return nil, fmt.Errorf("output schema: %s: %w", t, err)
 	}
 
-	// Root must stay exactly "object"; do not null-widen it.
+	root, inlined := payload.(map[string]any)
+	switch {
+	case field != "":
+		root = map[string]any{
+			"properties": map[string]any{field: payload},
+			"required":   []string{field},
+		}
+	case !inlined:
+		return nil, fmt.Errorf("output schema: %s did not reflect to an object schema", t)
+	}
+	// MCP requires an object root, which relaxedTree would otherwise widen to
+	// admit null as well.
 	root["type"] = "object"
 
 	if len(defs) > 0 {
 		defsTree, err := relaxedTree(defs)
 		if err != nil {
-			return nil, fmt.Errorf("output schema: $defs for %s: %w", reflect.TypeFor[T](), err)
+			return nil, fmt.Errorf("output schema: $defs for %s: %w", t, err)
 		}
 		root["$defs"] = defsTree
 	}
@@ -277,16 +222,8 @@ func implementsJSONMarshaler(t reflect.Type) bool {
 	return t.Implements(marshaler) || reflect.PointerTo(t).Implements(marshaler)
 }
 
-// marshalRelaxed serialises a schema and widens each type to also admit null,
-// matching nilable API fields that serialise as null.
-func marshalRelaxed(v any) (json.RawMessage, error) {
-	tree, err := relaxedTree(v)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(tree)
-}
-
+// relaxedTree decodes v into a schema tree and widens each declared type to
+// also admit null, matching nilable API fields that serialise as null.
 func relaxedTree(v any) (any, error) {
 	raw, err := json.Marshal(v)
 	if err != nil {
