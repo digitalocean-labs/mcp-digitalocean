@@ -258,34 +258,12 @@ func (d *DropletTool) getDroplets(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	filteredDroplets := make([]map[string]any, len(droplets))
+	summaries := make([]dropletSummary, len(droplets))
 	for i, droplet := range droplets {
-		filteredDroplets[i] = map[string]any{
-			"id":                 droplet.ID,
-			"name":               droplet.Name,
-			"memory":             droplet.Memory,
-			"vcpus":              droplet.Vcpus,
-			"disk":               droplet.Disk,
-			"region":             droplet.Region,
-			"image":              droplet.Image,
-			"size":               droplet.Size,
-			"size_slug":          droplet.SizeSlug,
-			"backup_ids":         droplet.BackupIDs,
-			"next_backup_window": droplet.NextBackupWindow,
-			"snapshot_ids":       droplet.SnapshotIDs,
-			"features":           droplet.Features,
-			"locked":             droplet.Locked,
-			"status":             droplet.Status,
-			"networks":           droplet.Networks,
-			"created_at":         droplet.Created,
-			"kernel":             droplet.Kernel,
-			"tags":               droplet.Tags,
-			"volume_ids":         droplet.VolumeIDs,
-			"vpc_uuid":           droplet.VPCUUID,
-		}
+		summaries[i] = newDropletSummary(droplet)
 	}
 
-	return dropletListOut.Result(filteredDroplets)
+	return dropletSummariesOut.Result(summaries)
 }
 
 func (d *DropletTool) Tools() []server.ServerTool {
@@ -373,7 +351,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				dropletListOut.Schema(),
+				dropletSummariesOut.Schema(),
 				mcp.WithDescription("List all droplets for the user. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(50), mcp.Description("Items per page")),

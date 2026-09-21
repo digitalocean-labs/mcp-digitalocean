@@ -97,9 +97,9 @@ func TestStructuredOutputForFullDropletType(t *testing.T) {
 	require.Equal(t, envelope.Droplet, fromText)
 }
 
-// droplet-list returns a curated map[string]any subset of godo.Droplet. A map
-// always serialises every key it holds, so a zero-valued field must still
-// appear rather than be dropped the way an omitempty godo field would be.
+// droplet-list returns a curated subset of godo.Droplet. The summary has no
+// omitempty, matching the map[string]any it replaced, so a zero-valued field
+// must still appear rather than be dropped the way a godo field would be.
 func TestStructuredOutputForDropletListKeepsEveryField(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -198,14 +198,14 @@ func TestStructuredOutputForSizeList(t *testing.T) {
 	structured, text := callTool(t, setupSizesToolWithMock(mockSizes).Tools(), "size-list", map[string]any{})
 
 	var envelope struct {
-		Sizes []map[string]any `json:"sizes"`
+		Sizes []sizeSummary `json:"sizes"`
 	}
 	require.NoError(t, json.Unmarshal(structured, &envelope))
 	require.Len(t, envelope.Sizes, 1)
-	require.Equal(t, "s-1vcpu-1gb", envelope.Sizes[0]["slug"])
-	require.Equal(t, float64(5), envelope.Sizes[0]["price_monthly"])
+	require.Equal(t, "s-1vcpu-1gb", envelope.Sizes[0].Slug)
+	require.Equal(t, float64(5), envelope.Sizes[0].PriceMonthly)
 
-	var fromText []map[string]any
+	var fromText []sizeSummary
 	require.NoError(t, json.Unmarshal([]byte(text), &fromText))
 	require.Equal(t, envelope.Sizes, fromText)
 }
@@ -226,9 +226,9 @@ func TestStructuredOutputForImageList(t *testing.T) {
 	structured, _ := callTool(t, tool.Tools(), "image-list", map[string]any{})
 
 	var envelope struct {
-		Images []map[string]any `json:"images"`
+		Images []imageSummary `json:"images"`
 	}
 	require.NoError(t, json.Unmarshal(structured, &envelope))
 	require.Len(t, envelope.Images, 1)
-	require.Equal(t, "ubuntu-22-04-x64", envelope.Images[0]["slug"])
+	require.Equal(t, "ubuntu-22-04-x64", envelope.Images[0].Slug)
 }
