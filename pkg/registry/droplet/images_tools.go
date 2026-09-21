@@ -67,13 +67,22 @@ func (i *ImageTool) listImages(ctx context.Context, req mcp.CallToolRequest) (*m
 		return mcp.NewToolResultErrorFromErr("api error", apiErr), nil
 	}
 
-	// returning mapped structure to match other tools' verbosity.
-	summaries := make([]imageSummary, len(images))
+	filteredImages := make([]map[string]any, len(images))
 	for idx, image := range images {
-		summaries[idx] = newImageSummary(image)
+		filteredImages[idx] = map[string]any{
+			"id":            image.ID,
+			"name":          image.Name,
+			"slug":          image.Slug,
+			"distribution":  image.Distribution,
+			"type":          image.Type,
+			"public":        image.Public,
+			"regions":       image.Regions,
+			"created_at":    image.Created,
+			"min_disk_size": image.MinDiskSize,
+		}
 	}
 
-	return imageSummariesOut.Result(summaries)
+	return imageListOut.Result(filteredImages)
 }
 
 // getImageByID retrieves a specific image by its numeric ID.
@@ -200,7 +209,7 @@ func (i *ImageTool) Tools() []server.ServerTool {
 				"image-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				imageSummariesOut.Schema(),
+				imageListOut.Schema(),
 				mcp.WithDescription("List available images (snapshots, backups, distributions, applications)."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultImagesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultImagesPageSize), mcp.Description("Items per page")),

@@ -51,12 +51,22 @@ func (s *SizesTool) listSizes(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	summaries := make([]sizeSummary, len(sizes))
+	filteredSizes := make([]map[string]any, len(sizes))
 	for i, size := range sizes {
-		summaries[i] = newSizeSummary(size)
+		filteredSizes[i] = map[string]any{
+			"slug":          size.Slug,
+			"available":     size.Available,
+			"price_monthly": size.PriceMonthly,
+			"price_hourly":  size.PriceHourly,
+			"memory":        size.Memory,
+			"vcpus":         size.Vcpus,
+			"disk":          size.Disk,
+			"transfer":      size.Transfer,
+			"regions":       size.Regions,
+		}
 	}
 
-	return sizeSummariesOut.Result(summaries)
+	return sizeListOut.Result(filteredSizes)
 }
 
 // Tools returns the list of server tools for droplet sizes.
@@ -68,7 +78,7 @@ func (s *SizesTool) Tools() []server.ServerTool {
 				"size-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				sizeSummariesOut.Schema(),
+				sizeListOut.Schema(),
 				mcp.WithDescription("List all available droplet sizes. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultSizesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultSizesPageSize), mcp.Description("Items per page")),
