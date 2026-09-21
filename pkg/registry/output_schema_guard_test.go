@@ -8,19 +8,9 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// TestDeclaredOutputSchemasAreUsable is the backstop guard for structured
-// output, and the counterpart to TestEveryRegisteredToolAnnotated.
-//
-// It does not require every tool to declare an output schema — the rollout is
-// incremental. What it enforces is that any schema a tool does declare is one
-// a spec-compliant client can actually use: the spec has clients validate
-// structuredContent against outputSchema, so a schema that fails to compile
-// or is not an object envelope would make the tool worse than having no
-// schema at all.
-//
-// common.Output swallows reflection failures by design (a missing schema
-// degrades gracefully, a panicking server does not), which is exactly why the
-// empty-schema case has to be caught here instead.
+// TestDeclaredOutputSchemasAreUsable checks that any declared outputSchema
+// compiles and is a usable object root. Rollout is incremental — tools with
+// no schema are skipped. Catches reflection failures that Output swallows.
 func TestDeclaredOutputSchemasAreUsable(t *testing.T) {
 	tools := registerAllTools(t)
 
@@ -40,10 +30,7 @@ func TestDeclaredOutputSchemasAreUsable(t *testing.T) {
 			continue
 		}
 
-		// MCP requires the top-level output schema to be an object, which is
-		// why common.Output publishes array payloads under a named field and
-		// common.ObjectOutput inlines the payload's own properties instead of
-		// emitting a top-level $ref.
+		// MCP requires an object root (envelope or inlined properties).
 		if schema.Type != "object" {
 			t.Errorf("tool %q: output schema top-level type is %q, want \"object\"", name, schema.Type)
 		}
@@ -61,9 +48,7 @@ func TestDeclaredOutputSchemasAreUsable(t *testing.T) {
 	}
 }
 
-// compileSchema runs the schema through the same validator mcp-go uses for
-// WithOutputSchemaValidation. It catches dangling $ref pointers, which is the
-// failure mode when $defs are not hoisted to the schema root.
+// compileSchema uses the same validator as mcp-go WithOutputSchemaValidation.
 func compileSchema(raw json.RawMessage) error {
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	if err != nil {
@@ -77,12 +62,7 @@ func compileSchema(raw json.RawMessage) error {
 	return err
 }
 
-// TestOutputSchemaSizeBudget reports what structured output costs in the
-// tools/list response. Output schemas reflected from godo response types run
-// from a few hundred bytes to ~24KB each, so a full 332-tool rollout is a
-// material change to a payload every client fetches on connect. The test
-// prints the numbers rather than asserting a ceiling; run it with -v when
-// migrating a service.
+// TestOutputSchemaSizeBudget logs tools/list size impact (run with -v).
 func TestOutputSchemaSizeBudget(t *testing.T) {
 	tools := registerAllTools(t)
 
