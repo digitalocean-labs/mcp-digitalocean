@@ -59,12 +59,7 @@ func (a *AppPlatformTool) createAppFromAppSpec(ctx context.Context, req mcp.Call
 		return mcp.NewToolResultErrorFromErr("failed to create app", err), nil
 	}
 
-	appJSON, err := json.MarshalIndent(app, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to format created app response: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return appOut.Result(app)
 }
 
 type AppSummary struct {
@@ -120,12 +115,7 @@ func (a *AppPlatformTool) listApps(ctx context.Context, req mcp.CallToolRequest)
 		summaries[i] = toAppSummary(app)
 	}
 
-	appsJSON, err := json.MarshalIndent(summaries, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to format apps list response: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(appsJSON)), nil
+	return appsOut.Result(summaries)
 }
 
 // deleteApp deletes an existing app by its ID
@@ -192,12 +182,7 @@ func (a *AppPlatformTool) getDeploymentStatus(ctx context.Context, req mcp.CallT
 		Deployment: deployments[0],
 	}
 
-	activeDeploymentJSON, err := json.MarshalIndent(deploymentStatus, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal deployment status: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(activeDeploymentJSON)), nil
+	return deploymentStatusOut.Result(deploymentStatus)
 }
 
 // getAppInfo retrieves an app by its ID
@@ -217,12 +202,7 @@ func (a *AppPlatformTool) getAppInfo(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to get app %s", appID), err), nil
 	}
 
-	appJSON, err := json.MarshalIndent(app.Spec, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal app spec: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return appSpecOut.Result(app.Spec)
 }
 
 type AppUpdate struct {
@@ -327,18 +307,13 @@ func (a *AppPlatformTool) getAppLogs(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("failed to get logs for app %s, deployment %s, component %s", appID, deploymentID, component), err), nil
 	}
 
-	logsJSON, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal app logs: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(logsJSON)), nil
+	return logsOut.Result(logs)
 }
 
 // newRawSchemaTool builds a raw-schema tool and applies the shared annotation
-// options. mcp.NewToolWithRawSchema does not accept ToolOptions, but the hint
-// and risk options only set annotations and _meta (never the input schema), so
-// applying them here is safe.
+// options. mcp.NewToolWithRawSchema does not accept ToolOptions, but the hint,
+// risk and output-schema options only set annotations, _meta and the output
+// schema (never the input schema), so applying them here is safe.
 func newRawSchemaTool(name, description string, schema []byte, opts ...mcp.ToolOption) mcp.Tool {
 	tool := mcp.NewToolWithRawSchema(name, description, schema)
 	for _, opt := range opts {
@@ -354,6 +329,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("apps-get-deployment-status",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				deploymentStatusOut.Schema(),
 				mcp.WithDescription("Retrieves the active deployment for an application on DigitalOcean App Platform. This is useful for getting the current state of an app's latest deployment and it's health status."),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID of the app to retrieve active deployment for"))),
 		},
@@ -362,6 +338,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("apps-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				appsOut.Schema(),
 				mcp.WithDescription("List all applications on DigitalOcean App Platform. By default, we only return a summary of the apps. To get detailed information about an app, use the `apps-get-info` with the app id."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultPage), mcp.Description("The page number to retrieve (default is 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultPageSize), mcp.Description("The number of items per page (default is 200)")),
@@ -381,6 +358,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("apps-get-info",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				appSpecOut.Schema(),
 				mcp.WithDescription("Get information about an application on DigitalOcean App Platform"),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID of the app to retrieve information for")),
 			),
@@ -393,6 +371,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 				appCreateSchemaJSON,
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				appOut.Schema(),
 			),
 		},
 		{
@@ -410,6 +389,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("apps-get-logs",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				logsOut.Schema(),
 				mcp.WithDescription("Retrieves app logs for a specific app deployment and component on DigitalOcean App Platform. Returns both live and historic log URLs."),
 				mcp.WithString("AppID", mcp.Required(), mcp.Description("The application ID")),
 				mcp.WithString("DeploymentID", mcp.Required(), mcp.Description("The deployment ID")),
