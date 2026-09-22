@@ -38,11 +38,7 @@ func (s *RedisTool) getRedisConfig(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return redisConfigOut.Result(cfg)
 }
 
 func (s *RedisTool) updateRedisConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -87,6 +83,7 @@ func (s *RedisTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-redis-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				redisConfigOut.Schema(),
 				mcp.WithDescription("Get the Redis config for a cluster by its id."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
