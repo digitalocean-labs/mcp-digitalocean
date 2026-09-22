@@ -2,7 +2,6 @@ package volumes
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -41,11 +40,7 @@ func (v *VolumeActionsTool) attachVolume(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (v *VolumeActionsTool) detachVolume(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -69,11 +64,7 @@ func (v *VolumeActionsTool) detachVolume(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (v *VolumeActionsTool) getVolumeAction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -96,11 +87,7 @@ func (v *VolumeActionsTool) getVolumeAction(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (v *VolumeActionsTool) listVolumeActions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -136,11 +123,7 @@ func (v *VolumeActionsTool) listVolumeActions(ctx context.Context, req mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonActions, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonActions)), nil
+	return actionListOut.Result(actions)
 }
 
 func (v *VolumeActionsTool) resizeVolume(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -167,11 +150,7 @@ func (v *VolumeActionsTool) resizeVolume(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // Tools returns MCP server tools for volume lifecycle actions (attach, detach, resize, and action list/get).
@@ -182,6 +161,7 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("volume-attach",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Attach a volume to a droplet"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to attach")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to attach the volume to")),
@@ -192,6 +172,7 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("volume-detach",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Detach a volume from a droplet"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to detach")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to detach the volume from")),
@@ -202,6 +183,7 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("volume-action-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Get a volume action by ID"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("The ID of the action")),
@@ -212,6 +194,7 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("volume-action-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionListOut.Schema(),
 				mcp.WithDescription("List volume actions"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultVolumeListPage), mcp.Description("Page number")),
@@ -223,6 +206,7 @@ func (v *VolumeActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("volume-resize",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Resize a volume"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to resize")),
 				mcp.WithNumber("SizeGigaBytes", mcp.Required(), mcp.Description("The size of the volume in GB")),
