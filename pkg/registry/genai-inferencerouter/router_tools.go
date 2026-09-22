@@ -70,7 +70,7 @@ func (t *RouterTool) create(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("CreateInferenceRouter failed", err), nil
 	}
 
-	return encodeJSON(map[string]any{"model_router": router})
+	return routerOut.Result(routerEnvelope{ModelRouter: router})
 }
 
 func (t *RouterTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -99,18 +99,7 @@ func (t *RouterTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		routers = []*godo.InferenceRouterSummary{}
 	}
 
-	type metaView struct {
-		Page  int `json:"page"`
-		Pages int `json:"pages"`
-		Total int `json:"total"`
-	}
-	payload := struct {
-		ModelRouters []*godo.InferenceRouterSummary `json:"model_routers"`
-		Meta         *metaView                      `json:"meta,omitempty"`
-		Links        *godo.Links                    `json:"links,omitempty"`
-	}{
-		ModelRouters: routers,
-	}
+	payload := routerList{ModelRouters: routers}
 	if apiResp != nil {
 		if apiResp.Meta != nil {
 			payload.Meta = &metaView{
@@ -124,7 +113,7 @@ func (t *RouterTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		}
 	}
 
-	return encodeJSON(payload)
+	return routerListOut.Result(payload)
 }
 
 func (t *RouterTool) listTaskPresets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -153,18 +142,7 @@ func (t *RouterTool) listTaskPresets(ctx context.Context, req mcp.CallToolReques
 		tasks = []*godo.InferenceRouterTaskPreset{}
 	}
 
-	type metaView struct {
-		Page  int `json:"page"`
-		Pages int `json:"pages"`
-		Total int `json:"total"`
-	}
-	payload := struct {
-		Tasks []*godo.InferenceRouterTaskPreset `json:"tasks"`
-		Meta  *metaView                         `json:"meta,omitempty"`
-		Links *godo.Links                       `json:"links,omitempty"`
-	}{
-		Tasks: tasks,
-	}
+	payload := taskPresetList{Tasks: tasks}
 	if apiResp != nil {
 		if apiResp.Meta != nil {
 			payload.Meta = &metaView{
@@ -178,7 +156,7 @@ func (t *RouterTool) listTaskPresets(ctx context.Context, req mcp.CallToolReques
 		}
 	}
 
-	return encodeJSON(payload)
+	return taskPresetListOut.Result(payload)
 }
 
 func (t *RouterTool) update(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -226,7 +204,7 @@ func (t *RouterTool) update(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("UpdateInferenceRouter failed", err), nil
 	}
 
-	return encodeJSON(map[string]any{"model_router": router})
+	return routerOut.Result(routerEnvelope{ModelRouter: router})
 }
 
 func (t *RouterTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -246,7 +224,7 @@ func (t *RouterTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return mcp.NewToolResultErrorFromErr("GetInferenceRouter failed", err), nil
 	}
 
-	return encodeJSON(map[string]any{"model_router": router})
+	return routerOut.Result(routerEnvelope{ModelRouter: router})
 }
 
 func (t *RouterTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -267,19 +245,10 @@ func (t *RouterTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 
 	if out == nil {
-		b, _ := json.MarshalIndent(map[string]string{"uuid": uuid}, "", "  ")
-		return mcp.NewToolResultText(string(b)), nil
+		out = &godo.InferenceRouterDeleteResponse{UUID: uuid}
 	}
 
-	return encodeJSON(out)
-}
-
-func encodeJSON(v any) (*mcp.CallToolResult, error) {
-	b, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal response: %w", err)
-	}
-	return mcp.NewToolResultText(string(b)), nil
+	return routerDeleteOut.Result(out)
 }
 
 func intFromArg(v any, def int) int {
@@ -334,6 +303,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				"genai-inference-router-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				routerOut.Schema(),
 				mcp.WithDescription(`Create a GenAI model router (godo.GradientAI.CreateInferenceRouter). JSON body: "name", optional "policies" array, and required "fallback_models" (at least one). Each policy needs a task: either "task_slug" plus "models" and "selection_policy":{"prefer":"fastest"|"cheapest"}, or "custom_task":{"name","description"} with "models" and selection_policy. Flat {"model","usecase_class"} policies fail with "task is required". List/get return the same policy shape under model_router.config.`),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Router name")),
 				mcp.WithString("PoliciesJson", mcp.Description(`JSON array for "policies". Example: [{"task_slug":"code-generation","models":["openai-gpt-5"],"selection_policy":{"prefer":"fastest"}}]. Custom task: use custom_task with name+description instead of task_slug. Omit or "[]" if allowed.`)),
@@ -346,6 +316,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				"genai-inference-router-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				routerListOut.Schema(),
 				mcp.WithDescription("List GenAI model routers (godo.GradientAI.ListInferenceRouters) with pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
@@ -357,6 +328,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				"genai-inference-router-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				routerOut.Schema(),
 				mcp.WithDescription("Get a GenAI model router by UUID (godo.GradientAI.GetInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
@@ -367,6 +339,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				"genai-inference-router-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
+				routerDeleteOut.Schema(),
 				mcp.WithDescription("Delete a GenAI model router by UUID (godo.GradientAI.DeleteInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
@@ -377,6 +350,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				"genai-inference-router-task-presets",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				taskPresetListOut.Schema(),
 				mcp.WithDescription("List preset inference-router tasks (task_slug, name, models, etc.) from GET /v2/gen-ai/models/routers/tasks/presets via godo.GradientAI.ListInferenceRouterTaskPresets. Use task_slug values when building PoliciesJson for create/update."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
@@ -390,6 +364,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				// Reconfiguring a router that is actively serving traffic can
 				// incur cost / affect live routing, so risk is medium.
 				common.WithRisk(common.RiskMedium),
+				routerOut.Schema(),
 				mcp.WithDescription(`Update a GenAI model router (godo.GradientAI.UpdateInferenceRouter, PUT). At least one of Name, Description, PoliciesJson (non-empty), or FallbackModels must be supplied. PoliciesJson must be a JSON array (same rules as create). Omit fields you do not want to change.`),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 				mcp.WithString("Name", mcp.Description("New router name (optional)")),
