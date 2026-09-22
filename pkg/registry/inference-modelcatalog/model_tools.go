@@ -92,24 +92,11 @@ func (m *ModelTool) searchModels(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("Failed to search models", err), nil
 	}
 
-	type ModelSearchResult struct {
-		ModelUUIDs  []string `json:"model_uuids"`
-		SearchQuery string   `json:"search_query"`
-		Count       int      `json:"count"`
-	}
-
-	result := ModelSearchResult{
+	return searchOut.Result(modelSearchResult{
 		ModelUUIDs:  uuids,
 		SearchQuery: searchQuery,
 		Count:       len(uuids),
-	}
-
-	jsonData, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // getModelCard retrieves metadata for a specific model
@@ -124,12 +111,7 @@ func (m *ModelTool) getModelCard(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("Failed to get model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(metadata, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelCardOut.Result(metadata)
 }
 
 // Tools returns the list of server tools for model catalog management
@@ -141,6 +123,7 @@ func (m *ModelTool) Tools() []server.ServerTool {
 				"inference-model-catalog-search",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				searchOut.Schema(),
 				mcp.WithDescription("Search for models in the catalog using a search query. Returns a list of model UUIDs that match the search criteria. An empty or missing search query returns all available models."),
 				mcp.WithString("SearchQuery", mcp.Description("Search query string to find models (optional; empty or omitted returns all models)")),
 			),
@@ -151,6 +134,7 @@ func (m *ModelTool) Tools() []server.ServerTool {
 				"inference-model-catalog-get-card",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelCardOut.Schema(),
 				mcp.WithDescription("Get the model metadata for a specific model UUID."),
 				mcp.WithString("ModelUUID", mcp.Required(), mcp.Description("The unique UUID identifier of the model")),
 			),
