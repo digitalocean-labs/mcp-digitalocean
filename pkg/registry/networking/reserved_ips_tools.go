@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -53,11 +52,7 @@ func (t *ReservedIPTool) getReservedIP(ctx context.Context, req mcp.CallToolRequ
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return reservedIPOut.Result(reservedIP)
 }
 
 // listReservedIPs lists reserved IP addresses with pagination
@@ -92,11 +87,7 @@ func (t *ReservedIPTool) listReservedIPs(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(ips, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return reservedIPListOut.Result(ips)
 }
 
 // reserveIP reserves a new IPv4 or IPv6
@@ -125,12 +116,7 @@ func (t *ReservedIPTool) reserveIP(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(reservedIP, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return reservedIPOut.Result(reservedIP)
 }
 
 // releaseIP releases a reserved IPv4 or IPv6
@@ -188,12 +174,7 @@ func (t *ReservedIPTool) assignIP(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return actionOut.Result(action)
 }
 
 // unassignIP unassigns a reserved IP from a droplet
@@ -222,12 +203,7 @@ func (t *ReservedIPTool) unassignIP(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return actionOut.Result(action)
 }
 
 // Tools returns a list of tools for managing reserved IPs
@@ -238,6 +214,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reserved-ip-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				reservedIPOut.Schema(),
 				mcp.WithDescription("Get reserved IPv4 or IPv6 information by IP"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IPv4 or IPv6 address")),
 			),
@@ -247,6 +224,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reserved-ip-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				reservedIPListOut.Schema(),
 				mcp.WithDescription("List reserved IPv4 or IPv6 addresses with pagination"),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to list ('ipv4' or 'ipv6')")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default: 1)")),
@@ -258,6 +236,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reserved-ip-reserve",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				reservedIPOut.Schema(),
 				mcp.WithDescription("Reserve a new IPv4 or IPv6"),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region to reserve the IP in")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to reserve ('ipv4' or 'ipv6')")),
@@ -278,6 +257,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reserved-ip-assign",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Assign a reserved IP to a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to assign")),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("The ID of the droplet to assign the IP to")),
@@ -289,6 +269,7 @@ func (t *ReservedIPTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("reserved-ip-unassign",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Unassign a reserved IP from a droplet"),
 				mcp.WithString("IP", mcp.Required(), mcp.Description("The reserved IP to unassign")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of IP to unassign ('ipv4' or 'ipv6')")),

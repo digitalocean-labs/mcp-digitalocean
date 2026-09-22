@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -38,11 +37,7 @@ func (t *BYOIPPrefixTool) getBYOIPPrefix(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(byoipPrefix, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return byoipPrefixOut.Result(byoipPrefix)
 }
 
 // listBYOIPPrefix fetches BYOIP prefixes for a user
@@ -67,11 +62,7 @@ func (t *BYOIPPrefixTool) listBYOIPPrefix(ctx context.Context, req mcp.CallToolR
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(byoipPrefixes, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return byoipPrefixListOut.Result(byoipPrefixes)
 }
 
 // createBYOIPPrefix creates a new BYOIP prefix for a user
@@ -105,11 +96,7 @@ func (t *BYOIPPrefixTool) createBYOIPPrefix(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(byoipPrefixCreated, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return byoipPrefixCreateOut.Result(byoipPrefixCreated)
 }
 
 // getByOIPPrefixResources fetches resources for a BYOIP prefix
@@ -141,11 +128,7 @@ func (t *BYOIPPrefixTool) getByOIPPrefixResources(ctx context.Context, req mcp.C
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(byoipPrefixResources, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return byoipPrefixResourceListOut.Result(byoipPrefixResources)
 }
 
 // deleteBYOIPPrefix deletes BYOIP prefix by UUID
@@ -176,6 +159,7 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("byoip-prefix-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				byoipPrefixOut.Schema(),
 				mcp.WithDescription("Get BYOIP prefix information by UUID"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("The UUID of the BYOIP prefix")),
 			),
@@ -185,6 +169,7 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("byoip-prefix-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				byoipPrefixListOut.Schema(),
 				mcp.WithDescription("List BYOIP prefixes"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Number of items per page")),
@@ -195,6 +180,7 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("byoip-prefix-resources-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				byoipPrefixResourceListOut.Schema(),
 				mcp.WithDescription("Get all resources for a BYOIP prefix"),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("The UUID of the BYOIP prefix")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
@@ -206,6 +192,7 @@ func (t *BYOIPPrefixTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("byoip-prefix-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				byoipPrefixCreateOut.Schema(),
 				mcp.WithDescription("Create a new BYOIP prefix"),
 				mcp.WithString("Prefix", mcp.Required(), mcp.Description("The CIDR of the BYOIP prefix")),
 				mcp.WithString("Signature", mcp.Required(), mcp.Description("The signature for the prefix")),

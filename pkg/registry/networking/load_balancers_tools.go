@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -188,11 +187,7 @@ func (l *LoadBalancersTool) createLoadBalancer(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return loadBalancerOut.Result(lb)
 }
 
 func (l *LoadBalancersTool) deleteLoadBalancer(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -242,11 +237,7 @@ func (l *LoadBalancersTool) getLoadBalancer(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return loadBalancerOut.Result(lb)
 }
 
 func (l *LoadBalancersTool) listLoadBalancers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -272,11 +263,7 @@ func (l *LoadBalancersTool) listLoadBalancers(ctx context.Context, req mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLBs, err := json.MarshalIndent(lbs, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonLBs)), nil
+	return loadBalancerListOut.Result(lbs)
 }
 
 func (l *LoadBalancersTool) addDroplets(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -462,11 +449,7 @@ func (l *LoadBalancersTool) updateLoadBalancer(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonLB, err := json.MarshalIndent(lb, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonLB)), nil
+	return loadBalancerOut.Result(lb)
 }
 
 func (l *LoadBalancersTool) addForwardingRules(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -540,6 +523,7 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("lb-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				loadBalancerOut.Schema(),
 				mcp.WithDescription("Create a new Load Balancer"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the load balancer")),
 				mcp.WithString("Region", mcp.Description("Region slug (e.g., nyc3)")),
@@ -578,6 +562,7 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("lb-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				loadBalancerOut.Schema(),
 				mcp.WithDescription("Get a Load Balancer by ID"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 			),
@@ -587,6 +572,7 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("lb-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				loadBalancerListOut.Schema(),
 				mcp.WithDescription("List Load Balancers with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -617,6 +603,7 @@ func (l *LoadBalancersTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("lb-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				loadBalancerOut.Schema(),
 				mcp.WithDescription("Update a Load Balancer"),
 				mcp.WithString("LoadBalancerID", mcp.Required(), mcp.Description("ID of the load balancer")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the load balancer")),
