@@ -2,7 +2,6 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -31,11 +30,7 @@ func (t *NamespaceTool) listNamespaces(ctx context.Context, _ mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("list namespaces", err), nil
 	}
 
-	out, err := json.MarshalIndent(namespaces, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return namespaceListOut.Result(namespaces)
 }
 
 func (t *NamespaceTool) getNamespace(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -54,11 +49,7 @@ func (t *NamespaceTool) getNamespace(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("get namespace", err), nil
 	}
 
-	out, err := json.MarshalIndent(ns, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return namespaceOut.Result(ns)
 }
 
 func (t *NamespaceTool) createNamespace(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -86,11 +77,7 @@ func (t *NamespaceTool) createNamespace(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("create namespace", err), nil
 	}
 
-	out, err := json.MarshalIndent(ns, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return namespaceOut.Result(ns)
 }
 
 func (t *NamespaceTool) deleteNamespace(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -128,11 +115,7 @@ func (t *NamespaceTool) listAccessKeys(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("list access keys", err), nil
 	}
 
-	out, err := json.MarshalIndent(keys, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return accessKeyListOut.Result(keys)
 }
 
 func (t *NamespaceTool) createAccessKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -162,11 +145,7 @@ func (t *NamespaceTool) createAccessKey(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("create access key", err), nil
 	}
 
-	out, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return accessKeyOut.Result(key)
 }
 
 func (t *NamespaceTool) deleteAccessKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -201,6 +180,7 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-namespaces",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				namespaceListOut.Schema(),
 				mcp.WithDescription("List all DigitalOcean Functions namespaces. Returns namespace metadata including api_host, region, label, and UUID."),
 			),
 		},
@@ -209,6 +189,7 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-namespace",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				namespaceOut.Schema(),
 				mcp.WithDescription("Get a DigitalOcean Functions namespace by ID. Returns full namespace details including api_host and key for data plane access."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -218,6 +199,7 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-create-namespace",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				namespaceOut.Schema(),
 				mcp.WithDescription("Create a new DigitalOcean Functions namespace."),
 				mcp.WithString("Label", mcp.Required(), mcp.Description("A human-readable label for the namespace")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("The region slug where the namespace will be created (e.g. nyc1, sfo1)")),
@@ -237,6 +219,7 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-access-keys",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				accessKeyListOut.Schema(),
 				mcp.WithDescription("List access keys for a DigitalOcean Functions namespace. Returns metadata only (name, id, creation/expiry timestamps) — secret values are NOT returned and cannot be retrieved once a key has been created.\n\nKeys whose names start with `mcp-do-` are reserved for this MCP server's own internal use. They are managed automatically and must not be deleted by agents."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -246,6 +229,7 @@ func (t *NamespaceTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-create-access-key",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				accessKeyOut.Schema(),
 				mcp.WithDescription("Create an access key for a DigitalOcean Functions namespace. The secret appears only in this response and cannot be retrieved later, so store it immediately. Access keys grant programmatic data-plane access; agents rarely need them, so only call this when the user explicitly asks. Never use the reserved `mcp-do-` name prefix. Always set a bounded `ExpiresIn` unless the user asks otherwise; keys count toward a 200-per-account limit. Requires the `function:admin` token scope."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("A name for the access key. Never use the `mcp-do-` prefix — it is reserved for the MCP server.")),
