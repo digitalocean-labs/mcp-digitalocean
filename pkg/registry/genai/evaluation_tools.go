@@ -186,21 +186,6 @@ func (et *EvaluationTool) listEvaluationMetrics(ctx context.Context, req mcp.Cal
 		return mcp.NewToolResultErrorFromErr("failed to list evaluation metrics", err), nil
 	}
 
-	type MetricsResponse struct {
-		Metrics []*EvaluationMetric `json:"metrics"`
-		Count   int                 `json:"count"`
-	}
-
-	response := MetricsResponse{
-		Metrics: output.Metrics,
-		Count:   len(output.Metrics),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
 	// Cache the metrics
 	metricsMap := make(map[string]*EvaluationMetric)
 	for _, m := range output.Metrics {
@@ -208,7 +193,10 @@ func (et *EvaluationTool) listEvaluationMetrics(ctx context.Context, req mcp.Cal
 	}
 	et.service.SetCachedMetrics(metricsMap)
 
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return evaluationMetricListOut.Result(evaluationMetricList{
+		Metrics: output.Metrics,
+		Count:   len(output.Metrics),
+	})
 }
 
 // listEvaluationTestCases lists evaluation test cases by workspace
@@ -249,22 +237,10 @@ func (et *EvaluationTool) listEvaluationTestCases(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("failed to list evaluation test cases", err), nil
 	}
 
-	type TestCasesResponse struct {
-		TestCases []*EvaluationTestCase `json:"test_cases"`
-		Count     int                   `json:"count"`
-	}
-
-	response := TestCasesResponse{
+	return evaluationTestCaseListOut.Result(evaluationTestCaseList{
 		TestCases: output.EvaluationTestCases,
 		Count:     len(output.EvaluationTestCases),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // createEvaluationDataset creates an evaluation dataset with file upload
@@ -367,24 +343,11 @@ func (et *EvaluationTool) createEvaluationDataset(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("failed to create evaluation dataset", err), nil
 	}
 
-	type DatasetResponse struct {
-		DatasetUUID string `json:"dataset_uuid"`
-		Name        string `json:"name"`
-		FileSize    int64  `json:"file_size"`
-	}
-
-	response := DatasetResponse{
+	return evaluationDatasetCreatedOut.Result(evaluationDatasetCreated{
 		DatasetUUID: datasetOutput.EvaluationDatasetUUID,
 		Name:        name,
 		FileSize:    fileSize,
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // createEvaluationTestCase creates an evaluation test case
@@ -451,24 +414,11 @@ func (et *EvaluationTool) createEvaluationTestCase(ctx context.Context, req mcp.
 		return mcp.NewToolResultErrorFromErr("failed to create evaluation test case", err), nil
 	}
 
-	type TestCaseResponse struct {
-		TestCaseUUID string `json:"test_case_uuid"`
-		Name         string `json:"name"`
-		DatasetUUID  string `json:"dataset_uuid"`
-	}
-
-	response := TestCaseResponse{
+	return evaluationTestCaseCreatedOut.Result(evaluationTestCaseCreated{
 		TestCaseUUID: output.TestCaseUUID,
 		Name:         name,
 		DatasetUUID:  datasetUUID,
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // updateEvaluationTestCase updates an evaluation test case
@@ -527,22 +477,10 @@ func (et *EvaluationTool) updateEvaluationTestCase(ctx context.Context, req mcp.
 		return mcp.NewToolResultErrorFromErr("failed to update evaluation test case", err), nil
 	}
 
-	type UpdateResponse struct {
-		TestCaseUUID string `json:"test_case_uuid"`
-		Version      int    `json:"version"`
-	}
-
-	response := UpdateResponse{
+	return evaluationTestCaseUpdatedOut.Result(evaluationTestCaseUpdated{
 		TestCaseUUID: output.TestCaseUUID,
 		Version:      output.Version,
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // runEvaluationTestCase runs an evaluation test case
@@ -587,22 +525,10 @@ func (et *EvaluationTool) runEvaluationTestCase(ctx context.Context, req mcp.Cal
 		return mcp.NewToolResultErrorFromErr("failed to run evaluation test case", err), nil
 	}
 
-	type RunResponse struct {
-		EvaluationRunUUIDs []string `json:"evaluation_run_uuids"`
-		Count              int      `json:"count"`
-	}
-
-	response := RunResponse{
+	return evaluationRunStartedOut.Result(evaluationRunStarted{
 		EvaluationRunUUIDs: output.EvaluationRunUUIDs,
 		Count:              len(output.EvaluationRunUUIDs),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // getEvaluationRun gets evaluation run details
@@ -631,12 +557,7 @@ func (et *EvaluationTool) getEvaluationRun(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("failed to get evaluation run", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return evaluationRunOut.Result(output)
 }
 
 // runEvaluationWorkflow orchestrates the full evaluation workflow
@@ -926,26 +847,15 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 
 	duration := time.Since(startTime).Seconds()
 
-	// Build response
-	type WorkflowResponse struct {
-		DatasetUUID       string                   `json:"dataset_uuid"`
-		TestCaseUUID      string                   `json:"test_case_uuid"`
-		EvaluationRunUUID string                   `json:"evaluation_run_uuid"`
-		Status            string                   `json:"status"`
-		MetricResults     []map[string]interface{} `json:"metric_results"`
-		DurationSeconds   float64                  `json:"duration_seconds"`
-		ErrorMessage      string                   `json:"error_message,omitempty"`
-	}
-
-	metricResults := []map[string]interface{}{}
+	metricResults := []evaluationMetricResultView{}
 	if finalRun.StarMetricResult != nil {
-		metricResults = append(metricResults, metricResultToMap(finalRun.StarMetricResult))
+		metricResults = append(metricResults, newEvaluationMetricResultView(finalRun.StarMetricResult))
 	}
 	for _, mr := range finalRun.RunLevelMetricResults {
-		metricResults = append(metricResults, metricResultToMap(&mr))
+		metricResults = append(metricResults, newEvaluationMetricResultView(&mr))
 	}
 
-	response := WorkflowResponse{
+	return evaluationWorkflowOut.Result(evaluationWorkflowResult{
 		DatasetUUID:       datasetUUID,
 		TestCaseUUID:      testCaseUUID,
 		EvaluationRunUUID: evaluationRunUUID,
@@ -953,14 +863,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 		MetricResults:     metricResults,
 		DurationSeconds:   duration,
 		ErrorMessage:      derefString(finalRun.ErrorDescription),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // Tools returns the list of server tools for evaluation management
@@ -972,6 +875,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-list-evaluation-metrics",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				evaluationMetricListOut.Schema(),
 				mcp.WithDescription("List all available evaluation metrics."),
 			),
 		},
@@ -981,6 +885,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-list-evaluation-test-cases",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				evaluationTestCaseListOut.Schema(),
 				mcp.WithDescription("List evaluation test cases for a workspace."),
 				mcp.WithString("workspace_uuid", mcp.Description("Workspace UUID (optional if agent_workspace_name is provided)")),
 				mcp.WithString("agent_workspace_name", mcp.Description("Workspace name (optional if workspace_uuid is provided)")),
@@ -992,6 +897,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-create-evaluation-dataset",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				evaluationDatasetCreatedOut.Schema(),
 				mcp.WithDescription("Create an evaluation dataset by uploading a CSV file. The file must contain a 'query' column with JSON objects."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
 				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the CSV file to upload")),
@@ -1003,6 +909,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-create-evaluation-test-case",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				evaluationTestCaseCreatedOut.Schema(),
 				mcp.WithDescription("Create an evaluation test case."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name of the test case")),
 				mcp.WithString("description", mcp.Description("Description of the test case")),
@@ -1019,6 +926,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-update-evaluation-test-case",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				evaluationTestCaseUpdatedOut.Schema(),
 				mcp.WithDescription("Update an evaluation test case."),
 				mcp.WithString("test_case_uuid", mcp.Required(), mcp.Description("Test case UUID to update")),
 				mcp.WithString("name", mcp.Description("New name for the test case")),
@@ -1034,6 +942,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-run-evaluation-test-case",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				evaluationRunStartedOut.Schema(),
 				mcp.WithDescription("Run an evaluation test case."),
 				mcp.WithString("test_case_uuid", mcp.Required(), mcp.Description("Test case UUID to run")),
 				mcp.WithArray("agent_deployment_names", mcp.Description("List of agent deployment names"), mcp.Items(map[string]any{"type": "string"})),
@@ -1046,6 +955,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-get-evaluation-run",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				evaluationRunOut.Schema(),
 				mcp.WithDescription("Get the status and results of an evaluation run."),
 				mcp.WithString("evaluation_run_uuid", mcp.Required(), mcp.Description("Evaluation run UUID")),
 			),
@@ -1056,6 +966,7 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				"genai-run-evaluation-workflow",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				evaluationWorkflowOut.Schema(),
 				mcp.WithDescription("Run a complete evaluation workflow: validate dataset, create/update test case, run evaluation, and poll for results. This is a convenience tool for users unfamiliar with the multi-step evaluation process."),
 				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the CSV evaluation dataset")),
 				mcp.WithString("workspace_name", mcp.Required(), mcp.Description("Agent workspace name")),
@@ -1135,30 +1046,6 @@ func isTerminalStatus(status EvaluationRunStatus) bool {
 	default:
 		return false
 	}
-}
-
-func metricResultToMap(mr *EvaluationMetricResult) map[string]interface{} {
-	result := map[string]interface{}{
-		"metric_name": mr.MetricName,
-	}
-
-	if mr.NumberValue != nil {
-		result["number_value"] = *mr.NumberValue
-	}
-	if mr.StringValue != nil {
-		result["string_value"] = *mr.StringValue
-	}
-	if mr.Reasoning != nil {
-		result["reasoning"] = *mr.Reasoning
-	}
-	if mr.ErrorDescription != nil {
-		result["error_description"] = *mr.ErrorDescription
-	}
-	if mr.MetricValueType != nil {
-		result["metric_value_type"] = *mr.MetricValueType
-	}
-
-	return result
 }
 
 func derefString(s *string) string {
