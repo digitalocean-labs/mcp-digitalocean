@@ -73,6 +73,9 @@ type CustomModelActiveDeployment struct {
 }
 
 // CustomModel represents a custom model in the GenAI platform.
+//
+// json.Number has a string kind, so schema reflection would call it a string;
+// it serialises as a bare JSON number, hence the explicit jsonschema type.
 type CustomModel struct {
 	UUID                 string                         `json:"uuid"`
 	Name                 string                         `json:"name"`
