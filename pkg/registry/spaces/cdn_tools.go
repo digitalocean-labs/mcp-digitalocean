@@ -2,7 +2,6 @@ package spaces
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -40,12 +39,7 @@ func (c *CDNTool) getCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCDN, err := json.MarshalIndent(cdn, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCDN)), nil
+	return cdnOut.Result(cdn)
 }
 
 // listCDNs lists CDNs with pagination support
@@ -68,11 +62,7 @@ func (c *CDNTool) listCDNs(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCDNs, err := json.MarshalIndent(cdns, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCDNs)), nil
+	return cdnListOut.Result(cdns)
 }
 
 // createCDN creates a new CDN
@@ -95,12 +85,7 @@ func (c *CDNTool) createCDN(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCDN, err := json.MarshalIndent(cdn, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCDN)), nil
+	return cdnOut.Result(cdn)
 }
 
 // deleteCDN deletes a CDN
@@ -157,6 +142,7 @@ func (c *CDNTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-cdn-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				cdnOut.Schema(),
 				mcp.WithDescription("Get CDN information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the CDN")),
 			),
@@ -166,6 +152,7 @@ func (c *CDNTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-cdn-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				cdnListOut.Schema(),
 				mcp.WithDescription("List CDNs with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -176,6 +163,7 @@ func (c *CDNTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-cdn-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				cdnOut.Schema(),
 				mcp.WithDescription("Create a new CDN"),
 				mcp.WithString("Origin", mcp.Required(), mcp.Description("Origin URL for the CDN")),
 				mcp.WithNumber("TTL", mcp.Required(), mcp.Description("Time-to-live for the CDN cache")),
