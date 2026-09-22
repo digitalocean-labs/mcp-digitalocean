@@ -2,7 +2,6 @@ package insights
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -45,12 +44,7 @@ func (c *UptimeTool) getUptimeCheck(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUptimeCheck, err := json.MarshalIndent(uptimeCheck, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUptimeCheck)), nil
+	return uptimeCheckOut.Result(uptimeCheck)
 }
 
 // getUptimeCheck fetches UptimeCheck information by ID
@@ -70,12 +64,7 @@ func (c *UptimeTool) getUptimeCheckState(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUptimeCheck, err := json.MarshalIndent(uptimeCheck, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUptimeCheck)), nil
+	return uptimeCheckStateOut.Result(uptimeCheck)
 }
 
 // listUptimeChecks lists UptimeChecks with pagination support
@@ -98,11 +87,7 @@ func (c *UptimeTool) listUptimeChecks(ctx context.Context, req mcp.CallToolReque
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonUptimeChecks, err := json.MarshalIndent(uptimeChecks, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonUptimeChecks)), nil
+	return uptimeChecksOut.Result(uptimeChecks)
 }
 
 // createUptimeCheck creates a new UptimeCheck
@@ -141,13 +126,7 @@ func (c *UptimeTool) createUptimeCheck(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUptimeCheck, err := json.MarshalIndent(uptimeCheck, "", "  ")
-
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUptimeCheck)), nil
+	return uptimeCheckOut.Result(uptimeCheck)
 }
 
 // updateUptimeCheck updates a existing UptimeCheck
@@ -190,12 +169,7 @@ func (c *UptimeTool) updateUptimeCheck(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUptimeCheck, err := json.MarshalIndent(uptimeCheck, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUptimeCheck)), nil
+	return uptimeCheckOut.Result(uptimeCheck)
 }
 
 // deleteUptimeCheck deletes a UptimeCheck
@@ -226,6 +200,7 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("uptimecheck-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				uptimeCheckOut.Schema(),
 				mcp.WithDescription("Get UptimeCheck information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 			),
@@ -235,6 +210,7 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("uptimecheck-get-state",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				uptimeCheckStateOut.Schema(),
 				mcp.WithDescription("Get UptimeCheck information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 			),
@@ -244,6 +220,7 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("uptimecheck-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				uptimeChecksOut.Schema(),
 				mcp.WithDescription("List UptimeChecks with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultChecksPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultChecksPageSize), mcp.Description("Items per page")),
@@ -254,6 +231,7 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("uptimecheck-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				uptimeCheckOut.Schema(),
 				mcp.WithDescription("Create a new UptimeCheck"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the UptimeCheck")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Type of the UptimeCheck. value : HTTPS, HTTP or PING")),
@@ -268,6 +246,7 @@ func (c *UptimeTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("uptimecheck-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				uptimeCheckOut.Schema(),
 				mcp.WithDescription("Update a UptimeCheck"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the UptimeCheck")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the UptimeCheck")),
