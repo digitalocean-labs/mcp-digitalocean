@@ -63,13 +63,7 @@ func (d *DoksTool) getDoksCluster(ctx context.Context, req mcp.CallToolRequest) 
 		return nil, err
 	}
 
-	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return clusterOut.Result(cluster)
 }
 
 // ListDOKSClusters lists DOKS clusters
@@ -103,13 +97,7 @@ func (d *DoksTool) listDOKSClusters(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	// Marshal the response
-	clustersJSON, err := json.MarshalIndent(clusters, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(clustersJSON)), nil
+	return clusterListOut.Result(clusters)
 }
 
 // CreateDOKSCluster creates a new Kubernetes cluster
@@ -139,13 +127,7 @@ func (d *DoksTool) createDOKSCluster(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("failed to create cluster", err), nil
 	}
 
-	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal cluster", err), nil
-	}
-
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return clusterOut.Result(cluster)
 }
 
 // UpdateDOKSCluster updates a Kubernetes cluster
@@ -222,13 +204,7 @@ func (d *DoksTool) updateDOKSCluster(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("failed to update cluster", err), nil
 	}
 
-	// Marshal the response
-	clusterJSON, err := json.MarshalIndent(cluster, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal cluster", err), nil
-	}
-
-	return mcp.NewToolResultText(string(clusterJSON)), nil
+	return clusterOut.Result(cluster)
 }
 
 // DeleteDOKSCluster deletes a Kubernetes cluster
@@ -308,13 +284,7 @@ func (d *DoksTool) getDOKSClusterUpgrades(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("failed to get upgrades", err), nil
 	}
 
-	// Marshal the response
-	upgradesJSON, err := json.MarshalIndent(upgrades, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal upgrades", err), nil
-	}
-
-	return mcp.NewToolResultText(string(upgradesJSON)), nil
+	return upgradesOut.Result(upgrades)
 }
 
 // GetDOKSClusterKubeConfig gets the kubeconfig for a cluster
@@ -362,30 +332,7 @@ func (d *DoksTool) getDOKSClusterCredentials(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("failed to get credentials", err), nil
 	}
 
-	// Build response
-	var result struct {
-		Server                   string `json:"server"`
-		CertificateAuthorityData string `json:"certificate_authority_data"`
-		ClientCertificateData    string `json:"client_certificate_data"`
-		ClientKeyData            string `json:"client_key_data"`
-		Token                    string `json:"token"`
-		ExpiresAt                string `json:"expires_at"`
-	}
-
-	result.Server = credentials.Server
-	result.CertificateAuthorityData = string(credentials.CertificateAuthorityData)
-	result.ClientCertificateData = string(credentials.ClientCertificateData)
-	result.ClientKeyData = string(credentials.ClientKeyData)
-	result.Token = credentials.Token
-	result.ExpiresAt = credentials.ExpiresAt.String()
-
-	// Marshal the response
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	return credentialsOut.Result(newClusterCredentials(credentials))
 }
 
 // CreateDOKSNodePool creates a new node pool for a cluster
@@ -425,13 +372,7 @@ func (d *DoksTool) createDOKSNodePool(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("failed to create node pool", err), nil
 	}
 
-	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
-	}
-
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return nodePoolOut.Result(nodePool)
 }
 
 // GetDOKSNodePool gets a node pool for a cluster
@@ -461,13 +402,7 @@ func (d *DoksTool) getDOKSNodePool(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("failed to get node pool", err), nil
 	}
 
-	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
-	}
-
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return nodePoolOut.Result(nodePool)
 }
 
 // ListDOKSNodePools lists node pools for a cluster
@@ -491,13 +426,7 @@ func (d *DoksTool) listDOKSNodePools(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("failed to list node pools", err), nil
 	}
 
-	// Marshal the response
-	nodePoolsJSON, err := json.MarshalIndent(nodePools, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal node pools", err), nil
-	}
-
-	return mcp.NewToolResultText(string(nodePoolsJSON)), nil
+	return nodePoolListOut.Result(nodePools)
 }
 
 // UpdateDOKSNodePool updates a node pool for a cluster
@@ -612,13 +541,7 @@ func (d *DoksTool) updateDOKSNodePool(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("failed to update node pool", err), nil
 	}
 
-	// Marshal the response
-	nodePoolJSON, err := json.MarshalIndent(nodePool, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal node pool", err), nil
-	}
-
-	return mcp.NewToolResultText(string(nodePoolJSON)), nil
+	return nodePoolOut.Result(nodePool)
 }
 
 // DeleteDOKSNodePool deletes a node pool for a cluster
@@ -762,13 +685,7 @@ func (d *DoksTool) getKubernetesOptions(ctx context.Context, _ mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("failed to get kubernetes options", err), nil
 	}
 
-	// Marshal the response
-	optionsJSON, err := json.MarshalIndent(options, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to marshal kubernetes options", err), nil
-	}
-
-	return mcp.NewToolResultText(string(optionsJSON)), nil
+	return optionsOut.Result(options)
 }
 
 // getDayFromString converts a day string to the format expected by the API
@@ -812,6 +729,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-get-cluster",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				clusterOut.Schema(),
 				mcp.WithDescription("Get a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -821,6 +739,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-list-clusters",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				clusterListOut.Schema(),
 				mcp.WithDescription("List all DigitalOcean Kubernetes clusters"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number of the results to fetch")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Number of items returned per page")),
@@ -832,6 +751,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 				"Create a new DigitalOcean Kubernetes cluster", clusterCreateSchemaJSON,
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
+				clusterOut.Schema(),
 			),
 		},
 		{
@@ -839,6 +759,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-update-cluster",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				clusterOut.Schema(),
 				mcp.WithDescription("Update a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("Name", mcp.Description("The name of the Kubernetes cluster")),
@@ -872,6 +793,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-get-cluster-upgrades",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				upgradesOut.Schema(),
 				mcp.WithDescription("Get available upgrades for a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -890,6 +812,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-get-credentials",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				credentialsOut.Schema(),
 				mcp.WithDescription("Get credentials for a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -900,6 +823,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 				"Create a new node pool in a DigitalOcean Kubernetes cluster", nodePoolCreateSchemaJSON,
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				nodePoolOut.Schema(),
 			),
 		},
 		{
@@ -907,6 +831,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-get-nodepool",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				nodePoolOut.Schema(),
 				mcp.WithDescription("Get a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -917,6 +842,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-list-nodepools",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				nodePoolListOut.Schema(),
 				mcp.WithDescription("List all node pools in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 			),
@@ -926,6 +852,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-update-nodepool",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				nodePoolOut.Schema(),
 				mcp.WithDescription("Update a node pool in a DigitalOcean Kubernetes cluster"),
 				mcp.WithString("ClusterID", mcp.Required(), mcp.Description("The ID of the Kubernetes cluster")),
 				mcp.WithString("NodePoolID", mcp.Required(), mcp.Description("The ID of the node pool")),
@@ -978,6 +905,7 @@ func (d *DoksTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("doks-list-options",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				optionsOut.Schema(),
 				mcp.WithDescription("List available Kubernetes options including versions, regions, and sizes"),
 			),
 		},
