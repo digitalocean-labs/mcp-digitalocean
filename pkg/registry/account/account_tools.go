@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -32,12 +31,7 @@ func (a *AccountTools) getAccountInformation(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(account, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling account: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return accountOut.Result(account)
 }
 
 func (a *AccountTools) Tools() []server.ServerTool {
@@ -47,6 +41,7 @@ func (a *AccountTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("account-get-information",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				accountOut.Schema(),
 				mcp.WithDescription("Retrieves account information for the current user"),
 			),
 		},

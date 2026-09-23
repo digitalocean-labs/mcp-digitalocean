@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"mcp-digitalocean/pkg/registry/common"
@@ -43,11 +42,7 @@ func (a *ActionTools) getAction(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return actionOut.Result(action)
 }
 
 // listActions lists actions with pagination support.
@@ -70,11 +65,7 @@ func (a *ActionTools) listActions(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(actions, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return actionsOut.Result(actions)
 }
 
 // Tools returns the list of server tools for actions.
@@ -85,6 +76,7 @@ func (a *ActionTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("action-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Get a specific action by ID"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Action ID")),
 			),
@@ -94,6 +86,7 @@ func (a *ActionTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("action-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionsOut.Schema(),
 				mcp.WithDescription("List actions with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultActionsPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultActionsPageSize), mcp.Description("Items per page")),
