@@ -2,7 +2,6 @@ package dedicatedinference
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -15,11 +14,6 @@ import (
 // DedicatedInferenceTool provides Dedicated Inference lifecycle management tools.
 type DedicatedInferenceTool struct {
 	client func(ctx context.Context) (*godo.Client, error)
-}
-
-type listResponse struct {
-	Items []godo.DedicatedInferenceListItem `json:"items"`
-	Meta  *godo.Meta                        `json:"meta,omitempty"`
 }
 
 // NewDedicatedInferenceTool creates a new DedicatedInferenceTool instance.
@@ -82,12 +76,7 @@ func (d *DedicatedInferenceTool) createDedicatedInference(ctx context.Context, r
 		return mcp.NewToolResultErrorFromErr("Failed to create dedicated inference", err), nil
 	}
 
-	type createResponse struct {
-		DedicatedInference *godo.DedicatedInference      `json:"dedicated_inference"`
-		Token              *godo.DedicatedInferenceToken `json:"token,omitempty"`
-	}
-
-	return marshalResult(createResponse{
+	return createOut.Result(createResponse{
 		DedicatedInference: di,
 		Token:              authToken,
 	})
@@ -109,7 +98,7 @@ func (d *DedicatedInferenceTool) getDedicatedInference(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("Failed to get dedicated inference", err), nil
 	}
 
-	return marshalResult(di)
+	return dedicatedInferenceOut.Result(di)
 }
 
 func (d *DedicatedInferenceTool) listDedicatedInferences(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -146,7 +135,7 @@ func (d *DedicatedInferenceTool) listDedicatedInferences(ctx context.Context, re
 		result.Meta = resp.Meta
 	}
 
-	return marshalResult(result)
+	return listOut.Result(result)
 }
 
 func (d *DedicatedInferenceTool) updateDedicatedInference(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -196,7 +185,7 @@ func (d *DedicatedInferenceTool) updateDedicatedInference(ctx context.Context, r
 		return mcp.NewToolResultErrorFromErr("Failed to update dedicated inference", err), nil
 	}
 
-	return marshalResult(di)
+	return dedicatedInferenceOut.Result(di)
 }
 
 func (d *DedicatedInferenceTool) deleteDedicatedInference(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -227,6 +216,7 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 				"dedicated-inference-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
+				createOut.Schema(),
 				mcp.WithDescription("Create a new Dedicated Inference instance (CreateDedicatedInferenceV2). See spec/dedicated-inference-create-schema.json for the HTTP/API-aligned request shape. Tool arguments use UpperCamelCase; returns instance and optional initial auth token."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the dedicated inference instance")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug for deployment (e.g. nyc2, tor1, atl1)")),
@@ -243,6 +233,7 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 				"dedicated-inference-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				dedicatedInferenceOut.Schema(),
 				mcp.WithDescription("Get details of a Dedicated Inference instance (GetDedicatedInferenceV2) by ID."),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance")),
 			),
@@ -253,6 +244,7 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 				"dedicated-inference-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				listOut.Schema(),
 				mcp.WithDescription("List Dedicated Inference instances (ListDedicatedInferenceV2) with optional filters and pagination."),
 				mcp.WithString("Region", mcp.Description("Filter by region slug (e.g. nyc2)")),
 				mcp.WithString("Name", mcp.Description("Filter by instance name")),
@@ -266,6 +258,7 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 				"dedicated-inference-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				dedicatedInferenceOut.Schema(),
 				mcp.WithDescription("Update a Dedicated Inference instance (UpdateDedicatedInferenceV2). See spec/dedicated-inference-update-schema.json for the HTTP/API-aligned body shape."),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance to update")),
 				mcp.WithString("Name", mcp.Description("New name for the instance")),
@@ -330,14 +323,6 @@ func parseModelDeployments(args map[string]any) []*godo.DedicatedInferenceModelR
 		deployments = append(deployments, modelReq)
 	}
 	return deployments
-}
-
-func marshalResult(v any) (*mcp.CallToolResult, error) {
-	jsonData, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
 var acceleratorItemsSchema = map[string]any{
