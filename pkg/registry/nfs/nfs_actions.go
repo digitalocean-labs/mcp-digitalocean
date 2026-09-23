@@ -2,7 +2,6 @@ package nfs
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -41,11 +40,7 @@ func (n *NfsActionsTool) resizeFileShare(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) snapshotFileShare(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -69,11 +64,7 @@ func (n *NfsActionsTool) snapshotFileShare(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) attachFileShare(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -97,11 +88,7 @@ func (n *NfsActionsTool) attachFileShare(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) detachFileShare(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -125,11 +112,7 @@ func (n *NfsActionsTool) detachFileShare(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) reassignFileShare(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -157,11 +140,7 @@ func (n *NfsActionsTool) reassignFileShare(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) switchPerformanceTier(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -185,11 +164,7 @@ func (n *NfsActionsTool) switchPerformanceTier(ctx context.Context, req mcp.Call
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 func (n *NfsActionsTool) Tools() []server.ServerTool {
@@ -199,6 +174,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-resize",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Resize a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to resize")),
 				mcp.WithNumber("SizeGibibytes", mcp.Required(), mcp.Description("Size of the file share in GiB")),
@@ -209,6 +185,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-snapshot",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Create a snapshot of a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to snapshot")),
 				mcp.WithString("SnapshotName", mcp.Required(), mcp.Description("Name of the snapshot")),
@@ -219,6 +196,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-attach",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Attach a NFS file share to a VPC"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to attach")),
 				mcp.WithString("VpcID", mcp.Required(), mcp.Description("ID of the VPC to attach the file share to")),
@@ -229,6 +207,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-detach",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Detach a NFS file share from a VPC"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to detach")),
 				mcp.WithString("VpcID", mcp.Required(), mcp.Description("ID of the VPC to detach the file share from")),
@@ -239,6 +218,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-reassign",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Reassign a NFS file share from one VPC to another"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to reassign")),
 				mcp.WithString("OldVpcID", mcp.Required(), mcp.Description("ID of the VPC to reassign the file share from")),
@@ -250,6 +230,7 @@ func (n *NfsActionsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("nfs-switch-performance-tier",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Switch the performance tier of a NFS file share"),
 				mcp.WithString("ShareID", mcp.Required(), mcp.Description("ID of the NFS file share to switch the performance tier of")),
 				mcp.WithString("PerformanceTier", mcp.Required(), mcp.Description("Performance tier to switch the file share to")),
