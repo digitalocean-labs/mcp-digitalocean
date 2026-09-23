@@ -52,11 +52,7 @@ func (s *ClusterTool) listCluster(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonClusters, err := json.MarshalIndent(clusters, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonClusters)), nil
+	return clusterListOut.Result(clusters)
 }
 
 func (s *ClusterTool) getCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -74,11 +70,7 @@ func (s *ClusterTool) getCluster(ctx context.Context, req mcp.CallToolRequest) (
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCluster, err := json.MarshalIndent(cluster, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCluster)), nil
+	return clusterOut.Result(cluster)
 }
 
 func (s *ClusterTool) createCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -120,11 +112,7 @@ func (s *ClusterTool) createCluster(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCluster, err := json.MarshalIndent(cluster, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCluster)), nil
+	return clusterOut.Result(cluster)
 }
 
 func (s *ClusterTool) deleteCluster(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -195,11 +183,7 @@ func (s *ClusterTool) getCA(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCA, err := json.MarshalIndent(ca, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCA)), nil
+	return caOut.Result(ca)
 }
 
 func (s *ClusterTool) listBackups(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -234,11 +218,7 @@ func (s *ClusterTool) listBackups(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonBackups, err := json.MarshalIndent(backups, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonBackups)), nil
+	return backupListOut.Result(backups)
 }
 
 func (s *ClusterTool) listOptions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -250,11 +230,7 @@ func (s *ClusterTool) listOptions(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonOptions, err := json.MarshalIndent(options, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonOptions)), nil
+	return optionsOut.Result(options)
 }
 
 func (s *ClusterTool) upgradeMajorVersion(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -328,11 +304,7 @@ func (s *ClusterTool) startOnlineMigration(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonStatus, err := json.MarshalIndent(status, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonStatus)), nil
+	return migrationOut.Result(status)
 }
 
 func (s *ClusterTool) stopOnlineMigration(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -370,11 +342,7 @@ func (s *ClusterTool) getOnlineMigrationStatus(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonStatus, err := json.MarshalIndent(status, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonStatus)), nil
+	return migrationOut.Result(status)
 }
 
 func (s *ClusterTool) Tools() []server.ServerTool {
@@ -385,6 +353,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				clusterListOut.Schema(),
 				mcp.WithDescription("Get list of  Cluster"),
 				mcp.WithString("page", mcp.Description("Page number for pagination (optional, integer as string)")),
 				mcp.WithNumber("per_page", mcp.Description("Number of results per page (optional, integer)")),
@@ -395,6 +364,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				clusterOut.Schema(),
 				mcp.WithDescription("Get a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The id of the cluster to retrieve")),
 			),
@@ -404,6 +374,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-ca",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				caOut.Schema(),
 				mcp.WithDescription("Get the CA certificate for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The id of the cluster to retrieve the CA for")),
 			),
@@ -413,6 +384,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				clusterOut.Schema(),
 				mcp.WithDescription("Create a new database cluster"),
 				mcp.WithString("name", mcp.Required(), mcp.Description("The name of the cluster")),
 				mcp.WithString("engine", mcp.Required(), mcp.Description("The engine slug (e.g., valkey, pg, mysql, etc.)")),
@@ -449,6 +421,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-list-backups",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				backupListOut.Schema(),
 				mcp.WithDescription("List backups for a database cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The id of the cluster to list backups for")),
 				mcp.WithString("page", mcp.Description("Page number for pagination (optional, integer as string)")),
@@ -460,6 +433,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-list-options",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				optionsOut.Schema(),
 				mcp.WithDescription("List available database options (engines, versions, sizes, regions, etc) for DigitalOcean managed databases."),
 			),
 		},
@@ -478,6 +452,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-start-online-migration",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				migrationOut.Schema(),
 				mcp.WithDescription("Start an online migration for a database cluster by its id."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 				mcp.WithObject("source",
@@ -525,6 +500,7 @@ func (s *ClusterTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-migration",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				migrationOut.Schema(),
 				mcp.WithDescription("Get the online migration status for a database cluster by its id."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
