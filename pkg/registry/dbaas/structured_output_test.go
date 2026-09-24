@@ -75,3 +75,56 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(resp.Result.Content[0].Text), &fromText))
 	require.Equal(t, resp.Result.StructuredContent.Databases, fromText)
 }
+
+// TestSQLModeStructuredOutput covers db-cluster-get-sql-mode, the only tool
+// here whose payload is a scalar. A bare string cannot be a structuredContent
+// root, so it takes an envelope, while the text half stays the unquoted mode
+// string the tool has always returned rather than becoming JSON. That pairing
+// is what this pins; the shared schema check above cannot reach it.
+func TestSQLModeStructuredOutput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	const mode = "ANSI,STRICT_TRANS_TABLES"
+
+	mockDB := mocks.NewMockDatabasesService(ctrl)
+	mockDB.EXPECT().GetSQLMode(gomock.Any(), "cid").Return(mode, nil, nil).Times(1)
+
+	client := func(context.Context) (*godo.Client, error) {
+		return &godo.Client{Databases: mockDB}, nil
+	}
+
+	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
+	svr.AddTools((&MysqlTool{client: client}).Tools()...)
+
+	ctx := context.Background()
+	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+
+		`"params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}`))
+
+	raw, err := json.Marshal(svr.HandleMessage(ctx,
+		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"db-cluster-get-sql-mode",`+
+			`"arguments":{"id":"cid"}}}`)))
+	require.NoError(t, err)
+
+	var resp struct {
+		Error  *struct{ Message string } `json:"error"`
+		Result struct {
+			IsError           bool              `json:"isError"`
+			Content           []mcp.TextContent `json:"content"`
+			StructuredContent struct {
+				SQLMode string `json:"sql_mode"`
+			} `json:"structuredContent"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &resp))
+
+	require.Nil(t, resp.Error, "server rejected the call")
+	require.False(t, resp.Result.IsError, "tool returned an error result: %s", raw)
+
+	require.Equal(t, mode, resp.Result.StructuredContent.SQLMode)
+
+	// The text is the raw mode string, not a JSON document, which is why this
+	// tool cannot derive its text from the payload.
+	require.Len(t, resp.Result.Content, 1)
+	require.Equal(t, mode, resp.Result.Content[0].Text)
+}

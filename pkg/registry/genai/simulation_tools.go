@@ -39,15 +39,17 @@ func (st *SimulationTool) getClient(ctx context.Context) (*godo.Client, error) {
 	return st.client(ctx)
 }
 
-// marshalToolResult emits a text-only JSON result. Only
-// genai-simulation-create-scenario-set still uses it, because its two input
-// forms answer with two different payload shapes; see outputs.go.
-func marshalToolResult(v any) (*mcp.CallToolResult, error) {
-	jsonData, err := json.MarshalIndent(v, "", "  ")
+// scenarioSetCreateResult serves the two branches of
+// genai-simulation-create-scenario-set. They have always answered with
+// different text — the bare set inline, the set plus upload details for a file
+// — so text is marshalled from whatever that branch returned, while both
+// publish the one payload shape that covers either case.
+func scenarioSetCreateResult(text any, payload *ScenarioSetCreateResult) (*mcp.CallToolResult, error) {
+	jsonData, err := json.MarshalIndent(text, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return scenarioSetCreateOut.ResultWithText(string(jsonData), payload)
 }
 
 func listOptionsFromArgs(args map[string]any) godo.ListOptions {
@@ -138,7 +140,7 @@ func (st *SimulationTool) createScenarioSet(ctx context.Context, req mcp.CallToo
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("failed to create scenario set from file", err), nil
 		}
-		return marshalToolResult(result)
+		return scenarioSetCreateResult(result, result)
 	}
 
 	scenarios, err := parseScenariosFromArgs(args["scenarios"])
@@ -153,7 +155,8 @@ func (st *SimulationTool) createScenarioSet(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create scenario set", err), nil
 	}
-	return marshalToolResult(output)
+	// The inline branch carries no upload, so those fields stay empty.
+	return scenarioSetCreateResult(output, &ScenarioSetCreateResult{ScenarioSet: output})
 }
 
 // generateScenarioSet dispatches goal-driven scenario generation.
@@ -732,6 +735,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-create-scenario-set",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				scenarioSetCreateOut.Schema(),
 				mcp.WithDescription("Create a scenario set from either inline scenarios or a local JSONL file. Provide exactly one of scenarios or file_path. JSONL rows must include a non-empty name field."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the scenario set")),
 				mcp.WithArray("scenarios", mcp.Description("Inline scenario objects. Each object should include name (required), and optional description, user_persona, stopping_criteria, max_turns, exploration_budget."), mcp.Items(map[string]any{"type": "object"})),

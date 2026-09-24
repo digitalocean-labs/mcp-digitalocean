@@ -204,7 +204,10 @@ func (d *DedicatedInferenceTool) deleteDedicatedInference(ctx context.Context, r
 		return mcp.NewToolResultErrorFromErr("Failed to delete dedicated inference", err), nil
 	}
 
-	return mcp.NewToolResultText(`{"status": "success", "message": "Dedicated inference instance deleted"}`), nil
+	return deleteOut.Result(deleteResponse{
+		Status:  "success",
+		Message: "Dedicated inference instance deleted",
+	})
 }
 
 // Tools returns the list of server tools for Dedicated Inference management.
@@ -276,6 +279,7 @@ func (d *DedicatedInferenceTool) Tools() []server.ServerTool {
 				"dedicated-inference-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
+				deleteOut.Schema(),
 				mcp.WithDescription("Delete a Dedicated Inference instance (DeleteDedicatedInferenceV2)."),
 				mcp.WithString("DedicatedInferenceID", mcp.Required(), mcp.Description("UUID of the dedicated inference instance to delete")),
 			),

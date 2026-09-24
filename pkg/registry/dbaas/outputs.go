@@ -30,9 +30,12 @@ import (
 // remaining cluster actions (db-cluster-resize,
 // db-cluster-upgrade-major-version, db-cluster-stop-online-migration) return a
 // fixed success message rather than a resource, so an output schema would
-// describe nothing. db-cluster-get-sql-mode is text-only for a different
-// reason: its result is a bare SQL-mode string, not JSON, and wrapping it now
-// would change what the text content carries.
+// describe nothing.
+//
+// sqlModeOut is the one exception to "no handler hand-wraps its payload":
+// db-cluster-get-sql-mode answers with a bare SQL-mode string, which cannot be
+// an object root, so it takes an envelope. Its text content stays the bare
+// string it has always been, which is why that tool uses ResultWithText.
 var (
 	clusterOut          = common.NewOutput[*godo.Database]("cluster")
 	clusterListOut      = common.NewOutput[[]godo.Database]("databases")
@@ -51,4 +54,5 @@ var (
 	opensearchConfigOut = common.NewOutput[*godo.OpensearchConfig]("config")
 	postgresConfigOut   = common.NewOutput[*godo.PostgreSQLConfig]("config")
 	redisConfigOut      = common.NewOutput[*godo.RedisConfig]("config")
+	sqlModeOut          = common.NewOutput[string]("sql_mode")
 )
