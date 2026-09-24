@@ -31,10 +31,10 @@ type (
 	}
 )
 
-// Output contracts for this package's tools; see the account package for the
-// convention. Tools that stay text-only: the delete and validate-name tools
-// return a confirmation rather than a payload, and docr-docker-credentials
-// returns a Docker-defined config blob with no godo type to describe it.
+// Output contracts for this package's tools. Tools that stay text-only: the
+// delete and validate-name tools return a confirmation rather than a payload,
+// and docr-docker-credentials returns a Docker-defined config blob with no
+// godo type to describe it.
 var (
 	registryOut     = common.NewOutput[*godo.Registry]("registry")
 	registriesOut   = common.NewOutput[[]*godo.Registry]("registries")
