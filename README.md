@@ -6,6 +6,15 @@ MCP DigitalOcean Integration is an open-source project that provides a comprehen
 
 ---
 
+## Authentication
+
+The hosted (remote) MCP servers support two ways to authenticate:
+
+- **OAuth 2.0 (recommended).** Just add the server URL — no `Authorization` header. Your client opens a browser to sign in to DigitalOcean on first use, so there's no token to create, store, or rotate. Supported clients (e.g. recent Claude and Cursor) handle this automatically, and you can skip Steps 1–2 below.
+- **API token.** For local installs or clients without OAuth support, use a DigitalOcean [personal access token](https://cloud.digitalocean.com/account/api/tokens) via an `Authorization: Bearer` header (remote) or the `DIGITALOCEAN_API_TOKEN` environment variable (local). See Steps 1–2 below.
+
+---
+
 ## Security: Never Hardcode Your API Token
 
 > **WARNING:** Do NOT paste your DigitalOcean API token directly into any config file (e.g., `claude_desktop_config.json`, `~/.cursor/config.json`, VS Code settings). If you commit these files to GitHub, your token will be exposed and GitHub will automatically block or revoke it to protect your account.
@@ -162,6 +171,8 @@ $env:DIGITALOCEAN_API_TOKEN = "your_actual_token_here"
 
 The easiest way to get started is to use DigitalOcean's hosted MCP services. Each service is deployed as a standalone MCP server accessible via HTTPS, allowing you to connect without running any local server. You can connect to multiple endpoints simultaneously by adding multiple entries to your configuration.
 
+These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Authentication](#authentication). Each client section below shows both options.
+
 #### Available Services
 
 | Service                  | Remote MCP URL                                              | Description                                                                             |
@@ -194,7 +205,13 @@ The easiest way to get started is to use DigitalOcean's hosted MCP services. Eac
 
 #### Remote MCP (Recommended)
 
-Make sure you have completed Step 1 and your `DIGITALOCEAN_API_TOKEN` environment variable is set. Then run:
+**Option A — OAuth (recommended).** Add the server with no `Authorization` header; Claude prompts you to sign in on first use:
+
+```bash
+claude mcp add --transport http digitalocean-apps https://apps.mcp.digitalocean.com/mcp
+```
+
+**Option B — API token.** Make sure you have completed Step 1 and your `DIGITALOCEAN_API_TOKEN` environment variable is set. Then run:
 
 ```bash
 claude mcp add --transport http digitalocean-apps https://apps.mcp.digitalocean.com/mcp \
@@ -283,7 +300,20 @@ The config file is located at:
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
-Add the remote MCP servers to your config file. Reference the env var using `${DIGITALOCEAN_API_TOKEN}` — Claude Desktop will substitute it at runtime:
+**Option A — OAuth (recommended).** Claude Desktop connects to remote servers through the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge, which opens a browser for you to sign in to DigitalOcean on first use:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean-apps": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://apps.mcp.digitalocean.com/mcp"]
+    }
+  }
+}
+```
+
+**Option B — API token.** Add the remote MCP servers to your config file. Reference the env var using `${DIGITALOCEAN_API_TOKEN}` — Claude Desktop will substitute it at runtime:
 
 ```json
 {
@@ -342,7 +372,19 @@ The Cursor config file is located at:
 - **macOS / Linux:** `~/.cursor/config.json`
 - **Windows:** `%USERPROFILE%\.cursor\config.json`
 
-Add the remote MCP servers to your Cursor settings file:
+**Option A — OAuth (recommended).** Add just the URL with no `headers` block; Cursor prompts you to sign in on first use:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean-apps": {
+      "url": "https://apps.mcp.digitalocean.com/mcp"
+    }
+  }
+}
+```
+
+**Option B — API token.** Add the remote MCP servers to your Cursor settings file:
 
 ```json
 {
@@ -416,7 +458,21 @@ In Cursor's chat, try asking: "List all my DigitalOcean apps" — this should tr
 
 **Before editing the config file**, ensure `DIGITALOCEAN_API_TOKEN` is set in your shell profile (see Step 1 — Option A).
 
-The VS Code MCP config file is located at `.vscode/mcp.json` in your workspace root. Create this file if it does not exist. Add the remote MCP servers:
+The VS Code MCP config file is located at `.vscode/mcp.json` in your workspace root. Create this file if it does not exist.
+
+**Option A — OAuth (recommended).** Add just the URL with no `headers` block; VS Code prompts you to sign in on first use:
+
+```json
+{
+  "servers": {
+    "digitalocean-apps": {
+      "url": "https://apps.mcp.digitalocean.com/mcp"
+    }
+  }
+}
+```
+
+**Option B — API token.** Add the remote MCP servers, using VS Code's `inputs` feature to prompt for the token securely:
 
 ```json
 {
