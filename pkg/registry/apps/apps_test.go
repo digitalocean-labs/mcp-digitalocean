@@ -81,6 +81,7 @@ func TestUpdateApp(t *testing.T) {
 						Text: toJSONString(&godo.Deployment{ID: "deploy-1"}),
 					},
 				},
+				StructuredContent: toStructured(appUpdateResult{Deployment: &godo.Deployment{ID: "deploy-1"}}),
 			},
 		},
 		{
@@ -108,6 +109,7 @@ func TestUpdateApp(t *testing.T) {
 						Text: toJSONString(&godo.App{Spec: &godo.AppSpec{Name: "updated-app"}}),
 					},
 				},
+				StructuredContent: toStructured(appUpdateResult{App: &godo.App{Spec: &godo.AppSpec{Name: "updated-app"}}}),
 			},
 		},
 		{
@@ -237,6 +239,16 @@ func toJSONString(v any) string {
 		return fmt.Sprintf("error marshaling to JSON: %v", err)
 	}
 	return string(data)
+}
+
+// toStructured mirrors how Output publishes an already-object payload: the
+// compact encoding, unwrapped.
+func toStructured(v any) json.RawMessage {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil
+	}
+	return data
 }
 
 func TestCreateAppFromAppSpec(t *testing.T) {

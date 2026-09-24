@@ -217,6 +217,15 @@ type AppUpdateRequest struct {
 	AppID string `json:"app_id"`
 }
 
+// appUpdateResult carries whichever of the two shapes an update produced: the
+// updated app when the request supplied a spec, or the new deployment when it
+// only forced a rebuild. Exactly one field is ever set, which is what lets a
+// single output schema describe both branches.
+type appUpdateResult struct {
+	App        *godo.App        `json:"app,omitempty"`
+	Deployment *godo.Deployment `json:"deployment,omitempty"`
+}
+
 // updateApp updates an existing app by its ID. If the spec is not provided, this simply forces a re-deploy of the app.
 func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	jsonBytes, err := json.Marshal(req.GetArguments())
@@ -247,7 +256,9 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 			return nil, fmt.Errorf("failed to marshal deployment: %w", err)
 		}
 
-		return mcp.NewToolResultText(string(deploymentJSON)), nil
+		// The text stays the bare deployment it has always been; only the
+		// structured half carries the envelope that distinguishes the branches.
+		return appUpdateOut.ResultWithText(string(deploymentJSON), appUpdateResult{Deployment: deployment})
 	}
 
 	app, _, err := client.Apps.Update(ctx, update.Update.AppID, update.Update.Request)
@@ -260,7 +271,7 @@ func (a *AppPlatformTool) updateApp(ctx context.Context, req mcp.CallToolRequest
 		return nil, fmt.Errorf("failed to marshal updated app: %w", err)
 	}
 
-	return mcp.NewToolResultText(string(appJSON)), nil
+	return appUpdateOut.ResultWithText(string(appJSON), appUpdateResult{App: app})
 }
 
 // getAppLogs retrieves logs for an app deployment
@@ -382,6 +393,7 @@ func (a *AppPlatformTool) Tools() []server.ServerTool {
 				appUpdateSchemaJSON,
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				appUpdateOut.Schema(),
 			),
 		},
 		{
