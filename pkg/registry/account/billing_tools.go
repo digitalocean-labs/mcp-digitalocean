@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -51,12 +50,7 @@ func (b *BillingTools) listBillingHistory(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(billingHistory, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return billingHistoryOut.Result(billingHistory)
 }
 
 // Tools returns the list of server tools for billing history.
@@ -67,6 +61,7 @@ func (b *BillingTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("billing-history-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				billingHistoryOut.Schema(),
 				mcp.WithDescription("List billing history with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultBillingPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultBillingPageSize), mcp.Description("Items per page")),

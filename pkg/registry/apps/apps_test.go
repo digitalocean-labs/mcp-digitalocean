@@ -27,6 +27,15 @@ func setupMock(t *testing.T) (getClientFn, *MockAppsService) {
 	return client, appService
 }
 
+// equalsTextResult compares the text content a tool returns, which structured
+// output leaves untouched. The structuredContent that now accompanies it is
+// asserted against the declared schema in structured_output_test.go.
+func equalsTextResult(t *testing.T, expected, actual *mcp.CallToolResult) {
+	t.Helper()
+	require.Equal(t, expected.IsError, actual.IsError)
+	require.Equal(t, expected.Content, actual.Content)
+}
+
 func equalsToolResult[T any](t *testing.T, expected T, actual *mcp.CallToolResult) {
 	require.NotNil(t, actual)
 	require.Len(t, actual.Content, 1)
@@ -325,7 +334,7 @@ func TestCreateAppFromAppSpec(t *testing.T) {
 			require.NotNil(t, resp)
 
 			if tc.mcpResult != nil {
-				require.Equal(t, tc.mcpResult, resp)
+				equalsTextResult(t, tc.mcpResult, resp)
 			}
 		})
 	}
@@ -529,7 +538,7 @@ func TestGetDeploymentStatus(t *testing.T) {
 			require.NotNil(t, resp)
 
 			if tc.mcpResult != nil {
-				require.Equal(t, tc.mcpResult, resp)
+				equalsTextResult(t, tc.mcpResult, resp)
 			}
 		})
 	}

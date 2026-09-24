@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -42,12 +41,7 @@ func (p *PartnerAttachmentTool) createPartnerAttachment(ctx context.Context, req
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAttachment)), nil
+	return partnerAttachmentOut.Result(attachment)
 }
 
 // getPartnerAttachment fetches partner attachment information by ID
@@ -66,11 +60,7 @@ func (p *PartnerAttachmentTool) getPartnerAttachment(ctx context.Context, req mc
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonAttachment)), nil
+	return partnerAttachmentOut.Result(attachment)
 }
 
 // listPartnerAttachments lists partner attachments with pagination support
@@ -93,11 +83,7 @@ func (p *PartnerAttachmentTool) listPartnerAttachments(ctx context.Context, req 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonAttachments, err := json.MarshalIndent(attachments, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonAttachments)), nil
+	return partnerAttachmentListOut.Result(attachments)
 }
 
 func (p *PartnerAttachmentTool) deletePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -128,12 +114,7 @@ func (p *PartnerAttachmentTool) getServiceKey(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonServiceKey, err := json.MarshalIndent(serviceKey, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonServiceKey)), nil
+	return serviceKeyOut.Result(serviceKey)
 }
 
 func (p *PartnerAttachmentTool) getBGPConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -149,12 +130,7 @@ func (p *PartnerAttachmentTool) getBGPConfig(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonBGPAuthKey, err := json.MarshalIndent(bgpAuthKey, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonBGPAuthKey)), nil
+	return bgpAuthKeyOut.Result(bgpAuthKey)
 }
 
 func (p *PartnerAttachmentTool) updatePartnerAttachment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -183,12 +159,7 @@ func (p *PartnerAttachmentTool) updatePartnerAttachment(ctx context.Context, req
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAttachment, err := json.MarshalIndent(attachment, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAttachment)), nil
+	return partnerAttachmentOut.Result(attachment)
 }
 
 func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
@@ -198,6 +169,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				partnerAttachmentOut.Schema(),
 				mcp.WithDescription("Get partner attachment information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -207,6 +179,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				partnerAttachmentListOut.Schema(),
 				mcp.WithDescription("List partner attachments with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -217,6 +190,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				partnerAttachmentOut.Schema(),
 				mcp.WithDescription("Create a new partner attachment"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the partner attachment")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region for the partner attachment")),
@@ -237,6 +211,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-get-service-key",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				serviceKeyOut.Schema(),
 				mcp.WithDescription("Get the service key of a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -246,6 +221,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-get-bgp-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				bgpAuthKeyOut.Schema(),
 				mcp.WithDescription("Get the BGP configuration of a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment")),
 			),
@@ -255,6 +231,7 @@ func (p *PartnerAttachmentTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("partner-attachment-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				partnerAttachmentOut.Schema(),
 				mcp.WithDescription("Update a partner attachment"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the partner attachment to update")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the partner attachment")),

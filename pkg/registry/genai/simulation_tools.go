@@ -39,6 +39,9 @@ func (st *SimulationTool) getClient(ctx context.Context) (*godo.Client, error) {
 	return st.client(ctx)
 }
 
+// marshalToolResult emits a text-only JSON result. Only
+// genai-simulation-create-scenario-set still uses it, because its two input
+// forms answer with two different payload shapes; see outputs.go.
 func marshalToolResult(v any) (*mcp.CallToolResult, error) {
 	jsonData, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -80,15 +83,11 @@ func (st *SimulationTool) listScenarioSets(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("failed to list scenario sets", err), nil
 	}
 
-	type response struct {
-		ScenarioSets []*godo.ScenarioSet `json:"scenario_sets"`
-		Count        int                 `json:"count"`
-	}
 	sets := []*godo.ScenarioSet{}
 	if output != nil {
 		sets = output.ScenarioSets
 	}
-	return marshalToolResult(response{ScenarioSets: sets, Count: len(sets)})
+	return scenarioSetListOut.Result(scenarioSetList{ScenarioSets: sets, Count: len(sets)})
 }
 
 // getScenarioSet retrieves a scenario set by UUID.
@@ -108,7 +107,7 @@ func (st *SimulationTool) getScenarioSet(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get scenario set", err), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetOut.Result(output)
 }
 
 // createScenarioSet creates a scenario set from inline scenarios or a JSONL file upload.
@@ -187,7 +186,7 @@ func (st *SimulationTool) generateScenarioSet(ctx context.Context, req mcp.CallT
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to generate scenario set", err), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetOut.Result(output)
 }
 
 // listScenarios lists scenarios within a scenario set.
@@ -215,15 +214,11 @@ func (st *SimulationTool) listScenarios(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("failed to list scenarios", err), nil
 	}
 
-	type response struct {
-		Scenarios []*godo.Scenario `json:"scenarios"`
-		Count     int              `json:"count"`
-	}
 	scenarios := []*godo.Scenario{}
 	if output != nil {
 		scenarios = output.Scenarios
 	}
-	return marshalToolResult(response{Scenarios: scenarios, Count: len(scenarios)})
+	return scenarioListOut.Result(scenarioList{Scenarios: scenarios, Count: len(scenarios)})
 }
 
 // getScenarioSetDownloadURL returns a presigned download URL for a scenario set's JSONL.
@@ -243,7 +238,7 @@ func (st *SimulationTool) getScenarioSetDownloadURL(ctx context.Context, req mcp
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get scenario set download URL", err), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetDownloadURLOut.Result(output)
 }
 
 // updateScenarioSet updates a scenario set name and/or replaces its scenarios.
@@ -284,7 +279,7 @@ func (st *SimulationTool) updateScenarioSet(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update scenario set", err), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetOut.Result(output)
 }
 
 // deleteScenarioSet deletes a scenario set by UUID.
@@ -312,7 +307,7 @@ func (st *SimulationTool) deleteScenarioSet(ctx context.Context, req mcp.CallToo
 	if resp != nil && resp.StatusCode >= 400 {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete scenario set: status %d", resp.StatusCode)), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetDeletedOut.Result(output)
 }
 
 // listScenarioLibrary lists platform-curated scenario library entries.
@@ -337,15 +332,11 @@ func (st *SimulationTool) listScenarioLibrary(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("failed to list scenario library", err), nil
 	}
 
-	type response struct {
-		Scenarios []*godo.ScenarioLibraryEntry `json:"scenarios"`
-		Count     int                          `json:"count"`
-	}
 	entries := []*godo.ScenarioLibraryEntry{}
 	if output != nil {
 		entries = output.Scenarios
 	}
-	return marshalToolResult(response{Scenarios: entries, Count: len(entries)})
+	return scenarioLibraryListOut.Result(scenarioLibraryList{Scenarios: entries, Count: len(entries)})
 }
 
 // listScenarioLibraryScenarios lists scenarios within a library entry.
@@ -373,15 +364,11 @@ func (st *SimulationTool) listScenarioLibraryScenarios(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("failed to list scenario library scenarios", err), nil
 	}
 
-	type response struct {
-		Scenarios []*godo.Scenario `json:"scenarios"`
-		Count     int              `json:"count"`
-	}
 	scenarios := []*godo.Scenario{}
 	if output != nil {
 		scenarios = output.Scenarios
 	}
-	return marshalToolResult(response{Scenarios: scenarios, Count: len(scenarios)})
+	return scenarioListOut.Result(scenarioList{Scenarios: scenarios, Count: len(scenarios)})
 }
 
 // createScenarioSetFromLibrary materializes a library entry into a team-owned scenario set.
@@ -406,7 +393,7 @@ func (st *SimulationTool) createScenarioSetFromLibrary(ctx context.Context, req 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create scenario set from library", err), nil
 	}
-	return marshalToolResult(output)
+	return scenarioSetOut.Result(output)
 }
 
 // createRun creates a simulation run against a candidate agent.
@@ -460,7 +447,7 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create simulation run", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationRunOut.Result(output)
 }
 
 // listRuns lists simulation runs for the team.
@@ -488,15 +475,11 @@ func (st *SimulationTool) listRuns(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("failed to list simulation runs", err), nil
 	}
 
-	type response struct {
-		SimulationRuns []*godo.SimulationRun `json:"simulation_runs"`
-		Count          int                   `json:"count"`
-	}
 	runs := []*godo.SimulationRun{}
 	if output != nil {
 		runs = output.SimulationRuns
 	}
-	return marshalToolResult(response{SimulationRuns: runs, Count: len(runs)})
+	return simulationRunListOut.Result(simulationRunList{SimulationRuns: runs, Count: len(runs)})
 }
 
 // getRun retrieves a simulation run including per-scenario result rollups.
@@ -516,7 +499,7 @@ func (st *SimulationTool) getRun(ctx context.Context, req mcp.CallToolRequest) (
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation run", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationRunGetOut.Result(output)
 }
 
 // updateRun renames a simulation run.
@@ -543,7 +526,7 @@ func (st *SimulationTool) updateRun(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update simulation run", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationRunOut.Result(output)
 }
 
 // cancelRun cancels an in-progress simulation run.
@@ -571,7 +554,7 @@ func (st *SimulationTool) cancelRun(ctx context.Context, req mcp.CallToolRequest
 	if resp != nil && resp.StatusCode >= 400 {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to cancel simulation run: status %d", resp.StatusCode)), nil
 	}
-	return marshalToolResult(output)
+	return simulationRunOut.Result(output)
 }
 
 // deleteRun deletes a simulation run by UUID.
@@ -599,7 +582,7 @@ func (st *SimulationTool) deleteRun(ctx context.Context, req mcp.CallToolRequest
 	if resp != nil && resp.StatusCode >= 400 {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete simulation run: status %d", resp.StatusCode)), nil
 	}
-	return marshalToolResult(output)
+	return simulationRunDeletedOut.Result(output)
 }
 
 // listJourneys lists journeys for a simulation run.
@@ -636,15 +619,11 @@ func (st *SimulationTool) listJourneys(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("failed to list simulation journeys", err), nil
 	}
 
-	type response struct {
-		Journeys []*godo.SimulationJourney `json:"journeys"`
-		Count    int                       `json:"count"`
-	}
 	journeys := []*godo.SimulationJourney{}
 	if output != nil {
 		journeys = output.Journeys
 	}
-	return marshalToolResult(response{Journeys: journeys, Count: len(journeys)})
+	return simulationJourneyListOut.Result(simulationJourneyList{Journeys: journeys, Count: len(journeys)})
 }
 
 // getJourney retrieves a single journey within a simulation run.
@@ -668,7 +647,7 @@ func (st *SimulationTool) getJourney(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationJourneyOut.Result(output)
 }
 
 // getJourneyTrajectory retrieves the parsed trajectory JSON for a journey.
@@ -692,7 +671,7 @@ func (st *SimulationTool) getJourneyTrajectory(ctx context.Context, req mcp.Call
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationTrajectoryOut.Result(output)
 }
 
 // getJourneyTrajectoryURL returns a presigned download URL for a journey's trajectory JSON.
@@ -716,7 +695,7 @@ func (st *SimulationTool) getJourneyTrajectoryURL(ctx context.Context, req mcp.C
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory URL", err), nil
 	}
-	return marshalToolResult(output)
+	return simulationTrajectoryURLOut.Result(output)
 }
 
 // Tools returns the list of server tools for simulation management.
@@ -728,6 +707,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-scenario-sets",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioSetListOut.Schema(),
 				mcp.WithDescription("List team-owned simulation scenario sets. Use returned scenario_set_uuid with genai-simulation-create-run."),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
 				mcp.WithArray("statuses", mcp.Description("Optional status filters, e.g. SCENARIO_SET_STATUS_READY"), mcp.Items(map[string]any{"type": "string"})),
@@ -741,6 +721,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-scenario-set",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioSetOut.Schema(),
 				mcp.WithDescription("Get a single scenario set by UUID."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set")),
 			),
@@ -763,6 +744,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-generate-scenario-set",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				scenarioSetOut.Schema(),
 				mcp.WithDescription("Generate a scenario set from a natural-language goal description. Generation is asynchronous; poll genai-simulation-get-scenario-set until status is SCENARIO_SET_STATUS_READY."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the generated scenario set")),
 				mcp.WithString("goal_description", mcp.Required(), mcp.Description("Natural-language goal used to generate scenarios")),
@@ -776,6 +758,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-scenarios",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioListOut.Schema(),
 				mcp.WithDescription("List scenarios within a team-owned scenario set."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set")),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
@@ -789,6 +772,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-scenario-set-download-url",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioSetDownloadURLOut.Schema(),
 				mcp.WithDescription("Get a short-lived presigned download URL for a scenario set's canonical JSONL file."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set")),
 			),
@@ -799,6 +783,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-update-scenario-set",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				scenarioSetOut.Schema(),
 				mcp.WithDescription("Update a scenario set name and/or replace its scenarios. At least one of name or scenarios must be provided."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set")),
 				mcp.WithString("name", mcp.Description("New name for the scenario set")),
@@ -811,6 +796,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-delete-scenario-set",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
+				scenarioSetDeletedOut.Schema(),
 				mcp.WithDescription("Delete a scenario set by UUID. Deletion is permanent.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the scenario_set_uuid and that deletion is permanent; ask for yes/no."),
@@ -824,6 +810,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-scenario-library",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioLibraryListOut.Schema(),
 				mcp.WithDescription("List platform-curated scenario library entries. Use library_scenario_uuid with genai-simulation-create-scenario-set-from-library."),
 				mcp.WithString("category", mcp.Description("Optional category filter")),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
@@ -837,6 +824,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-scenario-library-scenarios",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				scenarioListOut.Schema(),
 				mcp.WithDescription("List scenarios within a platform-curated scenario library entry."),
 				mcp.WithString("library_scenario_uuid", mcp.Required(), mcp.Description("UUID of the library scenario entry")),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
@@ -850,6 +838,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-create-scenario-set-from-library",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				scenarioSetOut.Schema(),
 				mcp.WithDescription("Materialize a platform library entry into a team-owned scenario set. Returns a scenario_set_uuid usable with genai-simulation-create-run."),
 				mcp.WithString("library_scenario_uuid", mcp.Required(), mcp.Description("UUID of the library scenario entry")),
 				mcp.WithString("name", mcp.Description("Optional name for the created team scenario set")),
@@ -861,6 +850,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-create-run",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				simulationRunOut.Schema(),
 				mcp.WithDescription("Create a simulation run that executes a scenario set against a candidate agent. Requires scenario_set_uuid and agent_uuid. Optional metric_uuids and star_metric attach metrics for post-run scoring."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set to run")),
 				mcp.WithString("agent_uuid", mcp.Required(), mcp.Description("UUID of the candidate agent under test")),
@@ -882,6 +872,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-runs",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationRunListOut.Schema(),
 				mcp.WithDescription("List simulation runs. Each run includes run_uuid, status, scenario_set_uuid, and result summary when available."),
 				mcp.WithString("scenario_set_uuid", mcp.Description("Filter by scenario set UUID")),
 				mcp.WithArray("statuses", mcp.Description("Optional status filters, e.g. SIMULATION_RUN_STATUS_SUCCEEDED"), mcp.Items(map[string]any{"type": "string"})),
@@ -896,6 +887,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-run",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationRunGetOut.Schema(),
 				mcp.WithDescription("Get a simulation run by UUID, including per-scenario result rollups when available."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 			),
@@ -906,6 +898,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-update-run",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				simulationRunOut.Schema(),
 				mcp.WithDescription("Update a simulation run. Currently only the run name can be changed."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("New name for the simulation run")),
@@ -917,6 +910,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-cancel-run",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				simulationRunOut.Schema(),
 				mcp.WithDescription("Cancel an in-progress simulation run. Any partial results may be lost.\n\n"+
 					"CONSENT REQUIRED (every cancel): Do not call with confirm_cancel: true until the user has explicitly agreed in chat. "+
 					"Present the run_uuid and that partial results may be lost; ask for yes/no."),
@@ -930,6 +924,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-delete-run",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
+				simulationRunDeletedOut.Schema(),
 				mcp.WithDescription("Delete a simulation run by UUID. Deletion is permanent.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the run_uuid and that deletion is permanent; ask for yes/no."),
@@ -943,6 +938,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-list-journeys",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationJourneyListOut.Schema(),
 				mcp.WithDescription("List journeys (individual scenario executions) for a simulation run. Filter by scenario, status, or verdict."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("scenario_uuid", mcp.Description("Optional filter by scenario UUID")),
@@ -959,6 +955,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-journey",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationJourneyOut.Schema(),
 				mcp.WithDescription("Get a single simulation journey by run UUID and journey UUID."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),
@@ -970,6 +967,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-journey-trajectory",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationTrajectoryOut.Schema(),
 				mcp.WithDescription("Get the parsed trajectory JSON for a journey, including messages, tool calls, judge result, and evaluation metrics."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),
@@ -981,6 +979,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				"genai-simulation-get-journey-trajectory-url",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				simulationTrajectoryURLOut.Schema(),
 				mcp.WithDescription("Get a short-lived presigned download URL for a journey's trajectory JSON file."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),

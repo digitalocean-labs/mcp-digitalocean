@@ -2,7 +2,6 @@ package nfs
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -72,11 +71,7 @@ func (n *NfsTool) createFileShare(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonFileShare, err := json.MarshalIndent(fileShare, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonFileShare)), nil
+	return shareOut.Result(fileShare)
 }
 
 func (n *NfsTool) listFileShares(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -111,27 +106,12 @@ func (n *NfsTool) listFileShares(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	formattedFileShares := make([]map[string]any, len(fileShares))
+	formattedFileShares := make([]fileShareSummary, len(fileShares))
 	for i, fileShare := range fileShares {
-		formattedFileShares[i] = map[string]any{
-			"id":               fileShare.ID,
-			"name":             fileShare.Name,
-			"size_gib":         fileShare.SizeGib,
-			"region":           fileShare.Region,
-			"performance_tier": fileShare.PerformanceTier,
-			"created_at":       fileShare.CreatedAt,
-			"vpc_ids":          fileShare.VpcIDs,
-			"status":           fileShare.Status,
-			"mount_path":       fileShare.MountPath,
-			"host":             fileShare.Host,
-		}
+		formattedFileShares[i] = newFileShareSummary(fileShare)
 	}
 
-	jsonFileShares, err := json.MarshalIndent(formattedFileShares, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonFileShares)), nil
+	return shareListOut.Result(formattedFileShares)
 }
 
 func (n *NfsTool) getFileShareByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -151,11 +131,7 @@ func (n *NfsTool) getFileShareByID(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonFileShare, err := json.MarshalIndent(fileShare, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonFileShare)), nil
+	return shareOut.Result(fileShare)
 }
 
 func (n *NfsTool) deleteFileShare(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -208,23 +184,12 @@ func (n *NfsTool) listNfsSnapshots(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	formattedSnapshots := make([]map[string]any, len(snapshots))
+	formattedSnapshots := make([]snapshotSummary, len(snapshots))
 	for i, snapshot := range snapshots {
-		formattedSnapshots[i] = map[string]any{
-			"id":         snapshot.ID,
-			"share_id":   snapshot.ShareID,
-			"name":       snapshot.Name,
-			"size_gib":   snapshot.SizeGib,
-			"region":     snapshot.Region,
-			"created_at": snapshot.CreatedAt,
-			"status":     snapshot.Status,
-		}
+		formattedSnapshots[i] = newSnapshotSummary(snapshot)
 	}
-	jsonSnapshots, err := json.MarshalIndent(formattedSnapshots, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonSnapshots)), nil
+
+	return snapshotListOut.Result(formattedSnapshots)
 }
 
 func (n *NfsTool) getNfsSnapshotByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -244,11 +209,7 @@ func (n *NfsTool) getNfsSnapshotByID(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonSnapshot, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonSnapshot)), nil
+	return snapshotOut.Result(snapshot)
 }
 
 func (n *NfsTool) deleteNfsSnapshot(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -278,6 +239,7 @@ func (n *NfsTool) Tools() []server.ServerTool {
 				"nfs-file-share-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				shareOut.Schema(),
 				mcp.WithDescription("Create a new file share"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the file share")),
 				mcp.WithNumber("SizeGibibytes", mcp.Required(), mcp.Description("Size of the file share in GiB")),
@@ -292,6 +254,7 @@ func (n *NfsTool) Tools() []server.ServerTool {
 				"nfs-file-share-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				shareListOut.Schema(),
 				mcp.WithDescription("List nfs file shares with optional Region filters. Supports pagination."),
 				mcp.WithString("Region", mcp.Description("Optional region filtering parameter")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number of the results to fetch")),
@@ -304,6 +267,7 @@ func (n *NfsTool) Tools() []server.ServerTool {
 				"nfs-file-share-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				shareOut.Schema(),
 				mcp.WithDescription("Get a file share by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the file share to get")),
 			),
@@ -324,6 +288,7 @@ func (n *NfsTool) Tools() []server.ServerTool {
 				"nfs-snapshot-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				snapshotListOut.Schema(),
 				mcp.WithDescription("List all NFS snapshots - supports pagination and filtering by region and share ID"),
 				mcp.WithString("Region", mcp.Description("Optional region of the NFS snapshot")),
 				mcp.WithString("ShareID", mcp.Description("Optional ID of the NFS share to list snapshots for")),
@@ -337,6 +302,7 @@ func (n *NfsTool) Tools() []server.ServerTool {
 				"nfs-snapshot-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				snapshotOut.Schema(),
 				mcp.WithDescription("Get a NFS snapshot by ID."),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the NFS snapshot to get")),
 			),

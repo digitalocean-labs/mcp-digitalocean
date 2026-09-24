@@ -35,11 +35,7 @@ func (s *KafkaTool) getKafkaConfig(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return kafkaConfigOut.Result(cfg)
 }
 
 func (s *KafkaTool) updateKafkaConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -120,11 +116,7 @@ func (s *KafkaTool) listTopics(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopics, err := json.MarshalIndent(topics, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonTopics)), nil
+	return topicListOut.Result(topics)
 }
 
 func (s *KafkaTool) createTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -177,11 +169,7 @@ func (s *KafkaTool) createTopic(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopic, err := json.MarshalIndent(topic, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonTopic)), nil
+	return topicOut.Result(topic)
 }
 
 func (s *KafkaTool) getTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -202,11 +190,7 @@ func (s *KafkaTool) getTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonTopic, err := json.MarshalIndent(topic, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonTopic)), nil
+	return topicOut.Result(topic)
 }
 
 func (s *KafkaTool) deleteTopic(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -289,6 +273,7 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-list-topics",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				topicListOut.Schema(),
 				mcp.WithDescription("List topics for a Kafka cluster by its ID. Supports pagination and filtering."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The Kafka cluster UUID")),
 				mcp.WithString("page", mcp.Description("Page number (string)")),
@@ -304,6 +289,7 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-create-topic",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				topicOut.Schema(),
 				mcp.WithDescription("Create a topic for a Kafka cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -343,6 +329,7 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-topic",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				topicOut.Schema(),
 				mcp.WithDescription("Get a Kafka topic by name."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Topic name")),
@@ -402,6 +389,7 @@ func (s *KafkaTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-kafka-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				kafkaConfigOut.Schema(),
 				mcp.WithDescription("Get the Kafka config for a cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Kafka cluster UUID")),
 			),

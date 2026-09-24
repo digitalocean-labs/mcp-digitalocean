@@ -2,7 +2,6 @@ package genai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -90,22 +89,10 @@ func (met *ModelEvaluationTool) listMetrics(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation metrics", err), nil
 	}
 
-	type MetricsResponse struct {
-		Metrics []*godo.EvaluationMetric `json:"metrics"`
-		Count   int                      `json:"count"`
-	}
-
-	response := MetricsResponse{
+	return modelEvalMetricListOut.Result(modelEvalMetricList{
 		Metrics: output.Metrics,
 		Count:   len(output.Metrics),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // listDatasets lists evaluation datasets (defaults to model-evaluation datasets) so a
@@ -143,22 +130,10 @@ func (met *ModelEvaluationTool) listDatasets(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("failed to list evaluation datasets", err), nil
 	}
 
-	type DatasetsResponse struct {
-		Datasets []*ModelEvalDatasetListItem `json:"datasets"`
-		Count    int                         `json:"count"`
-	}
-
-	response := DatasetsResponse{
+	return modelEvalDatasetListOut.Result(modelEvalDatasetList{
 		Datasets: output.EvaluationDatasets,
 		Count:    len(output.EvaluationDatasets),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // listPresets lists all model evaluation presets.
@@ -173,22 +148,10 @@ func (met *ModelEvaluationTool) listPresets(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation presets", err), nil
 	}
 
-	type PresetsResponse struct {
-		Presets []*godo.ModelEvaluationPreset `json:"presets"`
-		Count   int                           `json:"count"`
-	}
-
-	response := PresetsResponse{
+	return modelEvalPresetListOut.Result(modelEvalPresetList{
 		Presets: output.Presets,
 		Count:   len(output.Presets),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // getPreset gets a single model evaluation preset by UUID.
@@ -208,12 +171,7 @@ func (met *ModelEvaluationTool) getPreset(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("failed to get model evaluation preset", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output.Preset, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalPresetOut.Result(output.Preset)
 }
 
 // createDataset uploads a CSV or JSONL file to Spaces and registers it as a model evaluation dataset.
@@ -249,12 +207,7 @@ func (met *ModelEvaluationTool) createDataset(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("failed to create model evaluation dataset", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalDatasetOut.Result(result)
 }
 
 // resolveEvalModelsOnly resolves candidate and judge models before chat-based user consent.
@@ -384,22 +337,10 @@ func (met *ModelEvaluationTool) createRun(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("failed to create model evaluation run", err), nil
 	}
 
-	type RunCreatedResponse struct {
-		EvalRunUUID string `json:"eval_run_uuid"`
-		Name        string `json:"name"`
-	}
-
-	response := RunCreatedResponse{
+	return modelEvalRunCreatedOut.Result(modelEvalRunCreated{
 		EvalRunUUID: output.EvalRunUuid,
 		Name:        name,
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // listRuns lists model evaluation runs with optional filters.
@@ -430,22 +371,10 @@ func (met *ModelEvaluationTool) listRuns(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation runs", err), nil
 	}
 
-	type RunsListResponse struct {
-		Runs  []*godo.ModelEvaluationRunSummary `json:"runs"`
-		Count int                               `json:"count"`
-	}
-
-	response := RunsListResponse{
+	return modelEvalRunListOut.Result(modelEvalRunList{
 		Runs:  output.Runs,
 		Count: len(output.Runs),
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // getRun gets a single model evaluation run with per-prompt results.
@@ -475,12 +404,7 @@ func (met *ModelEvaluationTool) getRun(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("failed to get model evaluation run", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalRunOut.Result(output)
 }
 
 // updateRun updates mutable fields on a model evaluation run (currently name only).
@@ -513,12 +437,7 @@ func (met *ModelEvaluationTool) updateRun(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultError("empty response from update model evaluation run"), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output.Run, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalRunUpdatedOut.Result(output.Run)
 }
 
 // getResultsDownloadURL gets a presigned download URL for run results.
@@ -538,12 +457,7 @@ func (met *ModelEvaluationTool) getResultsDownloadURL(ctx context.Context, req m
 		return mcp.NewToolResultErrorFromErr("failed to get results download URL", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalResultsURLOut.Result(output)
 }
 
 const (
@@ -595,11 +509,7 @@ func (met *ModelEvaluationTool) deleteRun(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete model evaluation run: status %d", resp.StatusCode)), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalRunDeletedOut.Result(output)
 }
 
 // cancelRun cancels an in-progress model evaluation run by UUID.
@@ -629,11 +539,7 @@ func (met *ModelEvaluationTool) cancelRun(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultError(fmt.Sprintf("failed to cancel model evaluation run: status %d", resp.StatusCode)), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalRunCancelledOut.Result(output)
 }
 
 // deletePreset deletes a saved model evaluation preset by UUID.
@@ -663,20 +569,11 @@ func (met *ModelEvaluationTool) deletePreset(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete model evaluation preset: status %d", resp.StatusCode)), nil
 	}
 
-	type DeletePresetResponse struct {
-		EvalPresetUUID string `json:"eval_preset_uuid"`
-		Status         string `json:"status"`
-	}
-	response := DeletePresetResponse{
+	_ = output
+	return modelEvalPresetDeletedOut.Result(modelEvalPresetDeleted{
 		EvalPresetUUID: presetUUID,
 		Status:         "deleted",
-	}
-	_ = output
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // deleteDataset deletes an evaluation dataset by UUID. This works for both model
@@ -707,20 +604,11 @@ func (met *ModelEvaluationTool) deleteDataset(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete evaluation dataset: status %d", resp.StatusCode)), nil
 	}
 
-	type DeleteDatasetResponse struct {
-		DatasetUUID string `json:"dataset_uuid"`
-		Status      string `json:"status"`
-	}
-	response := DeleteDatasetResponse{
+	_ = output
+	return modelEvalDatasetDeletedOut.Result(modelEvalDatasetDeleted{
 		DatasetUUID: datasetUUID,
 		Status:      "deleted",
-	}
-	_ = output
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // createCustomMetric creates a custom (LLM-as-judge) model evaluation metric.
@@ -762,11 +650,7 @@ func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.
 		return mcp.NewToolResultError("empty response from create custom evaluation metric"), nil
 	}
 
-	jsonData, err := json.MarshalIndent(metric, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalCustomMetricOut.Result(metric)
 }
 
 // updateCustomMetric updates an existing custom model evaluation metric.
@@ -815,11 +699,7 @@ func (met *ModelEvaluationTool) updateCustomMetric(ctx context.Context, req mcp.
 		return mcp.NewToolResultError("empty response from update custom evaluation metric"), nil
 	}
 
-	jsonData, err := json.MarshalIndent(metric, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return modelEvalCustomMetricOut.Result(metric)
 }
 
 // deleteCustomMetric deletes a custom model evaluation metric by UUID.
@@ -848,19 +728,10 @@ func (met *ModelEvaluationTool) deleteCustomMetric(ctx context.Context, req mcp.
 		return mcp.NewToolResultError(fmt.Sprintf("failed to delete custom evaluation metric: status %d", resp.StatusCode)), nil
 	}
 
-	type DeleteCustomMetricResponse struct {
-		MetricUUID string `json:"metric_uuid"`
-		Status     string `json:"status"`
-	}
-	response := DeleteCustomMetricResponse{
+	return modelEvalCustomMetricDeletedOut.Result(modelEvalCustomMetricDeleted{
 		MetricUUID: metricUUID,
 		Status:     "deleted",
-	}
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // isModelEvalTerminalStatus checks if a model evaluation run status is terminal.
@@ -1023,28 +894,13 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 
 	duration := time.Since(startTime).Seconds()
 
-	type WorkflowResponse struct {
-		EvalRunUUID     string                                `json:"eval_run_uuid"`
-		Status          string                                `json:"status"`
-		ResultSummary   *godo.ModelEvaluationRunResultSummary `json:"result_summary,omitempty"`
-		DurationSeconds float64                               `json:"duration_seconds"`
-		ErrorMessage    string                                `json:"error_message,omitempty"`
-	}
-
-	response := WorkflowResponse{
+	return modelEvalWorkflowOut.Result(modelEvalWorkflowResult{
 		EvalRunUUID:     evalRunUUID,
 		Status:          string(finalRun.Status),
 		ResultSummary:   finalRun.ResultSummary,
 		DurationSeconds: duration,
 		ErrorMessage:    finalRun.ErrorDescription,
-	}
-
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	})
 }
 
 // Tools returns the list of server tools for model evaluation management.
@@ -1056,6 +912,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-list-metrics",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalMetricListOut.Schema(),
 				mcp.WithDescription("List all available model evaluation metrics."),
 			),
 		},
@@ -1065,6 +922,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-list-datasets",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalDatasetListOut.Schema(),
 				mcp.WithDescription("List previously uploaded evaluation datasets so you can reuse an existing dataset's UUID in genai-model-eval-create-run. Defaults to model-evaluation datasets. Each item includes dataset_uuid, dataset_name, created_at, row_count, file_size, and has_ground_truth. Use this to find the dataset_uuid for a dataset the user already uploaded (instead of uploading a new one)."),
 				mcp.WithString("dataset_type", mcp.Description("Filter by dataset type. Defaults to EVALUATION_DATASET_TYPE_MODEL (datasets usable for model evaluation). Other values: EVALUATION_DATASET_TYPE_UNKNOWN, EVALUATION_DATASET_TYPE_ADK, EVALUATION_DATASET_TYPE_NON_ADK.")),
 			),
@@ -1075,6 +933,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-list-presets",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalPresetListOut.Schema(),
 				mcp.WithDescription("List all model evaluation presets. Presets are reusable evaluation configurations containing a dataset, judge model, and metrics."),
 			),
 		},
@@ -1084,6 +943,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-get-preset",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalPresetOut.Schema(),
 				mcp.WithDescription("Get a single model evaluation preset by UUID."),
 				mcp.WithString("eval_preset_uuid", mcp.Required(), mcp.Description("UUID of the evaluation preset")),
 			),
@@ -1094,6 +954,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-create-dataset",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				modelEvalDatasetOut.Schema(),
 				mcp.WithDescription("Upload and register a model evaluation dataset (presign → Spaces upload → database record). Accepts .csv (with 'input' column) or .jsonl (one JSON object per line with 'input' field); 'ground_truth' is optional. Returns evaluation_dataset_uuid for use with genai-model-eval-create-run."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
 				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl dataset file to upload")),
@@ -1105,6 +966,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-create-run",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				modelEvalRunCreatedOut.Schema(),
 				mcp.WithDescription(genaiModelEvalCreateRunToolDescription),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for this evaluation run")),
 				mcp.WithString("candidate_model_name", mcp.Required(), mcp.Description("Exact candidate model name the user provided or confirmed (character-for-character, whitespace trimmed). Partial names return nearest matches only.")),
@@ -1128,6 +990,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-list-runs",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalRunListOut.Schema(),
 				mcp.WithDescription("List model evaluation runs with optional filters. Each run includes its eval_run_uuid (use it with genai-model-eval-get-run / cancel-run / delete-run), name, status, and the candidate/judge model and dataset it used."),
 				mcp.WithString("eval_preset_uuid", mcp.Description("Filter by preset UUID")),
 				mcp.WithString("status", mcp.Description("Filter by run status. Accepts the full enum values: MODEL_EVALUATION_RUN_QUEUED, MODEL_EVALUATION_RUN_RUNNING_DATASET, MODEL_EVALUATION_RUN_EVALUATING_RESULTS, MODEL_EVALUATION_RUN_CANCELLING, MODEL_EVALUATION_RUN_CANCELLED, MODEL_EVALUATION_RUN_SUCCESSFUL, MODEL_EVALUATION_RUN_PARTIALLY_SUCCESSFUL (some rows scored, others failed), MODEL_EVALUATION_RUN_FAILED.")),
@@ -1141,6 +1004,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-get-run",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalRunOut.Schema(),
 				mcp.WithDescription("Get the status, details, and per-prompt results of a model evaluation run."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run (the eval_run_uuid returned by genai-model-eval-list-runs or genai-model-eval-create-run)")),
 				mcp.WithNumber("page", mcp.Description("Page number for per-prompt results pagination")),
@@ -1153,6 +1017,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-update-run",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				modelEvalRunUpdatedOut.Schema(),
 				mcp.WithDescription("Update a model evaluation run. Currently only the run name can be changed."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("New name for the evaluation run")),
@@ -1164,6 +1029,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-get-results-download-url",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelEvalResultsURLOut.Schema(),
 				mcp.WithDescription("Get a presigned download URL for the full results of a model evaluation run. The returned URL is short-lived (expires in ~15 minutes) and points to a gzip-compressed JSON (.json.gz) file, so use it promptly."),
 				mcp.WithString("eval_run_uuid", mcp.Required(), mcp.Description("UUID of the evaluation run (the eval_run_uuid returned by genai-model-eval-list-runs)")),
 			),
@@ -1174,6 +1040,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-delete-run",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
+				modelEvalRunDeletedOut.Schema(),
 				mcp.WithDescription("Delete a model evaluation run by UUID. Deletion is permanent: the run record and its results cannot be recovered.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the eval_run_uuid and that deletion is permanent; ask for yes/no."),
@@ -1187,6 +1054,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-cancel-run",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				modelEvalRunCancelledOut.Schema(),
 				mcp.WithDescription("Cancel an in-progress model evaluation run by UUID. The run transitions to MODEL_EVALUATION_RUN_CANCELLING and then MODEL_EVALUATION_RUN_CANCELLED. Any partial results may be lost.\n\n"+
 					"CONSENT REQUIRED (every cancel): Do not call with confirm_cancel: true until the user has explicitly agreed in chat. "+
 					"Present the eval_run_uuid and that any partial results may be lost; ask for yes/no."),
@@ -1200,6 +1068,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-delete-preset",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskLow),
+				modelEvalPresetDeletedOut.Schema(),
 				mcp.WithDescription("Delete a saved model evaluation preset by UUID. Deletion is permanent and existing runs that referenced the preset are not affected.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the eval_preset_uuid and that deletion is permanent; ask for yes/no."),
@@ -1213,6 +1082,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-delete-dataset",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
+				modelEvalDatasetDeletedOut.Schema(),
 				mcp.WithDescription("Delete an evaluation dataset by UUID. Works for both model and agent evaluation datasets. Deletion is permanent: the dataset record cannot be recovered.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the dataset_uuid and that deletion is permanent; ask for yes/no."),
@@ -1226,6 +1096,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-create-custom-metric",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				modelEvalCustomMetricOut.Schema(),
 				mcp.WithDescription("Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the scoring_prompt. The created metric appears in genai-model-eval-list-metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) and its metric_uuid can be used in evaluation runs and presets."),
 				mcp.WithString("metric_name", mcp.Required(), mcp.Description("Display name for the custom metric")),
 				mcp.WithString("scoring_prompt", mcp.Required(), mcp.Description("LLM-as-judge scoring prompt describing how the judge model should score a response")),
@@ -1239,6 +1110,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-update-custom-metric",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				modelEvalCustomMetricOut.Schema(),
 				mcp.WithDescription("Update an existing custom model evaluation metric. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be updated; built-in catalog metrics cannot. Provide at least one field to change."),
 				mcp.WithString("metric_uuid", mcp.Required(), mcp.Description("UUID of the custom metric to update (get it from genai-model-eval-list-metrics or genai-model-eval-create-custom-metric)")),
 				mcp.WithString("metric_name", mcp.Description("New display name for the metric")),
@@ -1253,6 +1125,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-delete-custom-metric",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskLow),
+				modelEvalCustomMetricDeletedOut.Schema(),
 				mcp.WithDescription("Delete a custom model evaluation metric by UUID. Only custom metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) can be deleted; built-in catalog metrics cannot. After deletion the metric is no longer available for new evaluation runs; completed runs keep their results.\n\n"+
 					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
 					"Present the metric_uuid and that the metric will no longer be usable in new runs; ask for yes/no."),
@@ -1266,6 +1139,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				"genai-model-eval-run-workflow",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				modelEvalWorkflowOut.Schema(),
 				mcp.WithDescription(genaiModelEvalWorkflowToolDescription),
 				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl evaluation dataset")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the evaluation run")),

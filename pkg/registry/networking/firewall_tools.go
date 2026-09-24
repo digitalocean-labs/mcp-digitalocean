@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -39,11 +38,7 @@ func (f *FirewallTool) getFirewall(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonFirewall)), nil
+	return firewallOut.Result(firewall)
 }
 
 // listFirewalls lists firewalls with pagination support
@@ -66,11 +61,7 @@ func (f *FirewallTool) listFirewalls(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonFirewalls, err := json.MarshalIndent(firewalls, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonFirewalls)), nil
+	return firewallListOut.Result(firewalls)
 }
 
 // createFirewall creates a new firewall
@@ -136,12 +127,7 @@ func (f *FirewallTool) createFirewall(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonFirewall, err := json.MarshalIndent(firewall, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonFirewall)), nil
+	return firewallOut.Result(firewall)
 }
 
 // deleteFirewall deletes a firewall
@@ -413,6 +399,7 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("firewall-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				firewallOut.Schema(),
 				mcp.WithDescription("Get firewall information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the firewall")),
 			),
@@ -422,6 +409,7 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("firewall-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				firewallListOut.Schema(),
 				mcp.WithDescription("List firewalls with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -432,6 +420,7 @@ func (f *FirewallTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("firewall-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				firewallOut.Schema(),
 				mcp.WithDescription("Create a new firewall"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the firewall")),
 				mcp.WithString("InboundProtocol", mcp.Required(), mcp.Description("Protocol for inbound rule")),

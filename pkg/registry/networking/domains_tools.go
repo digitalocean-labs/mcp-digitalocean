@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -37,11 +36,7 @@ func (d *DomainsTool) getDomain(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonDomain, err := json.MarshalIndent(domain, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonDomain)), nil
+	return domainOut.Result(domain)
 }
 
 // listDomains lists domains with pagination support
@@ -64,11 +59,7 @@ func (d *DomainsTool) listDomains(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonDomains, err := json.MarshalIndent(domains, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonDomains)), nil
+	return domainListOut.Result(domains)
 }
 
 // getDomainRecord fetches a domain record by domain name and record ID
@@ -92,11 +83,7 @@ func (d *DomainsTool) getDomainRecord(ctx context.Context, req mcp.CallToolReque
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonRecord, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonRecord)), nil
+	return domainRecordOut.Result(record)
 }
 
 // listDomainRecords lists domain records for a domain with pagination support
@@ -123,11 +110,7 @@ func (d *DomainsTool) listDomainRecords(ctx context.Context, req mcp.CallToolReq
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonRecords, err := json.MarshalIndent(records, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonRecords)), nil
+	return domainRecordListOut.Result(records)
 }
 
 func (d *DomainsTool) createDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -149,12 +132,7 @@ func (d *DomainsTool) createDomain(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonDomain, err := json.MarshalIndent(domain, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonDomain)), nil
+	return domainOut.Result(domain)
 }
 
 func (d *DomainsTool) deleteDomain(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -195,12 +173,7 @@ func (d *DomainsTool) createRecord(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRecord, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRecord)), nil
+	return domainRecordOut.Result(record)
 }
 
 func (d *DomainsTool) deleteRecord(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -243,12 +216,7 @@ func (d *DomainsTool) editRecord(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRecord, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRecord)), nil
+	return domainRecordOut.Result(record)
 }
 
 func (d *DomainsTool) Tools() []server.ServerTool {
@@ -258,6 +226,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				domainOut.Schema(),
 				mcp.WithDescription("Get domain information by name"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the domain")),
 			),
@@ -267,6 +236,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				domainListOut.Schema(),
 				mcp.WithDescription("List domains with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -277,6 +247,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-record-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				domainRecordOut.Schema(),
 				mcp.WithDescription("Get a domain record by domain name and record ID"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
 				mcp.WithNumber("RecordID", mcp.Required(), mcp.Description("ID of the domain record")),
@@ -287,6 +258,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-record-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				domainRecordListOut.Schema(),
 				mcp.WithDescription("List domain records for a domain with pagination"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
@@ -298,6 +270,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				domainOut.Schema(),
 				mcp.WithDescription("Create a new domain"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the domain")),
 				mcp.WithString("IPAddress", mcp.Required(), mcp.Description("IP address for the domain")),
@@ -317,6 +290,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-record-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				domainRecordOut.Schema(),
 				mcp.WithDescription("Create a new domain record"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description("Record type (e.g., A, CNAME, TXT)")),
@@ -339,6 +313,7 @@ func (d *DomainsTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("domain-record-edit",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				domainRecordOut.Schema(),
 				mcp.WithDescription("Edit a domain record"),
 				mcp.WithString("Domain", mcp.Required(), mcp.Description("Domain name")),
 				mcp.WithNumber("RecordID", mcp.Required(), mcp.Description("ID of the record to edit")),

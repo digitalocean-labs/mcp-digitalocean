@@ -2,7 +2,6 @@ package docr
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -53,12 +52,7 @@ func (g *GarbageCollectionTool) startGarbageCollection(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonGC, err := json.MarshalIndent(gc, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonGC)), nil
+	return gcOut.Result(gc)
 }
 
 // getGarbageCollection gets the active garbage collection for a container registry
@@ -78,12 +72,7 @@ func (g *GarbageCollectionTool) getGarbageCollection(ctx context.Context, req mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonGC, err := json.MarshalIndent(gc, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonGC)), nil
+	return gcOut.Result(gc)
 }
 
 // listGarbageCollections lists garbage collections for a container registry
@@ -115,20 +104,10 @@ func (g *GarbageCollectionTool) listGarbageCollections(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	result := struct {
-		GarbageCollections []*godo.GarbageCollection `json:"garbage_collections"`
-		Meta               *godo.Meta                `json:"meta,omitempty"`
-	}{
+	return garbageCollectionListOut.Result(garbageCollectionList{
 		GarbageCollections: gcs,
 		Meta:               resp.Meta,
-	}
-
-	jsonGCs, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonGCs)), nil
+	})
 }
 
 // updateGarbageCollection updates a garbage collection (e.g., to cancel it)
@@ -157,12 +136,7 @@ func (g *GarbageCollectionTool) updateGarbageCollection(ctx context.Context, req
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonGC, err := json.MarshalIndent(gc, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonGC)), nil
+	return gcOut.Result(gc)
 }
 
 // Tools returns a list of tool functions for garbage collection management
@@ -173,6 +147,7 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-garbage-collection-start",
 				common.WithHints(common.HintsReplace),
 				common.WithRisk(common.RiskHigh),
+				gcOut.Schema(),
 				mcp.WithDescription("Start a garbage collection for a container registry to free up storage"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Type", mcp.Description("Type of garbage collection to perform (e.g., 'untagged manifests and unreferenced blobs' or 'unreferenced blobs only')")),
@@ -183,6 +158,7 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-garbage-collection-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				gcOut.Schema(),
 				mcp.WithDescription("Get the active garbage collection for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 			),
@@ -192,6 +168,7 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-garbage-collection-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				garbageCollectionListOut.Schema(),
 				mcp.WithDescription("List garbage collections for a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultGCPage), mcp.Description("Page number")),
@@ -203,6 +180,7 @@ func (g *GarbageCollectionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-garbage-collection-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				gcOut.Schema(),
 				mcp.WithDescription("Update a garbage collection for a container registry (e.g., to cancel it)"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("GarbageCollectionUUID", mcp.Required(), mcp.Description("UUID of the garbage collection to update")),

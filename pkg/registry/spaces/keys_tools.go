@@ -2,7 +2,6 @@ package spaces
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -57,12 +56,7 @@ func (s *KeysTool) createSpacesKey(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return keyOut.Result(key)
 }
 
 func (s *KeysTool) updateSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -110,12 +104,7 @@ func (s *KeysTool) updateSpacesKey(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return keyOut.Result(key)
 }
 
 func (s *KeysTool) deleteSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -186,20 +175,10 @@ func (s *KeysTool) listSpacesKeys(ctx context.Context, req mcp.CallToolRequest) 
 	}
 
 	// Create response with pagination info
-	result := struct {
-		Keys []*godo.SpacesKey `json:"keys"`
-		Meta *godo.Meta        `json:"meta,omitempty"`
-	}{
+	return spacesKeyListOut.Result(spacesKeyList{
 		Keys: keys,
 		Meta: resp.Meta,
-	}
-
-	jsonKeys, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKeys)), nil
+	})
 }
 
 func (s *KeysTool) getSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -229,12 +208,7 @@ func (s *KeysTool) getSpacesKey(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return keyOut.Result(key)
 }
 
 func (s *KeysTool) Tools() []server.ServerTool {
@@ -244,6 +218,7 @@ func (s *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-key-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				spacesKeyListOut.Schema(),
 				mcp.WithDescription("List all Spaces keys"),
 				mcp.WithNumber("Page", mcp.Required(), mcp.DefaultNumber(1), mcp.Description("Page number for pagination")),
 				mcp.WithNumber("PerPage", mcp.Required(), mcp.DefaultNumber(10), mcp.Description("Number of items per page"), mcp.Max(100)),
@@ -254,6 +229,7 @@ func (s *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-key-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				keyOut.Schema(),
 				mcp.WithDescription("Get a specific Spaces key"),
 				mcp.WithString("AccessKey", mcp.Required(), mcp.Description("Access Key of the Spaces key to retrieve")),
 			),
@@ -263,6 +239,7 @@ func (s *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-key-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
+				keyOut.Schema(),
 				mcp.WithDescription("Create a new Spaces key. SECURITY WARNING: The returned secret key should NEVER be added to files or committed to source control. Always store the secret key in environment variables (e.g., DO_SPACES_SECRET_KEY) and access it securely at runtime. The secret key should be treated as highly sensitive credential information and should not be displayed in logs or output when possible."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the Spaces key")),
 			),
@@ -272,6 +249,7 @@ func (s *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("spaces-key-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				keyOut.Schema(),
 				mcp.WithDescription("Update an existing Spaces key"),
 				mcp.WithString("AccessKey", mcp.Required(), mcp.Description("Access Key of the Spaces key to update")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("New name for the Spaces key")),

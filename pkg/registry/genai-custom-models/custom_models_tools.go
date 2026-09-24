@@ -2,7 +2,6 @@ package genaicustommodels
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -188,12 +187,7 @@ func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("failed to import custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(importResponseFromGodo(out), "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return importOut.Result(importResponseFromGodo(out))
 }
 
 // updateMetadata updates the metadata of a custom model.
@@ -277,12 +271,7 @@ func (cmt *CustomModelsTool) updateMetadata(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("failed to update custom model metadata", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(customModelFromGodo(model), "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return customModelOut.Result(customModelFromGodo(model))
 }
 
 // getModel retrieves a single custom model by UUID (public endpoint).
@@ -302,12 +291,7 @@ func (cmt *CustomModelsTool) getModel(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("failed to get custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(model, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return customModelOut.Result(model)
 }
 
 // deleteModel deletes a custom model by exact uuid or exact name (partial identifiers return candidates only).
@@ -379,12 +363,7 @@ func (cmt *CustomModelsTool) deleteModelByUUID(ctx context.Context, client *godo
 		return mcp.NewToolResultErrorFromErr("failed to delete custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return deleteOut.Result(output)
 }
 
 // Tools returns the list of server tools for custom model management.
@@ -418,6 +397,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-import",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				importOut.Schema(),
 				mcp.WithDescription(genaiCustomModelsImportToolDescription),
 				mcp.WithString("name", mcp.Description("Optional display name for the custom model (leading/trailing whitespace is trimmed when provided).")),
 				mcp.WithString("source_type", mcp.Required(), mcp.Description("Source type: SOURCE_TYPE_HUGGINGFACE, SOURCE_TYPE_SPACES_BUCKET, SOURCE_TYPE_SDK_UPLOAD, SOURCE_TYPE_FINE_TUNING")),
@@ -434,6 +414,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-update-metadata",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				customModelOut.Schema(),
 				mcp.WithDescription("Update the metadata of an existing custom model. Editable fields include name, description, tags, input/output modalities, parameters, and license."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to update")),
 				mcp.WithString("name", mcp.Description("New name for the model")),
@@ -451,6 +432,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				customModelOut.Schema(),
 				mcp.WithDescription("Get the full catalog card for a custom model, including its status, architecture, source info, size, license, tags, active deployments, and cost estimate."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to retrieve")),
 			),
@@ -461,6 +443,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
+				deleteOut.Schema(),
 				mcp.WithDescription(genaiCustomModelsDeleteToolDescription),
 				mcp.WithString("name", mcp.Description("Exact custom model name the user provided or confirmed (character-for-character, whitespace trimmed). Use this OR uuid. Partial names return candidates only.")),
 				mcp.WithString("uuid", mcp.Description("Exact full custom model UUID (8-4-4-4-12 hex). Use this OR name. Partial uuids return candidates only; never delete on a partial uuid even if one match.")),

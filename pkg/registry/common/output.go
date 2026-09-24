@@ -183,6 +183,11 @@ func schemaForCustomMarshaler(t reflect.Type) *jsonschema.Schema {
 	if t == reflect.TypeFor[time.Time]() {
 		return nil // invopop already models time.Time correctly.
 	}
+	// json.Number has a string kind but always encodes as a bare number,
+	// including the empty zero value, which encoding/json writes as 0.
+	if t == reflect.TypeFor[json.Number]() {
+		return &jsonschema.Schema{Type: "number"}
+	}
 	if !implementsJSONMarshaler(t) {
 		return nil
 	}
