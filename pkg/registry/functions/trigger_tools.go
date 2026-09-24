@@ -2,7 +2,6 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -36,11 +35,7 @@ func (t *TriggerTool) listTriggers(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("list triggers", err), nil
 	}
 
-	out, err := json.MarshalIndent(triggers, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return triggerListOut.Result(triggers)
 }
 
 func (t *TriggerTool) getTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -65,11 +60,7 @@ func (t *TriggerTool) getTrigger(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("get trigger", err), nil
 	}
 
-	out, err := json.MarshalIndent(trigger, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return triggerOut.Result(trigger)
 }
 
 func (t *TriggerTool) createTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -121,11 +112,7 @@ func (t *TriggerTool) createTrigger(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("create trigger", err), nil
 	}
 
-	out, err := json.MarshalIndent(trigger, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return triggerOut.Result(trigger)
 }
 
 func (t *TriggerTool) updateTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -170,11 +157,7 @@ func (t *TriggerTool) updateTrigger(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("update trigger", err), nil
 	}
 
-	out, err := json.MarshalIndent(trigger, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(out)), nil
+	return triggerOut.Result(trigger)
 }
 
 func (t *TriggerTool) deleteTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -209,6 +192,7 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-triggers",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				triggerListOut.Schema(),
 				mcp.WithDescription("List all triggers for a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 			),
@@ -218,6 +202,7 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-trigger",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				triggerOut.Schema(),
 				mcp.WithDescription("Get a specific trigger in a DigitalOcean Functions namespace."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("TriggerName", mcp.Required(), mcp.Description("The name of the trigger")),
@@ -228,6 +213,7 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-create-trigger",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				triggerOut.Schema(),
 				mcp.WithDescription("Create a scheduled trigger for a function in a DigitalOcean Functions namespace. Currently only SCHEDULED type triggers are supported."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("A name for the trigger")),
@@ -242,6 +228,7 @@ func (t *TriggerTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-update-trigger",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				triggerOut.Schema(),
 				mcp.WithDescription("Update a trigger in a DigitalOcean Functions namespace. You can enable/disable the trigger or change the cron schedule."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("TriggerName", mcp.Required(), mcp.Description("The name of the trigger to update")),
