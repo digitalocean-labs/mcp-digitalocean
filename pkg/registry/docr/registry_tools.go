@@ -2,7 +2,6 @@ package docr
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -41,12 +40,7 @@ func (r *RegistryTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRegistry, err := json.MarshalIndent(registry, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRegistry)), nil
+	return registryOut.Result(registry)
 }
 
 // list lists all container registries
@@ -61,12 +55,7 @@ func (r *RegistryTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRegistries, err := json.MarshalIndent(registries, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRegistries)), nil
+	return registriesOut.Result(registries)
 }
 
 // create creates a new container registry
@@ -95,12 +84,7 @@ func (r *RegistryTool) create(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRegistry, err := json.MarshalIndent(registry, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRegistry)), nil
+	return registryOut.Result(registry)
 }
 
 // delete deletes a container registry
@@ -169,12 +153,7 @@ func (r *RegistryTool) getOptions(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonOptions, err := json.MarshalIndent(options, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonOptions)), nil
+	return registryOptsOut.Result(options)
 }
 
 // validateName validates a registry name
@@ -207,6 +186,7 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				registryOut.Schema(),
 				mcp.WithDescription("Get a container registry by name"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 			),
@@ -216,6 +196,7 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				registriesOut.Schema(),
 				mcp.WithDescription("List all container registries"),
 			),
 		},
@@ -224,6 +205,7 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				registryOut.Schema(),
 				mcp.WithDescription("Create a new container registry"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("SubscriptionTierSlug", mcp.Description("Subscription tier slug (e.g., 'starter', 'basic', 'professional')")),
@@ -258,6 +240,7 @@ func (r *RegistryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-options",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				registryOptsOut.Schema(),
 				mcp.WithDescription("Get available container registry options including subscription tiers and regions"),
 			),
 		},
