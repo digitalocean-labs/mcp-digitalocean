@@ -13,11 +13,16 @@ import (
 // same key the API itself uses. importOut and deleteOut publish payloads that
 // are already JSON objects, so neither is wrapped in an envelope.
 //
-// genai-models-unified-search and genai-custom-models-list stay text-only:
-// both return markdown tables rather than JSON, so there is no payload for a
-// schema to describe.
+// unifiedSearchOut and modelRowsOut back the two table-rendering tools. Their
+// text half stays the markdown the client is told to display verbatim, so both
+// are emitted with ResultWithText: the rows behind the table are published as
+// structuredContent so callers do not have to parse the table back apart.
+// UnifiedSearchResponse is already an object, while the list tool publishes a
+// bare array and so takes the "models" envelope.
 var (
-	customModelOut = common.NewOutput[*CustomModel]("model")
-	importOut      = common.NewObjectOutput[*ImportCustomModelOutput]()
-	deleteOut      = common.NewObjectOutput[*DeleteCustomModelOutput]()
+	customModelOut   = common.NewOutput[*CustomModel]("model")
+	importOut        = common.NewObjectOutput[*ImportCustomModelOutput]()
+	deleteOut        = common.NewObjectOutput[*DeleteCustomModelOutput]()
+	unifiedSearchOut = common.NewObjectOutput[UnifiedSearchResponse]()
+	modelRowsOut     = common.NewOutput[[]CustomSearchRow]("models")
 )
