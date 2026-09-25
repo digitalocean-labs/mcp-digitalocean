@@ -187,6 +187,42 @@ func TestDataPlaneStructuredOutputIsLossless(t *testing.T) {
 			arguments: `{"NamespaceID":"ns-1","ActivationID":"act-1"}`,
 			response:  `{"status":"success","success":true,"size":7,"result":{"name":12345,"logs":"not-an-array"}}`,
 		},
+		{
+			name:      "invoke blocking",
+			tool:      "functions-invoke-action",
+			arguments: `{"NamespaceID":"ns-1","ActionName":"hello","Blocking":true}`,
+			envelope:  "activation",
+			response: `{"activationId":"act-1","name":"hello","namespace":"test-ns","version":"0.0.1",
+				"publish":false,"subject":"user","start":1700000000000,"end":1700000000002,"duration":2,
+				"logs":[],"annotations":[{"key":"waitTime","value":808},{"key":"timeout","value":false},
+				{"key":"limits","value":{"logs":16,"memory":256,"timeout":3000}}],
+				"response":{"status":"success","success":true,"size":19,"result":{"message":"hello"}},
+				"unmodelled":"kept"}`,
+		},
+		{
+			name:      "invoke non-blocking",
+			tool:      "functions-invoke-action",
+			arguments: `{"NamespaceID":"ns-1","ActionName":"hello","Blocking":false}`,
+			envelope:  "activation",
+			response:  `{"activationId":"act-2"}`,
+		},
+		{
+			// name and duration would fail owActivation if this document were
+			// published as an activation. Under result the schema accepts any
+			// JSON, which is what a function is allowed to return.
+			name:      "invoke result",
+			tool:      "functions-invoke-action",
+			arguments: `{"NamespaceID":"ns-1","ActionName":"hello","Result":true}`,
+			envelope:  "result",
+			response:  `{"message":"hello","name":12345,"duration":"not-a-number"}`,
+		},
+		{
+			name:      "invoke result not an object",
+			tool:      "functions-invoke-action",
+			arguments: `{"NamespaceID":"ns-1","ActionName":"hello","Result":true}`,
+			envelope:  "result",
+			response:  `["not","an","object"]`,
+		},
 	}
 
 	for _, tc := range tests {
@@ -246,10 +282,9 @@ func TestDataPlaneStructuredOutputIsLossless(t *testing.T) {
 // where the permissiveness stops: an undeclared field passes, but a declared
 // one arriving with the wrong type does not.
 //
-// That boundary is the reason functions-invoke-action has no schema. With
-// Result set it returns the invoked function's own output at the top level, so
-// a function answering {"name": 12345} would trip exactly this check and fail
-// an otherwise successful invocation.
+// functions-invoke-action avoids this for its Result form by nesting that
+// document under result, whose schema accepts any JSON, rather than describing
+// it as an activation.
 func TestDataPlaneSchemaRejectsWrongType(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

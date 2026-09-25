@@ -260,6 +260,41 @@ func TestObjectOutputNormalizesNilPayloadToEmptyObject(t *testing.T) {
 	validateAgainst(t, out.RawSchema(), res.StructuredContent)
 }
 
+func TestResultRawOmitsStructuredContentThatFailsTheSchema(t *testing.T) {
+	out := NewOutput[struct {
+		Name string `json:"name,omitempty"`
+	}]("item")
+
+	// name is declared as a string, so a number must not be published.
+	res := out.ResultRaw(`{"name":12345}`, json.RawMessage(`{"name":12345}`))
+	if res.IsError {
+		t.Fatal("schema mismatch returned an error result")
+	}
+	if res.StructuredContent != nil {
+		t.Fatalf("structuredContent = %#v, want nil", res.StructuredContent)
+	}
+	if textOf(t, res) != `{"name":12345}` {
+		t.Fatalf("text = %q, want the original document", textOf(t, res))
+	}
+}
+
+func TestResultRawOmitsStructuredContentForInvalidJSON(t *testing.T) {
+	out := NewOutput[struct {
+		Name string `json:"name,omitempty"`
+	}]("item")
+
+	res := out.ResultRaw("not json", json.RawMessage("not json"))
+	if res.IsError {
+		t.Fatal("invalid JSON returned an error result")
+	}
+	if res.StructuredContent != nil {
+		t.Fatalf("structuredContent = %#v, want nil", res.StructuredContent)
+	}
+	if textOf(t, res) != "not json" {
+		t.Fatalf("text = %q, want the original body", textOf(t, res))
+	}
+}
+
 func TestOutputSchemaIsAnObjectEnvelope(t *testing.T) {
 	out := NewOutput[[]godo.Region]("regions")
 

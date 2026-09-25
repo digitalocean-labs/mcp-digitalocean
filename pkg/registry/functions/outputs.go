@@ -33,12 +33,12 @@ import (
 // resource's tools, since the list view OpenWhisk returns is a subset of the
 // detail view and validates against the same schema.
 //
-// functions-invoke-action is the one data-plane tool that stays text-only, and
-// not for lack of a model: it answers with a full activation when blocking,
-// with just an activation id when not, and with the invoked function's own
-// return value when Result is set. That last shape is user-defined, so
-// declaring any schema risks rejecting a perfectly good invocation whose
-// result happens to use a key this package models with a different type.
+// functions-invoke-action is the one data-plane tool whose response is not a
+// single shape. It answers with a full activation when blocking, with just an
+// activation id when not, and with the invoked function's own return value
+// when Result is set. invokeOut carries the first two under activation and the
+// third under result, because that return value is user-defined and may reuse
+// a key the activation model types differently, or not be an object at all.
 var (
 	namespaceListOut = common.NewOutput[[]godo.FunctionsNamespace]("namespaces")
 	namespaceOut     = common.NewOutput[*godo.FunctionsNamespace]("namespace")
@@ -55,4 +55,5 @@ var (
 	activationOut       = common.NewOutput[*owActivation]("activation")
 	activationLogsOut   = common.NewObjectOutput[owActivationLogs]()
 	activationResultOut = common.NewObjectOutput[owActivationResult]()
+	invokeOut           = common.NewObjectOutput[owInvokeOutput]()
 )

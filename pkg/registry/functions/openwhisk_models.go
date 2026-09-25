@@ -117,3 +117,16 @@ type owActivationResult struct {
 type owActivationLogs struct {
 	Logs []string `json:"logs,omitempty"`
 }
+
+// owInvokeOutput is the envelope for functions-invoke-action. OpenWhisk returns
+// one of two documents, and the handler knows which from the call's own
+// Blocking and Result flags. A blocking invoke returns an activation; a
+// non-blocking one returns the same shape reduced to an activation id. With
+// Result set, it returns the invoked function's own JSON instead, which is
+// not an activation and need not even be an object. That value is carried
+// under result, which the schema leaves unconstrained, so a function that
+// answers {"name": 1} or a bare array still validates. Exactly one key is set.
+type owInvokeOutput struct {
+	Activation *owActivation `json:"activation,omitempty"`
+	Result     any           `json:"result,omitempty"`
+}
