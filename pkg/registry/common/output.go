@@ -71,9 +71,27 @@ func (o *Output[T]) Result(payload T) (*mcp.CallToolResult, error) {
 		return nil, fmt.Errorf("marshal error: %w", err)
 	}
 
-	res := mcp.NewToolResultText(string(text))
-	res.StructuredContent = o.structured(text)
-	return res, nil
+	return o.result(string(text), text), nil
+}
+
+// ResultWithText publishes payload as structuredContent while keeping text as
+// the text content. Use it for tools whose text half is a rendering of the
+// payload rather than its JSON, such as a markdown table the client is meant
+// to display verbatim. Callers must derive text from the same payload, or the
+// two halves will disagree.
+func (o *Output[T]) ResultWithText(text string, payload T) (*mcp.CallToolResult, error) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: %w", err)
+	}
+
+	return o.result(text, encoded), nil
+}
+
+func (o *Output[T]) result(text string, encoded json.RawMessage) *mcp.CallToolResult {
+	res := mcp.NewToolResultText(text)
+	res.StructuredContent = o.structured(encoded)
+	return res
 }
 
 // structured shapes the encoded payload for structuredContent, keeping it a

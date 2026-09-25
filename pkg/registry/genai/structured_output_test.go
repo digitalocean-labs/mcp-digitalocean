@@ -85,3 +85,57 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(resp.Result.Content[0].Text), &fromText))
 	require.Equal(t, resp.Result.StructuredContent, fromText)
 }
+
+// TestScenarioSetCreateInlineStructuredOutput covers the inline branch of
+// genai-simulation-create-scenario-set. That tool has two return shapes and so
+// publishes ScenarioSetCreateResult for both; the file branch produces that
+// type directly and satisfies the schema by construction, but the inline branch
+// has to be lifted into it with the upload fields left empty, which is the part
+// that can break. It also pins the text, which stays the bare scenario set.
+func TestScenarioSetCreateInlineStructuredOutput(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockGradientAIService(ctrl)
+	m.EXPECT().
+		CreateScenarioSet(gomock.Any(), gomock.Any()).
+		Return(&godo.ScenarioSet{ScenarioSetUUID: "ss-new", Name: "inline-set"}, okResponse(201), nil).
+		Times(1)
+
+	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
+	svr.AddTools(setupSimulationToolWithGradientMock(m).Tools()...)
+
+	ctx := context.Background()
+	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+
+		`"params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}`))
+
+	raw, err := json.Marshal(svr.HandleMessage(ctx,
+		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"genai-simulation-create-scenario-set",`+
+			`"arguments":{"name":"inline-set","scenarios":[{"name":"scenario-1"}]}}}`)))
+	require.NoError(t, err)
+
+	var resp struct {
+		Error  *struct{ Message string } `json:"error"`
+		Result struct {
+			IsError           bool                    `json:"isError"`
+			Content           []mcp.TextContent       `json:"content"`
+			StructuredContent ScenarioSetCreateResult `json:"structuredContent"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &resp))
+
+	require.Nil(t, resp.Error, "server rejected the call")
+	require.False(t, resp.Result.IsError, "tool returned an error result: %s", raw)
+
+	require.NotNil(t, resp.Result.StructuredContent.ScenarioSet)
+	require.Equal(t, "ss-new", resp.Result.StructuredContent.ScenarioSet.ScenarioSetUUID)
+	require.Empty(t, resp.Result.StructuredContent.ObjectKey, "inline scenarios involve no upload")
+	require.Empty(t, resp.Result.StructuredContent.FileName)
+
+	// The text is the bare set, not the envelope, which is why this branch
+	// cannot derive its text from the payload.
+	require.Len(t, resp.Result.Content, 1)
+	var fromText godo.ScenarioSet
+	require.NoError(t, json.Unmarshal([]byte(resp.Result.Content[0].Text), &fromText))
+	require.Equal(t, *resp.Result.StructuredContent.ScenarioSet, fromText)
+}

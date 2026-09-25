@@ -51,7 +51,7 @@ func (cmt *CustomModelsTool) listModels(ctx context.Context, req mcp.CallToolReq
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("failed to list custom models", err), nil
 		}
-		return mcp.NewToolResultText(formatCustomModelsList("", rows)), nil
+		return listModelsResult("", rows)
 	}
 
 	statusFilter := ""
@@ -77,7 +77,15 @@ func (cmt *CustomModelsTool) listModels(ctx context.Context, req mcp.CallToolReq
 		rows = append(rows, toCustomSearchRow(cm))
 	}
 
-	return mcp.NewToolResultText(formatCustomModelsList(statusFilter, rows)), nil
+	return listModelsResult(statusFilter, rows)
+}
+
+// listModelsResult renders the table and publishes the rows behind it. The
+// rows are sorted first because the table sorts as it renders, and the two
+// halves of the result have to agree on order.
+func listModelsResult(statusFilter string, rows []CustomSearchRow) (*mcp.CallToolResult, error) {
+	rows = sortCustomSearchRows(rows)
+	return modelRowsOut.ResultWithText(formatCustomModelsList(statusFilter, rows), rows)
 }
 
 func listModelsHasFilters(args map[string]any) bool {
@@ -375,6 +383,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-models-unified-search",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				unifiedSearchOut.Schema(),
 				mcp.WithDescription("PRIMARY tool for listing or searching models. Use when the user asks to list all models, show available models, or search by partial name. Returns two markdown tables (Model Catalog and Custom Models) with one row per model: custom columns are UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message; catalog columns include Provider, Type, Context Window, Capabilities, and modalities. Empty query lists everything; partial query returns nearest matches."),
 				mcp.WithString("query", mcp.Description("Partial model name or search string (optional). Empty returns all models in both tables.")),
 			),
@@ -385,6 +394,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelRowsOut.Schema(),
 				mcp.WithDescription("List all custom models in one markdown table (one row per model, every UUID shown including STATUS_FAILED). Columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message. Do not summarize the table in the response. For catalog + custom together use genai-models-unified-search. Optional status/page/per_page filters."),
 				mcp.WithString("status", mcp.Description("Filter by status: STATUS_IMPORTING, STATUS_READY, STATUS_FAILED, STATUS_DELETED")),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),

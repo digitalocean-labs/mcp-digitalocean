@@ -84,12 +84,26 @@ func (cmt *CustomModelsTool) unifiedSearch(ctx context.Context, req mcp.CallTool
 		customModels = []CustomSearchRow{}
 	}
 
+	// The table sorts the custom rows as it renders them; sorting here keeps
+	// structuredContent in the same order the client is shown.
+	customModels = sortCustomSearchRows(customModels)
+
 	text := formatUnifiedSearchTables(query, catalogModels, customModels)
 	if len(errors) == 1 {
 		text = fmt.Sprintf("partial results (one source failed: %s)\n\n%s", errors[0], text)
 	}
 
-	return mcp.NewToolResultText(text), nil
+	return unifiedSearchOut.ResultWithText(text, UnifiedSearchResponse{
+		Query:         query,
+		CatalogModels: catalogModels,
+		CustomModels:  customModels,
+		Counts: UnifiedSearchCounts{
+			Catalog: len(catalogModels),
+			Custom:  len(customModels),
+			Total:   len(catalogModels) + len(customModels),
+		},
+		Errors: errors,
+	})
 }
 
 // fetchCatalogModels searches the catalog and returns one row per matching model UUID.

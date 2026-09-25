@@ -86,7 +86,8 @@ func (s *MysqlTool) getSQLMode(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return mcp.NewToolResultText(mode), nil
+	// The text stays the bare mode string; only the structured half is wrapped.
+	return sqlModeOut.ResultWithText(mode, mode)
 }
 
 func (s *MysqlTool) setSQLMode(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -183,6 +184,7 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-sql-mode",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				sqlModeOut.Schema(),
 				mcp.WithDescription("Get the SQL mode for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),

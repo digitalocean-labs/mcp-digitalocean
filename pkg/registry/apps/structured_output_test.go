@@ -86,3 +86,80 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(resp.Result.Content[0].Text), &fromText))
 	require.Equal(t, resp.Result.StructuredContent.Apps, fromText)
 }
+
+// TestAppUpdateStructuredOutputBothBranches covers the one tool here with two
+// return shapes. A single outputSchema has to describe both, so each branch is
+// run through a validating server; a schema that fit only one of them would
+// fail on the other. It also pins the text half, which stays the bare app or
+// deployment rather than the envelope.
+func TestAppUpdateStructuredOutputBothBranches(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockApps := NewMockAppsService(ctrl)
+	mockApps.EXPECT().
+		CreateDeployment(gomock.Any(), "app-1", gomock.Any()).
+		Return(&godo.Deployment{ID: "deploy-1", Cause: "forced"}, nil, nil).
+		Times(1)
+	mockApps.EXPECT().
+		Update(gomock.Any(), "app-1", gomock.Any()).
+		Return(&godo.App{ID: "app-1", Spec: &godo.AppSpec{Name: "updated-app"}}, nil, nil).
+		Times(1)
+
+	appTool, err := NewAppPlatformTool(func(ctx context.Context) (*godo.Client, error) {
+		return &godo.Client{Apps: mockApps}, nil
+	})
+	require.NoError(t, err)
+
+	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
+	svr.AddTools(appTool.Tools()...)
+
+	ctx := context.Background()
+	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+
+		`"params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}`))
+
+	call := func(id, arguments string) (string, appUpdateResult) {
+		t.Helper()
+		raw, err := json.Marshal(svr.HandleMessage(ctx,
+			[]byte(`{"jsonrpc":"2.0","id":`+id+`,"method":"tools/call","params":{"name":"apps-update","arguments":`+arguments+`}}`)))
+		require.NoError(t, err)
+
+		var resp struct {
+			Error  *struct{ Message string } `json:"error"`
+			Result struct {
+				IsError           bool              `json:"isError"`
+				Content           []mcp.TextContent `json:"content"`
+				StructuredContent appUpdateResult   `json:"structuredContent"`
+			} `json:"result"`
+		}
+		require.NoError(t, json.Unmarshal(raw, &resp))
+		require.Nil(t, resp.Error, "server rejected the call")
+		require.False(t, resp.Result.IsError, "tool returned an error result: %s", raw)
+		require.Len(t, resp.Result.Content, 1)
+		return resp.Result.Content[0].Text, resp.Result.StructuredContent
+	}
+
+	t.Run("force rebuild returns a deployment", func(t *testing.T) {
+		text, structured := call("2", `{"update":{"app_id":"app-1","request":null}}`)
+
+		require.Nil(t, structured.App, "only the deployment branch should be set")
+		require.NotNil(t, structured.Deployment)
+		require.Equal(t, "deploy-1", structured.Deployment.ID)
+
+		var fromText godo.Deployment
+		require.NoError(t, json.Unmarshal([]byte(text), &fromText))
+		require.Equal(t, *structured.Deployment, fromText)
+	})
+
+	t.Run("spec update returns an app", func(t *testing.T) {
+		text, structured := call("3", `{"update":{"app_id":"app-1","request":{"spec":{"name":"updated-app"}}}}`)
+
+		require.Nil(t, structured.Deployment, "only the app branch should be set")
+		require.NotNil(t, structured.App)
+		require.Equal(t, "updated-app", structured.App.Spec.Name)
+
+		var fromText godo.App
+		require.NoError(t, json.Unmarshal([]byte(text), &fromText))
+		require.Equal(t, *structured.App, fromText)
+	})
+}

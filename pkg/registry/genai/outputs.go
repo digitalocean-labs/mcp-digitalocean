@@ -207,11 +207,14 @@ type simulationJourneyList struct {
 // generate, update and create-from-library, simulationRunOut by simulation run
 // create, update and cancel, and scenarioListOut by the two scenario list tools.
 //
-// genai-simulation-create-scenario-set stays text-only: it answers with a bare
-// godo.ScenarioSet for inline scenarios but with a ScenarioSetCreateResult
-// (the set plus the uploaded object's key, name and size) for a JSONL file, and
-// one tool cannot declare two payload shapes without changing what one of the
-// branches returns.
+// scenarioSetCreateOut covers a tool with two return shapes:
+// genai-simulation-create-scenario-set answers with a bare godo.ScenarioSet for
+// inline scenarios but with a ScenarioSetCreateResult (the set plus the
+// uploaded object's key, name and size) for a JSONL file. A tool may declare
+// just one outputSchema, and ScenarioSetCreateResult already describes both,
+// since its upload fields are optional and the inline branch simply leaves them
+// empty. Each branch keeps the text it has always returned, so the tool uses
+// ResultWithText.
 //
 // genai-model-eval-create-run and genai-model-eval-run-workflow declare the
 // schema of the run they create. Both also have interstitial branches that ask
@@ -248,6 +251,7 @@ var (
 
 	scenarioSetListOut         = common.NewObjectOutput[scenarioSetList]()
 	scenarioSetOut             = common.NewOutput[*godo.ScenarioSet]("scenario_set")
+	scenarioSetCreateOut       = common.NewObjectOutput[*ScenarioSetCreateResult]()
 	scenarioSetDeletedOut      = common.NewObjectOutput[*godo.ScenarioSetDeleteResponse]()
 	scenarioSetDownloadURLOut  = common.NewObjectOutput[*godo.ScenarioSetDownloadURLResponse]()
 	scenarioListOut            = common.NewObjectOutput[scenarioList]()

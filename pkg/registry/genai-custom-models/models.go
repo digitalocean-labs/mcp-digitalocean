@@ -225,6 +225,9 @@ type UnifiedSearchResponse struct {
 	CatalogModels []CatalogSearchRow  `json:"catalog_models"`
 	CustomModels  []CustomSearchRow   `json:"custom_models"`
 	Counts        UnifiedSearchCounts `json:"counts"`
+	// Errors carries the failure from a single source when the other one
+	// still returned rows; the tool fails outright when both sources fail.
+	Errors []string `json:"errors,omitempty"`
 }
 
 // UnifiedSearchCounts holds per-source result counts.

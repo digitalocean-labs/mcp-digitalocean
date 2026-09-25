@@ -31,10 +31,20 @@ type listResponse struct {
 // shape, so it needs the "dedicated_inference" envelope to satisfy MCP's
 // object-root requirement — the same key the API itself uses.
 //
-// dedicated-inference-delete stays text-only: its result is a fixed success
-// message, not a resource, so an output schema would describe nothing.
+// deleteOut describes the acknowledgement dedicated-inference-delete
+// synthesises locally, since the API answers with an empty body. Unlike the
+// delete tools elsewhere that reply with a plain sentence, this one has always
+// answered with a JSON object, so it gets a schema like any other payload.
 var (
 	createOut             = common.NewObjectOutput[createResponse]()
 	listOut               = common.NewObjectOutput[listResponse]()
 	dedicatedInferenceOut = common.NewOutput[*godo.DedicatedInference]("dedicated_inference")
+	deleteOut             = common.NewObjectOutput[deleteResponse]()
 )
+
+// deleteResponse is the fixed {status, message} acknowledgement returned once
+// an instance is gone.
+type deleteResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
