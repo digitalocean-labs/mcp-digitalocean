@@ -83,6 +83,17 @@ func (c *owClient) do(ctx context.Context, method, path string, query url.Values
 	return data, nil
 }
 
+// indentJSON re-indents an OpenWhisk response for the text content. The
+// original bytes are what the tools publish as structuredContent, so this
+// only ever formats a copy.
+func indentJSON(data []byte) (string, error) {
+	out, err := json.MarshalIndent(json.RawMessage(data), "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
 func (c *owClient) get(ctx context.Context, path string, query url.Values) ([]byte, error) {
 	return c.do(ctx, http.MethodGet, path, query, nil)
 }

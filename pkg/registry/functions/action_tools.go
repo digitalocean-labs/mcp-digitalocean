@@ -58,12 +58,11 @@ func (t *ActionTool) listActions(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("list actions", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return actionListOut.ResultRaw(out, data), nil
 }
 
 func (t *ActionTool) getAction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -96,12 +95,11 @@ func (t *ActionTool) getAction(ctx context.Context, req mcp.CallToolRequest) (*m
 		return mcp.NewToolResultErrorFromErr("get action", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return actionOut.ResultRaw(out, data), nil
 }
 
 func (t *ActionTool) createOrUpdateAction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -176,12 +174,11 @@ func (t *ActionTool) createOrUpdateAction(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("create/update action", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return actionOut.ResultRaw(out, data), nil
 }
 
 func (t *ActionTool) deleteAction(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -260,12 +257,30 @@ func (t *ActionTool) invokeAction(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("invoke action", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	// Result is only honored for a blocking invoke. Otherwise OpenWhisk still
+	// returns an activation id, so that response stays under activation.
+	return invokeOut.ResultRaw(out, invokeEnvelope(resultOnly && blocking, data)), nil
+}
+
+// invokeEnvelope wraps the verbatim OpenWhisk body under the key invokeOut
+// expects. The body itself is not decoded: a function result may be any JSON
+// value, and an activation may carry fields the model does not declare.
+func invokeEnvelope(asResult bool, data []byte) json.RawMessage {
+	key := "activation"
+	if asResult {
+		key = "result"
+	}
+	out := make([]byte, 0, len(key)+len(data)+5)
+	out = append(out, '{', '"')
+	out = append(out, key...)
+	out = append(out, '"', ':')
+	out = append(out, data...)
+	out = append(out, '}')
+	return out
 }
 
 func (t *ActionTool) Tools() []server.ServerTool {
@@ -275,6 +290,7 @@ func (t *ActionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-actions",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionListOut.Schema(),
 				mcp.WithDescription("List all actions in a DigitalOcean Functions namespace. Returns action metadata including name, namespace, version, and limits."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithNumber("Limit", mcp.Description("Number of actions to return (0-200, default 30). Use 0 for maximum.")),
@@ -286,6 +302,7 @@ func (t *ActionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-action",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Get detailed information about a specific action in a DigitalOcean Functions namespace, including its configuration and optionally its source code."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action")),
@@ -298,6 +315,7 @@ func (t *ActionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-create-or-update-action",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				actionOut.Schema(),
 				mcp.WithDescription("Create or update an action in a DigitalOcean Functions namespace. If the action already exists it will be overwritten."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action to create or update")),
@@ -330,6 +348,7 @@ func (t *ActionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-invoke-action",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
+				invokeOut.Schema(),
 				mcp.WithDescription("Invoke a function action in a DigitalOcean Functions namespace. By default this is a blocking invocation that waits for the result."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActionName", mcp.Required(), mcp.Description("The name of the action to invoke")),

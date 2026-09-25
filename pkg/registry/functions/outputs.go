@@ -20,13 +20,25 @@ import (
 // output schema would describe nothing. functions-deployment-guide likewise
 // stays text-only — it returns the embedded DEPLOY_SPEC.md markdown.
 //
-// The OpenWhisk data-plane tools (actions, packages and activations) also stay
-// text-only. Those handlers never parse the response: they take the raw bytes
-// the OpenWhisk API returned and re-indent them, and this package has no typed
-// OpenWhisk models to reflect. Decoding them into a Go type to gain a schema
-// would silently drop any field the type does not declare, changing what the
-// tools return. Activation results compound this — a result is whatever JSON
-// the user's own function returned, so it has no describable shape at all.
+// The OpenWhisk data-plane tools (actions, packages and activations) describe
+// their responses with the models in openwhisk_models.go, but emit them with
+// ResultRaw rather than Result. Those handlers deliberately never decode the
+// response — they forward the bytes OpenWhisk returned — and decoding them
+// into a Go type just to re-encode it would drop any field the model does not
+// declare. ResultRaw keeps the passthrough intact while still declaring a
+// schema, which holds because the generated schema requires nothing and
+// permits additional properties.
+//
+// actionOut, packageOut and activationOut are each shared across that
+// resource's tools, since the list view OpenWhisk returns is a subset of the
+// detail view and validates against the same schema.
+//
+// functions-invoke-action is the one data-plane tool whose response is not a
+// single shape. It answers with a full activation when blocking, with just an
+// activation id when not, and with the invoked function's own return value
+// when Result is set. invokeOut carries the first two under activation and the
+// third under result, because that return value is user-defined and may reuse
+// a key the activation model types differently, or not be an object at all.
 var (
 	namespaceListOut = common.NewOutput[[]godo.FunctionsNamespace]("namespaces")
 	namespaceOut     = common.NewOutput[*godo.FunctionsNamespace]("namespace")
@@ -34,4 +46,14 @@ var (
 	accessKeyOut     = common.NewOutput[*godo.FunctionsAccessKey]("access_key")
 	triggerListOut   = common.NewOutput[[]godo.FunctionsTrigger]("triggers")
 	triggerOut       = common.NewOutput[*godo.FunctionsTrigger]("trigger")
+
+	actionListOut       = common.NewOutput[[]owAction]("actions")
+	actionOut           = common.NewOutput[*owAction]("action")
+	packageListOut      = common.NewOutput[[]owPackage]("packages")
+	packageOut          = common.NewOutput[*owPackage]("package")
+	activationListOut   = common.NewOutput[[]owActivation]("activations")
+	activationOut       = common.NewOutput[*owActivation]("activation")
+	activationLogsOut   = common.NewObjectOutput[owActivationLogs]()
+	activationResultOut = common.NewObjectOutput[owActivationResult]()
+	invokeOut           = common.NewObjectOutput[owInvokeOutput]()
 )
