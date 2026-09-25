@@ -276,16 +276,17 @@ func TestDataPlaneStructuredOutputIsLossless(t *testing.T) {
 	}
 }
 
-// TestDataPlaneSchemaRejectsWrongType is the negative half of the test above.
+// TestDataPlaneSchemaDropsWrongType is the negative half of the test above.
 // Publishing bytes the compiler never checked is only safe while the schema
-// stays permissive, so this confirms validation is actually running and shows
-// where the permissiveness stops: an undeclared field passes, but a declared
-// one arriving with the wrong type does not.
+// stays permissive, and this shows where the permissiveness stops: an
+// undeclared field passes, but a declared one arriving with the wrong type
+// is left out of structuredContent. The text half is still the upstream
+// body, and the call itself is not failed.
 //
 // functions-invoke-action avoids this for its Result form by nesting that
 // document under result, whose schema accepts any JSON, rather than describing
 // it as an activation.
-func TestDataPlaneSchemaRejectsWrongType(t *testing.T) {
+func TestDataPlaneSchemaDropsWrongType(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// "name" is declared as a string by owAction.
@@ -308,10 +309,15 @@ func TestDataPlaneSchemaRejectsWrongType(t *testing.T) {
 	var resp struct {
 		Error  *struct{ Message string } `json:"error"`
 		Result struct {
-			IsError bool `json:"isError"`
+			IsError           bool              `json:"isError"`
+			Content           []mcp.TextContent `json:"content"`
+			StructuredContent json.RawMessage   `json:"structuredContent"`
 		} `json:"result"`
 	}
 	require.NoError(t, json.Unmarshal(raw, &resp))
-	require.True(t, resp.Error != nil || resp.Result.IsError,
-		"a declared field with the wrong type should not validate: %s", raw)
+	require.Nil(t, resp.Error, "server rejected the call: %s", raw)
+	require.False(t, resp.Result.IsError, "tool returned an error result: %s", raw)
+	require.Empty(t, resp.Result.StructuredContent)
+	require.Len(t, resp.Result.Content, 1)
+	require.JSONEq(t, `{"name":12345}`, resp.Result.Content[0].Text)
 }

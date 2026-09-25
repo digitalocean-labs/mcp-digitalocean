@@ -10,6 +10,7 @@ import (
 
 	"github.com/invopop/jsonschema"
 	"github.com/mark3labs/mcp-go/mcp"
+	jsonschemav6 "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // Output owns both halves of MCP's structured output contract for one tool:
@@ -26,6 +27,9 @@ type Output[T any] struct {
 	field string // "" publishes T directly, with no envelope
 	once  sync.Once
 	raw   json.RawMessage
+
+	schemaOnce sync.Once
+	compiled   *jsonschemav6.Schema
 }
 
 // NewOutput publishes T under field ("droplet", "droplets", …).
@@ -86,13 +90,59 @@ func (o *Output[T]) Result(payload T) (*mcp.CallToolResult, error) {
 // This trades the compiler's guarantee that the payload matches T for that
 // fidelity, which is sound only because the generated schema requires nothing
 // and permits additional properties: a response carrying unknown fields still
-// validates. What it cannot absorb is a known field arriving with an
-// unexpected type, so reserve this for responses whose keys the upstream API
-// controls, and cover it with a schema-validation test.
+// validates. A known field arriving with an unexpected type, or bytes that
+// are not JSON at all, cannot. Those are omitted from structuredContent
+// rather than published, so a client validating the schema does not fail a
+// call whose text half is still the upstream body.
 func (o *Output[T]) ResultRaw(text string, encoded json.RawMessage) *mcp.CallToolResult {
 	res := mcp.NewToolResultText(text)
-	res.StructuredContent = o.structured(encoded)
+	if !json.Valid(encoded) {
+		return res
+	}
+	structured := o.structured(encoded)
+	if !o.accepts(structured) {
+		return res
+	}
+	res.StructuredContent = structured
 	return res
+}
+
+// accepts reports whether structured satisfies this Output's schema. A schema
+// that was never generated or will not compile does not accept, so ResultRaw
+// falls back to text instead of publishing content nothing can validate.
+func (o *Output[T]) accepts(structured any) bool {
+	compiled := o.compiledSchema()
+	if compiled == nil {
+		return false
+	}
+	encoded, err := json.Marshal(structured)
+	if err != nil {
+		return false
+	}
+	doc, err := jsonschemav6.UnmarshalJSON(bytes.NewReader(encoded))
+	if err != nil {
+		return false
+	}
+	return compiled.Validate(doc) == nil
+}
+
+func (o *Output[T]) compiledSchema() *jsonschemav6.Schema {
+	o.schemaOnce.Do(func() {
+		raw := o.RawSchema()
+		if len(raw) == 0 {
+			return
+		}
+		doc, err := jsonschemav6.UnmarshalJSON(bytes.NewReader(raw))
+		if err != nil {
+			return
+		}
+		c := jsonschemav6.NewCompiler()
+		if err := c.AddResource("output-schema.json", doc); err != nil {
+			return
+		}
+		o.compiled, _ = c.Compile("output-schema.json")
+	})
+	return o.compiled
 }
 
 // structured shapes the encoded payload for structuredContent, keeping it a

@@ -260,6 +260,21 @@ func TestObjectOutputNormalizesNilPayloadToEmptyObject(t *testing.T) {
 	validateAgainst(t, out.RawSchema(), res.StructuredContent)
 }
 
+func TestResultRawPublishesPayloadThatSatisfiesTheSchema(t *testing.T) {
+	out := NewOutput[struct {
+		Name string `json:"name,omitempty"`
+	}]("item")
+
+	res := out.ResultRaw(`{"name":"hello"}`, json.RawMessage(`{"name":"hello"}`))
+	if res.IsError {
+		t.Fatal("a matching payload returned an error result")
+	}
+	validateAgainst(t, out.RawSchema(), res.StructuredContent)
+	if textOf(t, res) != `{"name":"hello"}` {
+		t.Fatalf("text = %q, want the original document", textOf(t, res))
+	}
+}
+
 func TestResultRawOmitsStructuredContentThatFailsTheSchema(t *testing.T) {
 	out := NewOutput[struct {
 		Name string `json:"name,omitempty"`
