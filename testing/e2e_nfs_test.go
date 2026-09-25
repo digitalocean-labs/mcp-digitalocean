@@ -4,6 +4,7 @@ package testing
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -40,20 +41,18 @@ func TestNfsResize(t *testing.T) {
 
 	activeShare := WaitForNfsShareActive(t, newShare.ID, defaultActionTimeout)
 
-	_ = callTool[godo.NfsAction](t, "nfs-resize", map[string]any{
+	resizeAction := callTool[godo.NfsAction](t, "nfs-resize", map[string]any{
 		"ShareID":       activeShare.ID,
 		"SizeGibibytes": 100,
 	})
-
-	_ = callTool[godo.Nfs](t, "nfs-file-share-get", map[string]any{
-		"ID": activeShare.ID,
-	})
+	t.Logf("[Resize] Action: ID=%s Type=%s Status=%s", resizeAction.ID, resizeAction.Type, resizeAction.Status)
 
 	var resizedShare godo.Nfs
 	require.Eventually(t, func() bool {
 		resizedShare = callTool[godo.Nfs](t, "nfs-file-share-get", map[string]any{
 			"ID": activeShare.ID,
 		})
+		t.Logf("[Resize] nfs share: %s State: %s Size: %d", activeShare.Name, resizedShare.Status, resizedShare.SizeGib)
 		return resizedShare.SizeGib == 100
 	}, defaultActionTimeout, defaultPollInterval, "nfs share did not resize in time")
 
@@ -111,34 +110,36 @@ func TestNfsDetachAndAttach(t *testing.T) {
 
 	vpcId := activeShare.VpcIDs[0]
 	t.Logf("[Detach] Attempting to detach nfs share: %s from %s", activeShare.Name, vpcId)
-	_ = callTool[godo.NfsAction](t, "nfs-detach", map[string]any{
+	detachAction := callTool[godo.NfsAction](t, "nfs-detach", map[string]any{
 		"ShareID": activeShare.ID,
 		"VpcID":   vpcId,
 	})
+	t.Logf("[Detach] Action: ID=%s Type=%s Status=%s", detachAction.ID, detachAction.Type, detachAction.Status)
 
 	var detachedShare godo.Nfs
 	require.Eventually(t, func() bool {
 		detachedShare = callTool[godo.Nfs](t, "nfs-file-share-get", map[string]any{
 			"ID": activeShare.ID,
 		})
-		t.Logf("[Detach] Detached nfs share: %s State: %s", activeShare.Name, detachedShare.Status)
-		return detachedShare.Status == "INACTIVE"
+		t.Logf("[Detach] nfs share: %s State: %s VPC IDs: %v", activeShare.Name, detachedShare.Status, detachedShare.VpcIDs)
+		return detachedShare.Status == godo.NfsShareActive && !slices.Contains(detachedShare.VpcIDs, vpcId)
 	}, defaultActionTimeout, defaultPollInterval, "nfs share did not detach in time")
 	t.Logf("[Detach] Successfully detached nfs share: %s from %s", activeShare.Name, vpcId)
 
 	t.Logf("[Attach] Attempting to attach nfs share: %s to %s", activeShare.Name, vpcId)
-	_ = callTool[godo.NfsAction](t, "nfs-attach", map[string]any{
+	attachAction := callTool[godo.NfsAction](t, "nfs-attach", map[string]any{
 		"ShareID": activeShare.ID,
 		"VpcID":   vpcId,
 	})
+	t.Logf("[Attach] Action: ID=%s Type=%s Status=%s", attachAction.ID, attachAction.Type, attachAction.Status)
 
 	var attachedShare godo.Nfs
 	require.Eventually(t, func() bool {
 		attachedShare = callTool[godo.Nfs](t, "nfs-file-share-get", map[string]any{
 			"ID": activeShare.ID,
 		})
-		t.Logf("[Attach] Attached nfs share: %s State: %s", attachedShare.Name, attachedShare.Status)
-		return attachedShare.Status == godo.NfsShareActive
+		t.Logf("[Attach] nfs share: %s State: %s VPC IDs: %v", attachedShare.Name, attachedShare.Status, attachedShare.VpcIDs)
+		return attachedShare.Status == godo.NfsShareActive && slices.Contains(attachedShare.VpcIDs, vpcId)
 	}, defaultActionTimeout, defaultPollInterval, "nfs share did not attach in time")
 
 	t.Logf("[Attach] Successfully attached nfs share: %s to %s", activeShare.Name, vpcId)
