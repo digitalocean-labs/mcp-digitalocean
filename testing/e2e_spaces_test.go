@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
@@ -130,7 +131,9 @@ func TestSpacesKeyLifecycle(t *testing.T) {
 	}
 }
 
-// cleanupKeys removes any keys created during testing.
+// flushKeys removes the keys this package created. It matches on
+// e2eSpaceKeyNamePrefix so that a run against an account with unrelated keys
+// leaves them alone.
 func flushKeys(t *testing.T, c *client.Client) {
 	ctx := context.Background()
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
@@ -151,6 +154,10 @@ func flushKeys(t *testing.T, c *client.Client) {
 	}
 
 	for _, key := range listKeysResponse.Keys {
+		if !strings.HasPrefix(key.Name, e2eSpaceKeyNamePrefix) {
+			continue
+		}
+
 		resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
 				Name: "spaces-key-delete",

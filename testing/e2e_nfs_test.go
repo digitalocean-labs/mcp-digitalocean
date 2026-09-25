@@ -122,7 +122,9 @@ func TestNfsDetachAndAttach(t *testing.T) {
 			"ID": activeShare.ID,
 		})
 		t.Logf("[Detach] nfs share: %s State: %s VPC IDs: %v", activeShare.Name, detachedShare.Status, detachedShare.VpcIDs)
-		return detachedShare.Status == godo.NfsShareActive && !slices.Contains(detachedShare.VpcIDs, vpcId)
+		// A share with no VPC left reports INACTIVE, a status godo has no
+		// constant for, so the VPC list is what this waits on.
+		return !slices.Contains(detachedShare.VpcIDs, vpcId)
 	}, defaultActionTimeout, defaultPollInterval, "nfs share did not detach in time")
 	t.Logf("[Detach] Successfully detached nfs share: %s from %s", activeShare.Name, vpcId)
 
