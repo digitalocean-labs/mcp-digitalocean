@@ -76,6 +76,25 @@ func (o *Output[T]) Result(payload T) (*mcp.CallToolResult, error) {
 	return res, nil
 }
 
+// ResultRaw publishes already-encoded JSON as structuredContent, keeping text
+// as given. Use it when the payload reaches the handler as bytes that must not
+// be reshaped — an upstream API's response passed through verbatim — so that
+// structuredContent stays byte-for-byte what the API said even where T models
+// only the fields this server knows about. Decoding into T and re-encoding
+// would silently drop the rest.
+//
+// This trades the compiler's guarantee that the payload matches T for that
+// fidelity, which is sound only because the generated schema requires nothing
+// and permits additional properties: a response carrying unknown fields still
+// validates. What it cannot absorb is a known field arriving with an
+// unexpected type, so reserve this for responses whose keys the upstream API
+// controls, and cover it with a schema-validation test.
+func (o *Output[T]) ResultRaw(text string, encoded json.RawMessage) *mcp.CallToolResult {
+	res := mcp.NewToolResultText(text)
+	res.StructuredContent = o.structured(encoded)
+	return res
+}
+
 // structured shapes the encoded payload for structuredContent, keeping it a
 // JSON object even when the payload itself encodes to null.
 func (o *Output[T]) structured(text json.RawMessage) any {
