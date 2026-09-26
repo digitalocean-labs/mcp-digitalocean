@@ -46,8 +46,8 @@ When the `droplets` service is enabled, project management tools are also regist
 
 - **project-list** — List projects with pagination (`Page`, `PerPage`)
 - **project-get** — Get a project by ID (UUID or `"default"`)
-- **project-get-default** — Get the account default project
-- **project-create** — Create a project (`Name`, `Purpose` required; `Description`, `Environment` optional)
+- **project-get-default** — Get the account default project (same call as `project-get` with `ID` `"default"`)
+- **project-create** — Create a project (`Name` required; `Purpose`, `Description`, `Environment` optional)
 
 See `pkg/registry/projects/README.md` for full argument details.
 

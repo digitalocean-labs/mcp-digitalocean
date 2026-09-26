@@ -86,14 +86,10 @@ func (p *ProjectTool) createProject(ctx context.Context, req mcp.CallToolRequest
 	if !ok || name == "" {
 		return mcp.NewToolResultError("Name is required"), nil
 	}
-	purpose, ok := args["Purpose"].(string)
-	if !ok || purpose == "" {
-		return mcp.NewToolResultError("Purpose is required"), nil
-	}
 
-	createReq := &godo.CreateProjectRequest{
-		Name:    name,
-		Purpose: purpose,
+	createReq := &godo.CreateProjectRequest{Name: name}
+	if purpose, ok := args["Purpose"].(string); ok && purpose != "" {
+		createReq.Purpose = purpose
 	}
 	if description, ok := args["Description"].(string); ok {
 		createReq.Description = description
@@ -144,7 +140,7 @@ func (p *ProjectTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				projectOut.Schema(),
-				mcp.WithDescription("Get the account's default DigitalOcean project"),
+				mcp.WithDescription("Get the account's default DigitalOcean project. Same call as project-get with ID \"default\": both read /v2/projects/default."),
 			),
 		},
 		{
@@ -155,7 +151,7 @@ func (p *ProjectTool) Tools() []server.ServerTool {
 				projectOut.Schema(),
 				mcp.WithDescription("Create a new DigitalOcean project"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the project")),
-				mcp.WithString("Purpose", mcp.Required(), mcp.Description("Purpose of the project. Preferred values: \"Just trying out DigitalOcean\", \"Class project / Educational purposes\", \"Website or blog\", \"Web Application\", \"Service or API\", \"Mobile Application\", \"Machine learning / AI / Data processing\", \"IoT\", \"Operational / Developer tooling\". Other values are stored as \"Other: <value>\".")),
+				mcp.WithString("Purpose", mcp.Description("Optional purpose of the project. Preferred values: \"Just trying out DigitalOcean\", \"Class project / Educational purposes\", \"Website or blog\", \"Web Application\", \"Service or API\", \"Mobile Application\", \"Machine learning / AI / Data processing\", \"IoT\", \"Operational / Developer tooling\". Other values are stored as \"Other: <value>\".")),
 				mcp.WithString("Description", mcp.Description("Optional description of the project")),
 				mcp.WithString("Environment", mcp.Enum("Development", "Staging", "Production"), mcp.Description("Environment of the project's resources")),
 			),
