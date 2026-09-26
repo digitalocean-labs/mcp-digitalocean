@@ -79,14 +79,14 @@ When the `accounts` service is enabled, project management tools are also regist
     - `ID` (string, required): Project UUID, or `"default"` for the account default project.
 
 - **project-get-default**
-  - Get the account's default project.
+  - Get the account's default project. Same call as `project-get` with `ID` `"default"`.
   - Arguments: _none_
 
 - **project-create**
   - Create a new project.
   - Arguments:
     - `Name` (string, required): Name of the project.
-    - `Purpose` (string, required): Purpose of the project (e.g. `"Web Application"`, `"Service or API"`).
+    - `Purpose` (string, optional): Purpose of the project (e.g. `"Web Application"`, `"Service or API"`).
     - `Description` (string, optional): Description of the project.
     - `Environment` (string, optional): One of `"Development"`, `"Staging"`, or `"Production"`.
 

@@ -3,6 +3,7 @@ package droplet
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -96,13 +97,18 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("droplet create", err), nil
 	}
 
-	if projectID, ok := args["ProjectID"].(string); ok && projectID != "" {
-		_, _, err = client.Projects.AssignResources(ctx, projectID, droplet)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf(
-				"droplet %d was created but could not be assigned to project %q: %v",
-				droplet.ID, projectID, err,
-			)), nil
+	if projectID, ok := args["ProjectID"].(string); ok {
+		projectID = strings.TrimSpace(projectID)
+		if projectID != "" {
+			_, _, assignErr := client.Projects.AssignResources(ctx, projectID, droplet)
+			if assignErr != nil {
+				// The droplet already exists. Returning an error would make an
+				// agent retry droplet-create and provision a second one.
+				return dropletOut.ResultWithText(fmt.Sprintf(
+					"Droplet %d was created but could not be assigned to project %q: %v. Do not retry droplet-create; the droplet already exists.",
+					droplet.ID, projectID, assignErr,
+				), droplet)
+			}
 		}
 	}
 

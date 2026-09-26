@@ -2,6 +2,7 @@ package projects
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -97,6 +98,11 @@ func TestProjectTool_listProjects(t *testing.T) {
 			require.NotNil(t, resp)
 			require.False(t, resp.IsError)
 			require.NotEmpty(t, resp.Content)
+			if tc.name == "Successful list" {
+				structured, ok := resp.StructuredContent.(map[string]json.RawMessage)
+				require.True(t, ok)
+				require.Contains(t, string(structured["projects"]), `"id": "proj-1"`)
+			}
 		})
 	}
 }
@@ -169,6 +175,11 @@ func TestProjectTool_getProject(t *testing.T) {
 			require.NotNil(t, resp)
 			require.False(t, resp.IsError)
 			require.NotEmpty(t, resp.Content)
+			if tc.name == "Successful get" {
+				structured, ok := resp.StructuredContent.(map[string]json.RawMessage)
+				require.True(t, ok)
+				require.Contains(t, string(structured["project"]), `"id": "proj-1"`)
+			}
 		})
 	}
 }
@@ -305,12 +316,18 @@ func TestProjectTool_createProject(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "Missing Purpose",
+			name: "Name only omits purpose",
 			args: map[string]any{
 				"Name": "no-purpose",
 			},
-			mockSetup:   func(m *MockProjectsService) {},
-			expectError: true,
+			mockSetup: func(m *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.CreateProjectRequest{
+						Name: "no-purpose",
+					}).
+					Return(&godo.Project{ID: "proj-name", Name: "no-purpose"}, nil, nil).
+					Times(1)
+			},
 		},
 	}
 

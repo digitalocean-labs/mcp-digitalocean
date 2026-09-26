@@ -178,10 +178,10 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 | Service                  | Remote MCP URL                                              | Description                                                                             |
 |--------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | apps                     | https://apps.mcp.digitalocean.com/mcp                       | Manage DigitalOcean App Platform applications, including deployments and configurations. |
-| accounts                 | https://accounts.mcp.digitalocean.com/mcp                   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
+| accounts                 | https://accounts.mcp.digitalocean.com/mcp                   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. Also lists and creates projects (see `pkg/registry/projects/README.md`). |
 | databases                | https://databases.mcp.digitalocean.com/mcp                  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
 | doks                     | https://doks.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Kubernetes clusters and node pools. |
-| droplets                 | https://droplets.mcp.digitalocean.com/mcp                   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
+| droplets                 | https://droplets.mcp.digitalocean.com/mcp                   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. Also lists and creates projects, and `droplet-create` accepts `ProjectID` (see `pkg/registry/projects/README.md`). |
 | docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
 | genai-custom-models      | https://genai-custom-models.mcp.digitalocean.com/mcp        | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform. |
