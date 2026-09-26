@@ -3,6 +3,7 @@ package droplet
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -95,6 +96,22 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("droplet create", err), nil
 	}
+
+	if projectID, ok := args["ProjectID"].(string); ok {
+		projectID = strings.TrimSpace(projectID)
+		if projectID != "" {
+			_, _, assignErr := client.Projects.AssignResources(ctx, projectID, droplet)
+			if assignErr != nil {
+				// The droplet already exists. Returning an error would make an
+				// agent retry droplet-create and provision a second one.
+				return dropletOut.ResultWithText(fmt.Sprintf(
+					"Droplet %d was created but could not be assigned to project %q: %v. Do not retry droplet-create; the droplet already exists.",
+					droplet.ID, projectID, assignErr,
+				), droplet)
+			}
+		}
+	}
+
 	return dropletOut.Result(droplet)
 }
 
@@ -284,6 +301,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 				mcp.WithBoolean("Monitoring", mcp.DefaultBool(false), mcp.Description("Whether to enable monitoring")),
 				mcp.WithArray("SSHKeys", mcp.Description("Array of SSH key IDs (numbers) or fingerprints (strings) to add to the droplet"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithArray("Tags", mcp.Description("Array of tag names to apply to the droplet"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithString("ProjectID", mcp.Description("Optional project UUID (or \"default\") to assign the new droplet to after creation")),
 			),
 		},
 		{
