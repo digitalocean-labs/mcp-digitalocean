@@ -65,6 +65,7 @@ func main() {
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	scopes := flag.String("scopes", getEnv("SCOPES", "read,write"), "Comma-separated list of scopes to request from the DigitalOcean API")
 	flag.Parse()
 
 	var level slog.Level
@@ -162,21 +163,23 @@ func main() {
 		authServer := oauthmeta.ProdAuthorizationServer
 		serverURL := strings.TrimSpace(*serverURLFlag)
 
+		oauthScopes := parseScopes(*scopes)
 		wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
 			Resource:               serverURL,
 			AuthorizationServers:   []string{authServer},
 			BearerMethodsSupported: []string{"header"},
+			ScopesSupported:        oauthScopes,
 		})
 
 		challengeCfg := oauthmeta.ChallengeConfig{
 			Resource: serverURL,
-			Scopes:   []string{"read", "write"},
+			Scopes:   oauthScopes,
 		}
 		requireAuth = func(next http.Handler) http.Handler {
 			return oauthmeta.RequireBearer(next, challengeCfg)
 		}
 
-		logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
+		logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer, "scopes", oauthScopes)
 
 		if token := strings.TrimSpace(*openaiAppsVerificationTokenFlag); token != "" && token != "OPENAI_APPS_VERIFICATION_TOKEN" {
 			openaiChallengeHandler = openaichallenge.Handler(token)
@@ -294,6 +297,20 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	}
 
 	return godo.New(oauthClient, opts...)
+}
+
+// parseScopes splits a comma-separated SCOPES value into the list advertised
+// in both the RFC 9728 scopes_supported field and the 401 WWW-Authenticate
+// challenge.
+func parseScopes(raw string) []string {
+	var out []string
+	for _, s := range strings.Split(raw, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string, wellKnownHandler http.HandlerFunc, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler) error {
