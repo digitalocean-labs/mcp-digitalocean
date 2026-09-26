@@ -63,6 +63,35 @@ This directory provides tool-based handlers for interacting with DigitalOcean ac
     - `Page` (number, default: 1): Page number.
     - `PerPage` (number, default: 30): Items per page.
 
+### Projects
+
+When the `accounts` service is enabled, project management tools are also registered (same tools as under `droplets`):
+
+- **project-list**
+  - List projects with pagination.
+  - Arguments:
+    - `Page` (number, default: 1): Page number.
+    - `PerPage` (number, default: 30): Items per page.
+
+- **project-get**
+  - Get a project by ID.
+  - Arguments:
+    - `ID` (string, required): Project UUID, or `"default"` for the account default project.
+
+- **project-get-default**
+  - Get the account's default project.
+  - Arguments: _none_
+
+- **project-create**
+  - Create a new project.
+  - Arguments:
+    - `Name` (string, required): Name of the project.
+    - `Purpose` (string, required): Purpose of the project (e.g. `"Web Application"`, `"Service or API"`).
+    - `Description` (string, optional): Description of the project.
+    - `Environment` (string, optional): One of `"Development"`, `"Staging"`, or `"Production"`.
+
+See `pkg/registry/projects/README.md` for full details.
+
 ### Account Info
 
 - **account-get-information**

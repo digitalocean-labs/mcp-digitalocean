@@ -20,6 +20,7 @@ This directory contains tools for managing DigitalOcean Droplets, Images, and Si
   - `Monitoring` (boolean, optional, default: false): Enable monitoring  
   - `SSHKeys` (array of strings, optional): SSH key IDs (numbers) or fingerprints to add to the droplet  
   - `Tags` (array of strings, optional): Tag names to apply to the droplet
+  - `ProjectID` (string, optional): Project UUID (or `"default"`) to assign the new Droplet to after creation
 
 - **droplet-delete**  
   Delete a Droplet.  
@@ -36,6 +37,19 @@ This directory contains tools for managing DigitalOcean Droplets, Images, and Si
   **Arguments:**  
   - `Page` (number, default: 1): Page number  
   - `PerPage` (number, default: 50): Items per page
+
+---
+
+### Project Tools
+
+When the `droplets` service is enabled, project management tools are also registered (same tools as under `accounts`):
+
+- **project-list** — List projects with pagination (`Page`, `PerPage`)
+- **project-get** — Get a project by ID (UUID or `"default"`)
+- **project-get-default** — Get the account default project
+- **project-create** — Create a project (`Name`, `Purpose` required; `Description`, `Environment` optional)
+
+See `pkg/registry/projects/README.md` for full argument details.
 
 ---
 
