@@ -338,3 +338,56 @@ func TestOutputSchemaIsAnObjectEnvelope(t *testing.T) {
 		t.Errorf("$defs was not hoisted to the schema root: %s", out.RawSchema())
 	}
 }
+
+// MCP types every root property of an outputSchema as an object schema, and
+// strict clients (Cloudflare's MCP portal, for one) reject the whole tools/list
+// when one is the boolean `true` — which is what an untyped (Go `any`) payload
+// or field reflects to.
+func TestOutputSchemaRootPropertiesAreObjects(t *testing.T) {
+	type untypedField struct {
+		Result any `json:"result"`
+		Size   int `json:"size"`
+	}
+
+	cases := map[string]json.RawMessage{
+		"envelope around an untyped payload":   NewOutput[any]("reserved_ip").RawSchema(),
+		"inlined object with an untyped field": NewObjectOutput[untypedField]().RawSchema(),
+	}
+	for name, raw := range cases {
+		t.Run(name, func(t *testing.T) {
+			var schema struct {
+				Props map[string]json.RawMessage `json:"properties"`
+			}
+			if err := json.Unmarshal(raw, &schema); err != nil {
+				t.Fatalf("schema is not valid JSON: %v", err)
+			}
+			if len(schema.Props) == 0 {
+				t.Fatalf("schema has no properties: %s", raw)
+			}
+			for prop, sub := range schema.Props {
+				var obj map[string]any
+				if err := json.Unmarshal(sub, &obj); err != nil {
+					t.Errorf("property %q is %s, want an object schema: %s", prop, sub, raw)
+				}
+			}
+		})
+	}
+}
+
+// `{}` must still accept anything `true` did: every JSON value validates.
+func TestUntypedOutputStillAcceptsAnyPayload(t *testing.T) {
+	out := NewOutput[any]("reserved_ip")
+	for _, payload := range []any{
+		map[string]any{"ip": "203.0.113.7", "region": map[string]any{"slug": "nyc3"}},
+		[]any{map[string]any{"ip": "2001:db8::1", "region_slug": "nyc3"}},
+		"text",
+		42,
+		nil,
+	} {
+		res, err := out.Result(payload)
+		if err != nil {
+			t.Fatalf("Result(%v): %v", payload, err)
+		}
+		validateAgainst(t, out.RawSchema(), res.StructuredContent)
+	}
+}
