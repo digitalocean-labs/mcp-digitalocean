@@ -198,6 +198,22 @@ func (mr *MockRegistriesServiceMockRecorder) List(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockRegistriesService)(nil).List), arg0)
 }
 
+// ListByUUID mocks base method.
+func (m *MockRegistriesService) ListByUUID(arg0 context.Context, arg1 string) ([]*godo.Registry, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListByUUID", arg0, arg1)
+	ret0, _ := ret[0].([]*godo.Registry)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListByUUID indicates an expected call of ListByUUID.
+func (mr *MockRegistriesServiceMockRecorder) ListByUUID(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByUUID", reflect.TypeOf((*MockRegistriesService)(nil).ListByUUID), arg0, arg1)
+}
+
 // ListGarbageCollections mocks base method.
 func (m *MockRegistriesService) ListGarbageCollections(arg0 context.Context, arg1 string, arg2 *godo.ListOptions) ([]*godo.GarbageCollection, *godo.Response, error) {
 	m.ctrl.T.Helper()

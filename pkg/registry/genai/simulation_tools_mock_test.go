@@ -11,9 +11,9 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupSimulationToolWithGradientMock(m godo.GradientAIService) *SimulationTool {
+func setupSimulationToolWithAgentPlatformMock(m godo.AgentPlatformService) *SimulationTool {
 	client := func(ctx context.Context) (*godo.Client, error) {
-		return &godo.Client{GradientAI: m}, nil
+		return &godo.Client{AgentPlatform: m}, nil
 	}
 	return NewSimulationTool(client)
 }
@@ -22,14 +22,14 @@ func TestSimulationTool_listScenarioSets_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListScenarioSets(gomock.Any(), gomock.Any()).Return(&godo.ScenarioSetListResponse{
 		ScenarioSets: []*godo.ScenarioSet{
 			{ScenarioSetUUID: "ss-1", Name: "checkout"},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).listScenarioSets, map[string]any{})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listScenarioSets, map[string]any{})
 	require.False(t, resp.IsError)
 	text := resultText(t, resp)
 	require.Contains(t, text, "ss-1")
@@ -41,10 +41,10 @@ func TestSimulationTool_listScenarioSets_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListScenarioSets(gomock.Any(), gomock.Any()).Return(nil, nil, errors.New("boom"))
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).listScenarioSets, map[string]any{})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listScenarioSets, map[string]any{})
 	require.True(t, resp.IsError)
 }
 
@@ -52,13 +52,13 @@ func TestSimulationTool_getScenarioSet_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetScenarioSet(gomock.Any(), "ss-1").Return(&godo.ScenarioSet{
 		ScenarioSetUUID: "ss-1",
 		Name:            "checkout",
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).getScenarioSet, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).getScenarioSet, map[string]any{
 		"scenario_set_uuid": "ss-1",
 	})
 	require.False(t, resp.IsError)
@@ -69,13 +69,13 @@ func TestSimulationTool_createScenarioSet_inline_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CreateScenarioSet(gomock.Any(), gomock.Any()).Return(&godo.ScenarioSet{
 		ScenarioSetUUID: "ss-new",
 		Name:            "inline-set",
 	}, okResponse(http.StatusCreated), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).createScenarioSet, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).createScenarioSet, map[string]any{
 		"name": "inline-set",
 		"scenarios": []any{
 			map[string]any{"name": "scenario-1", "description": "desc"},
@@ -89,7 +89,7 @@ func TestSimulationTool_createRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CreateSimulationRun(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(ctx context.Context, req *godo.CreateSimulationRunRequest) (*godo.SimulationRun, *godo.Response, error) {
 			require.Equal(t, "ss-1", req.ScenarioSetUUID)
@@ -100,7 +100,7 @@ func TestSimulationTool_createRun_success(t *testing.T) {
 		},
 	)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).createRun, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).createRun, map[string]any{
 		"scenario_set_uuid": "ss-1",
 		"agent_uuid":        "agent-1",
 		"name":              "sim-run",
@@ -114,14 +114,14 @@ func TestSimulationTool_listRuns_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListSimulationRuns(gomock.Any(), gomock.Any()).Return(&godo.SimulationRunListResponse{
 		SimulationRuns: []*godo.SimulationRun{
 			{RunUUID: "run-1", Status: godo.SimulationRunStatusSucceeded},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).listRuns, map[string]any{})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listRuns, map[string]any{})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), "run-1")
 }
@@ -130,12 +130,12 @@ func TestSimulationTool_getRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetSimulationRun(gomock.Any(), "run-1").Return(&godo.SimulationRunGetResponse{
 		SimulationRun: &godo.SimulationRun{RunUUID: "run-1"},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).getRun, map[string]any{"run_uuid": "run-1"})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).getRun, map[string]any{"run_uuid": "run-1"})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), "run-1")
 }
@@ -144,13 +144,13 @@ func TestSimulationTool_cancelRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CancelSimulationRun(gomock.Any(), "run-1").Return(&godo.SimulationRun{
 		RunUUID: "run-1",
 		Status:  godo.SimulationRunStatusCancelled,
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).cancelRun, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).cancelRun, map[string]any{
 		"run_uuid":       "run-1",
 		"confirm_cancel": true,
 	})
@@ -162,12 +162,12 @@ func TestSimulationTool_deleteRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteSimulationRun(gomock.Any(), "run-1").Return(&godo.SimulationRunDeleteResponse{
 		RunUUID: "run-1",
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).deleteRun, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).deleteRun, map[string]any{
 		"run_uuid":         "run-1",
 		"confirm_deletion": true,
 	})
@@ -179,14 +179,14 @@ func TestSimulationTool_listJourneys_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListSimulationJourneys(gomock.Any(), "run-1", gomock.Any()).Return(&godo.SimulationJourneyListResponse{
 		Journeys: []*godo.SimulationJourney{
 			{JourneyUUID: "j-1", Verdict: godo.SimulationJourneyVerdictSuccess},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).listJourneys, map[string]any{"run_uuid": "run-1"})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listJourneys, map[string]any{"run_uuid": "run-1"})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), "j-1")
 }
@@ -195,13 +195,13 @@ func TestSimulationTool_getJourneyTrajectory_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetSimulationJourneyTrajectory(gomock.Any(), "run-1", "j-1").Return(&godo.SimulationTrajectory{
 		JourneyUUID: "j-1",
 		TurnCount:   3,
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).getJourneyTrajectory, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).getJourneyTrajectory, map[string]any{
 		"run_uuid":     "run-1",
 		"journey_uuid": "j-1",
 	})
@@ -213,14 +213,14 @@ func TestSimulationTool_listScenarioLibrary_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListScenarioLibrary(gomock.Any(), gomock.Any()).Return(&godo.ScenarioLibraryListResponse{
 		Scenarios: []*godo.ScenarioLibraryEntry{
 			{LibraryScenarioUUID: "lib-1", Name: "support"},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithGradientMock(m).listScenarioLibrary, map[string]any{})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listScenarioLibrary, map[string]any{})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), "lib-1")
 }

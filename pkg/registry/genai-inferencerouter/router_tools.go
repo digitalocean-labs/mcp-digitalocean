@@ -14,7 +14,7 @@ import (
 	"mcp-digitalocean/pkg/registry/common"
 )
 
-// RouterTool exposes GenAI inference router operations via godo.GradientAI.
+// RouterTool exposes GenAI inference router operations via godo.AgentPlatform.
 type RouterTool struct {
 	client func(ctx context.Context) (*godo.Client, error)
 }
@@ -65,7 +65,7 @@ func (t *RouterTool) create(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		create.Policies = raw
 	}
 
-	router, _, err := c.GradientAI.CreateInferenceRouter(ctx, create)
+	router, _, err := c.AgentPlatform.CreateInferenceRouter(ctx, create)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("CreateInferenceRouter failed", err), nil
 	}
@@ -91,7 +91,7 @@ func (t *RouterTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	routers, apiResp, err := c.GradientAI.ListInferenceRouters(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	routers, apiResp, err := c.AgentPlatform.ListInferenceRouters(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("ListInferenceRouters failed", err), nil
 	}
@@ -134,7 +134,7 @@ func (t *RouterTool) listTaskPresets(ctx context.Context, req mcp.CallToolReques
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	tasks, apiResp, err := c.GradientAI.ListInferenceRouterTaskPresets(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
+	tasks, apiResp, err := c.AgentPlatform.ListInferenceRouterTaskPresets(ctx, &godo.ListOptions{Page: page, PerPage: perPage})
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("ListInferenceRouterTaskPresets failed", err), nil
 	}
@@ -199,7 +199,7 @@ func (t *RouterTool) update(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	router, _, err := c.GradientAI.UpdateInferenceRouter(ctx, uuid, update)
+	router, _, err := c.AgentPlatform.UpdateInferenceRouter(ctx, uuid, update)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("UpdateInferenceRouter failed", err), nil
 	}
@@ -219,7 +219,7 @@ func (t *RouterTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	router, _, err := c.GradientAI.GetInferenceRouter(ctx, uuid)
+	router, _, err := c.AgentPlatform.GetInferenceRouter(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("GetInferenceRouter failed", err), nil
 	}
@@ -239,7 +239,7 @@ func (t *RouterTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	out, _, err := c.GradientAI.DeleteInferenceRouter(ctx, uuid)
+	out, _, err := c.AgentPlatform.DeleteInferenceRouter(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("DeleteInferenceRouter failed", err), nil
 	}
@@ -304,7 +304,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
 				routerOut.Schema(),
-				mcp.WithDescription(`Create a GenAI model router (godo.GradientAI.CreateInferenceRouter). JSON body: "name", optional "policies" array, and required "fallback_models" (at least one). Each policy needs a task: either "task_slug" plus "models" and "selection_policy":{"prefer":"fastest"|"cheapest"}, or "custom_task":{"name","description"} with "models" and selection_policy. Flat {"model","usecase_class"} policies fail with "task is required". List/get return the same policy shape under model_router.config.`),
+				mcp.WithDescription(`Create a GenAI model router (godo.AgentPlatform.CreateInferenceRouter). JSON body: "name", optional "policies" array, and required "fallback_models" (at least one). Each policy needs a task: either "task_slug" plus "models" and "selection_policy":{"prefer":"fastest"|"cheapest"}, or "custom_task":{"name","description"} with "models" and selection_policy. Flat {"model","usecase_class"} policies fail with "task is required". List/get return the same policy shape under model_router.config.`),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Router name")),
 				mcp.WithString("PoliciesJson", mcp.Description(`JSON array for "policies". Example: [{"task_slug":"code-generation","models":["openai-gpt-5"],"selection_policy":{"prefer":"fastest"}}]. Custom task: use custom_task with name+description instead of task_slug. Omit or "[]" if allowed.`)),
 				mcp.WithArray("FallbackModels", mcp.Required(), mcp.MinItems(1), mcp.Description("At least one fallback model id, in order, sent as fallback_models (required by the API).")),
@@ -317,7 +317,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				routerListOut.Schema(),
-				mcp.WithDescription("List GenAI model routers (godo.GradientAI.ListInferenceRouters) with pagination."),
+				mcp.WithDescription("List GenAI model routers (godo.AgentPlatform.ListInferenceRouters) with pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
 			),
@@ -329,7 +329,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				routerOut.Schema(),
-				mcp.WithDescription("Get a GenAI model router by UUID (godo.GradientAI.GetInferenceRouter)."),
+				mcp.WithDescription("Get a GenAI model router by UUID (godo.AgentPlatform.GetInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
 		},
@@ -340,7 +340,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
 				routerDeleteOut.Schema(),
-				mcp.WithDescription("Delete a GenAI model router by UUID (godo.GradientAI.DeleteInferenceRouter)."),
+				mcp.WithDescription("Delete a GenAI model router by UUID (godo.AgentPlatform.DeleteInferenceRouter)."),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 			),
 		},
@@ -351,7 +351,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				taskPresetListOut.Schema(),
-				mcp.WithDescription("List preset inference-router tasks (task_slug, name, models, etc.) from GET /v2/gen-ai/models/routers/tasks/presets via godo.GradientAI.ListInferenceRouterTaskPresets. Use task_slug values when building PoliciesJson for create/update."),
+				mcp.WithDescription("List preset inference-router tasks (task_slug, name, models, etc.) from GET /v2/gen-ai/models/routers/tasks/presets via godo.AgentPlatform.ListInferenceRouterTaskPresets. Use task_slug values when building PoliciesJson for create/update."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(1000), mcp.Description("Items per page (default 1000, max 1000)")),
 			),
@@ -365,7 +365,7 @@ func (t *RouterTool) Tools() []server.ServerTool {
 				// incur cost / affect live routing, so risk is medium.
 				common.WithRisk(common.RiskMedium),
 				routerOut.Schema(),
-				mcp.WithDescription(`Update a GenAI model router (godo.GradientAI.UpdateInferenceRouter, PUT). At least one of Name, Description, PoliciesJson (non-empty), or FallbackModels must be supplied. PoliciesJson must be a JSON array (same rules as create). Omit fields you do not want to change.`),
+				mcp.WithDescription(`Update a GenAI model router (godo.AgentPlatform.UpdateInferenceRouter, PUT). At least one of Name, Description, PoliciesJson (non-empty), or FallbackModels must be supplied. PoliciesJson must be a JSON array (same rules as create). Omit fields you do not want to change.`),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("Model router UUID")),
 				mcp.WithString("Name", mcp.Description("New router name (optional)")),
 				mcp.WithString("Description", mcp.Description("New description (optional)")),

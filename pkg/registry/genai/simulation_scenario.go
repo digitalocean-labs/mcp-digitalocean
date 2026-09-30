@@ -91,7 +91,7 @@ func uploadAndCreateScenarioSetFromFile(
 	fileName := getFileName(filePath)
 	fileSize := int64(len(fileData))
 
-	presignedOutput, _, err := client.GradientAI.CreateScenarioSetUploadPresignedURLs(ctx, &godo.CreateScenarioSetUploadPresignedURLsRequest{
+	presignedOutput, _, err := client.AgentPlatform.CreateScenarioSetUploadPresignedURLs(ctx, &godo.CreateScenarioSetUploadPresignedURLsRequest{
 		Files: []*godo.PresignedUrlFile{
 			{
 				FileName: fileName,
@@ -125,7 +125,7 @@ func uploadAndCreateScenarioSetFromFile(
 		return nil, fmt.Errorf("file upload failed with status %d: %s", httpResp.StatusCode, string(bodyBytes))
 	}
 
-	scenarioSet, _, err := client.GradientAI.CreateScenarioSet(ctx, &godo.CreateScenarioSetRequest{
+	scenarioSet, _, err := client.AgentPlatform.CreateScenarioSet(ctx, &godo.CreateScenarioSetRequest{
 		Name: name,
 		FileUploadScenarioSet: &godo.FileUploadDataSource{
 			OriginalFileName: fileName,

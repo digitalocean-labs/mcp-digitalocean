@@ -190,7 +190,7 @@ func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRe
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	out, _, err := client.GradientAI.ImportCustomModel(ctx, importRequestToGodo(input))
+	out, _, err := client.AgentPlatform.ImportCustomModel(ctx, importRequestToGodo(input))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to import custom model", err), nil
 	}
@@ -274,7 +274,7 @@ func (cmt *CustomModelsTool) updateMetadata(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	model, _, err := client.GradientAI.UpdateCustomModelMetadata(ctx, uuid, metadataUpdateToGodo(input))
+	model, _, err := client.AgentPlatform.UpdateCustomModelMetadata(ctx, uuid, metadataUpdateToGodo(input))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update custom model metadata", err), nil
 	}

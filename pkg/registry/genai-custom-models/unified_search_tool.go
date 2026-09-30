@@ -17,7 +17,7 @@ const (
 
 // unifiedSearch searches the model catalog and custom models in parallel, then returns
 // two markdown tables (one row per model, never combined). Catalog matches use
-// GradientAI.SearchModels; custom matches are ranked client-side by relevance.
+// AgentPlatform.SearchModels; custom matches are ranked client-side by relevance.
 func (cmt *CustomModelsTool) unifiedSearch(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	query, _ := req.GetArguments()["query"].(string)
 
@@ -108,7 +108,7 @@ func (cmt *CustomModelsTool) unifiedSearch(ctx context.Context, req mcp.CallTool
 
 // fetchCatalogModels searches the catalog and returns one row per matching model UUID.
 func fetchCatalogModels(ctx context.Context, client *godo.Client, query string) ([]CatalogSearchRow, error) {
-	uuids, _, err := client.GradientAI.SearchModels(ctx, query)
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search catalog: %w", err)
 	}
@@ -130,7 +130,7 @@ func fetchCatalogModels(ctx context.Context, client *godo.Client, query string) 
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			model, _, getErr := client.GradientAI.GetModelByUUID(ctx, id)
+			model, _, getErr := client.AgentPlatform.GetModelByUUID(ctx, id)
 			if getErr != nil || model == nil {
 				return
 			}

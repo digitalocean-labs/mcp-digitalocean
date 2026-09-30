@@ -16,18 +16,18 @@ From DigitalOcean’s product documentation, an **Inference Router** is meant fo
 - [How to Use Inference Router](https://docs.digitalocean.com/products/inference/how-to/use-inference-router/) — end-to-end: concepts, control panel vs API (`POST /v2/gen-ai/models/routers`), preset vs custom tasks, fallbacks, calling the router from inference APIs, playground and metrics.
 - [DigitalOcean Inference Engine](https://www.digitalocean.com/products/inference-engine) — where Inference Router sits alongside serverless, batch, and dedicated inference, evaluations, and the broader “single control plane” story.
 
-When you use these MCP tools, you are managing that **routing configuration** through the typed **`godo.GradientAI`** client (same auth, base URL, and transport as the rest of this MCP server). Responses are formatted JSON aligned with the API (`tasks` for presets, `model_routers` / `model_router`, and `config` on get/create/update).
+When you use these MCP tools, you are managing that **routing configuration** through the typed **`godo.AgentPlatform`** client (same auth, base URL, and transport as the rest of this MCP server). Responses are formatted JSON aligned with the API (`tasks` for presets, `model_routers` / `model_router`, and `config` on get/create/update).
 
 ## godo surface
 
 Calls map to:
 
-- `GradientAI.CreateInferenceRouter` — create (`POST /v2/gen-ai/models/routers`)
-- `GradientAI.ListInferenceRouters` — list (`GET …` with `page`, `per_page`)
-- `GradientAI.GetInferenceRouter` — get by UUID
-- `GradientAI.UpdateInferenceRouter` — update (`PUT …/{uuid}`)
-- `GradientAI.DeleteInferenceRouter` — delete by UUID
-- `GradientAI.ListInferenceRouterTaskPresets` — list preset tasks (`GET /v2/gen-ai/models/routers/tasks/presets` with `page`, `per_page`)
+- `AgentPlatform.CreateInferenceRouter` — create (`POST /v2/gen-ai/models/routers`)
+- `AgentPlatform.ListInferenceRouters` — list (`GET …` with `page`, `per_page`)
+- `AgentPlatform.GetInferenceRouter` — get by UUID
+- `AgentPlatform.UpdateInferenceRouter` — update (`PUT …/{uuid}`)
+- `AgentPlatform.DeleteInferenceRouter` — delete by UUID
+- `AgentPlatform.ListInferenceRouterTaskPresets` — list preset tasks (`GET /v2/gen-ai/models/routers/tasks/presets` with `page`, `per_page`)
 
 ## Built-in `task_slug` values (how to choose)
 

@@ -9,7 +9,7 @@ import (
 )
 
 func listCustomModels(ctx context.Context, client *godo.Client, opt *godo.CustomModelListOptions) ([]*CustomModel, *godo.Meta, error) {
-	out, resp, err := client.GradientAI.ListCustomModels(ctx, opt)
+	out, resp, err := client.AgentPlatform.ListCustomModels(ctx, opt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list custom models: %w", err)
 	}
@@ -61,7 +61,7 @@ func listAllCustomModels(ctx context.Context, client *godo.Client) ([]*CustomMod
 }
 
 func getCustomModelByUUID(ctx context.Context, client *godo.Client, uuid string) (*CustomModel, error) {
-	model, resp, err := client.GradientAI.GetCustomModel(ctx, uuid)
+	model, resp, err := client.AgentPlatform.GetCustomModel(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get custom model: %w", err)
 	}
@@ -75,7 +75,7 @@ func getCustomModelByUUID(ctx context.Context, client *godo.Client, uuid string)
 }
 
 func deleteCustomModelByUUID(ctx context.Context, client *godo.Client, uuid string) (*DeleteCustomModelOutput, *godo.Response, error) {
-	out, resp, err := client.GradientAI.DeleteCustomModel(ctx, uuid)
+	out, resp, err := client.AgentPlatform.DeleteCustomModel(ctx, uuid)
 	if err != nil {
 		return nil, resp, err
 	}

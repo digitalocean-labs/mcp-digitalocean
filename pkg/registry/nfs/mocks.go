@@ -119,6 +119,21 @@ func (mr *MockNfsServiceMockRecorder) DeleteSnapshot(ctx, nfsSnapshotID, region 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSnapshot", reflect.TypeOf((*MockNfsService)(nil).DeleteSnapshot), ctx, nfsSnapshotID, region)
 }
 
+// DeleteWithOptions mocks base method.
+func (m *MockNfsService) DeleteWithOptions(ctx context.Context, nfsShareId string, opts *godo.NfsDeleteOptions) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteWithOptions", ctx, nfsShareId, opts)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteWithOptions indicates an expected call of DeleteWithOptions.
+func (mr *MockNfsServiceMockRecorder) DeleteWithOptions(ctx, nfsShareId, opts any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWithOptions", reflect.TypeOf((*MockNfsService)(nil).DeleteWithOptions), ctx, nfsShareId, opts)
+}
+
 // Get mocks base method.
 func (m *MockNfsService) Get(ctx context.Context, nfsShareId, region string) (*godo.Nfs, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -149,6 +164,22 @@ func (m *MockNfsService) GetAccessPoint(ctx context.Context, accessPointID strin
 func (mr *MockNfsServiceMockRecorder) GetAccessPoint(ctx, accessPointID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessPoint", reflect.TypeOf((*MockNfsService)(nil).GetAccessPoint), ctx, accessPointID)
+}
+
+// GetOptions mocks base method.
+func (m *MockNfsService) GetOptions(ctx context.Context) (*godo.NfsOptions, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOptions", ctx)
+	ret0, _ := ret[0].(*godo.NfsOptions)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetOptions indicates an expected call of GetOptions.
+func (mr *MockNfsServiceMockRecorder) GetOptions(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOptions", reflect.TypeOf((*MockNfsService)(nil).GetOptions), ctx)
 }
 
 // GetSnapshot mocks base method.
@@ -215,6 +246,22 @@ func (mr *MockNfsServiceMockRecorder) ListSnapshots(ctx, opts, nfsShareId, regio
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSnapshots", reflect.TypeOf((*MockNfsService)(nil).ListSnapshots), ctx, opts, nfsShareId, region)
 }
 
+// ListWithOptions mocks base method.
+func (m *MockNfsService) ListWithOptions(ctx context.Context, opts *godo.NfsListOptions) ([]*godo.Nfs, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWithOptions", ctx, opts)
+	ret0, _ := ret[0].([]*godo.Nfs)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListWithOptions indicates an expected call of ListWithOptions.
+func (mr *MockNfsServiceMockRecorder) ListWithOptions(ctx, opts any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWithOptions", reflect.TypeOf((*MockNfsService)(nil).ListWithOptions), ctx, opts)
+}
+
 // MockNfsActionsService is a mock of NfsActionsService interface.
 type MockNfsActionsService struct {
 	ctrl     *gomock.Controller
@@ -269,6 +316,22 @@ func (m *MockNfsActionsService) Detach(ctx context.Context, nfsShareId, vpcID, r
 func (mr *MockNfsActionsServiceMockRecorder) Detach(ctx, nfsShareId, vpcID, region any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Detach", reflect.TypeOf((*MockNfsActionsService)(nil).Detach), ctx, nfsShareId, vpcID, region)
+}
+
+// Get mocks base method.
+func (m *MockNfsActionsService) Get(ctx context.Context, actionID string) (*godo.NfsAction, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, actionID)
+	ret0, _ := ret[0].(*godo.NfsAction)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockNfsActionsServiceMockRecorder) Get(ctx, actionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockNfsActionsService)(nil).Get), ctx, actionID)
 }
 
 // Reassign mocks base method.

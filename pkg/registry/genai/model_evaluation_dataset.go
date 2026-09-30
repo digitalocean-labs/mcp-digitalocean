@@ -144,7 +144,7 @@ func uploadAndRegisterModelEvaluationDataset(
 		},
 	}
 
-	presignedOutput, _, err := client.GradientAI.CreateModelEvalDatasetUploadPresignedURLs(ctx, presignedInput)
+	presignedOutput, _, err := client.AgentPlatform.CreateModelEvalDatasetUploadPresignedURLs(ctx, presignedInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create presigned URL: %w", err)
 	}
