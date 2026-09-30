@@ -253,6 +253,16 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string, e
 	if token == "" {
 		return nil, errors.New("no bearer token found")
 	}
+
+	// When the request arrived through a trusted MCP router, the router forwards
+	// the AES-256-GCM ciphertext of its own resource URL. Relay that value so the
+	// backend validates the OAuth audience against the router (the resource the
+	// client authenticated to) rather than this server's own URL. Fall back to
+	// this server's precomputed identifier for direct clients.
+	if routerResource := strings.TrimSpace(middleware.RouterResourceFromContext(ctx)); routerResource != "" {
+		encryptedResourceHeader = routerResource
+	}
+
 	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent, encryptedResourceHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create godo client: %w", err)
