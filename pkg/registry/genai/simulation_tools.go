@@ -25,7 +25,7 @@ const (
 	simulationCancelConfirmDescription = "Must be true only after the end user has explicitly confirmed the cancellation in conversation (yes/no in chat). Omitted or false is rejected."
 )
 
-// SimulationTool provides Gradient AI simulation (scenario set + run) management tools.
+// SimulationTool provides Agent Platform simulation (scenario set + run) management tools.
 type SimulationTool struct {
 	client func(ctx context.Context) (*godo.Client, error)
 }
@@ -80,7 +80,7 @@ func (st *SimulationTool) listScenarioSets(ctx context.Context, req mcp.CallTool
 		opt.Statuses = append(opt.Statuses, godo.ScenarioSetStatus(status))
 	}
 
-	output, _, err := client.GradientAI.ListScenarioSets(ctx, opt)
+	output, _, err := client.AgentPlatform.ListScenarioSets(ctx, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list scenario sets", err), nil
 	}
@@ -105,7 +105,7 @@ func (st *SimulationTool) getScenarioSet(ctx context.Context, req mcp.CallToolRe
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetScenarioSet(ctx, uuid)
+	output, _, err := client.AgentPlatform.GetScenarioSet(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get scenario set", err), nil
 	}
@@ -148,7 +148,7 @@ func (st *SimulationTool) createScenarioSet(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	output, _, err := client.GradientAI.CreateScenarioSet(ctx, &godo.CreateScenarioSetRequest{
+	output, _, err := client.AgentPlatform.CreateScenarioSet(ctx, &godo.CreateScenarioSetRequest{
 		Name:      name,
 		Scenarios: scenarios,
 	})
@@ -185,7 +185,7 @@ func (st *SimulationTool) generateScenarioSet(ctx context.Context, req mcp.CallT
 		generateReq.NumScenarios = uint32(n)
 	}
 
-	output, _, err := client.GradientAI.GenerateScenarioSet(ctx, generateReq)
+	output, _, err := client.AgentPlatform.GenerateScenarioSet(ctx, generateReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to generate scenario set", err), nil
 	}
@@ -212,7 +212,7 @@ func (st *SimulationTool) listScenarios(ctx context.Context, req mcp.CallToolReq
 		opt.Search = strings.TrimSpace(search)
 	}
 
-	output, _, err := client.GradientAI.ListScenarios(ctx, uuid, opt)
+	output, _, err := client.AgentPlatform.ListScenarios(ctx, uuid, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list scenarios", err), nil
 	}
@@ -237,7 +237,7 @@ func (st *SimulationTool) getScenarioSetDownloadURL(ctx context.Context, req mcp
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetScenarioSetDownloadURL(ctx, uuid)
+	output, _, err := client.AgentPlatform.GetScenarioSetDownloadURL(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get scenario set download URL", err), nil
 	}
@@ -278,7 +278,7 @@ func (st *SimulationTool) updateScenarioSet(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.UpdateScenarioSet(ctx, uuid, updateReq)
+	output, _, err := client.AgentPlatform.UpdateScenarioSet(ctx, uuid, updateReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update scenario set", err), nil
 	}
@@ -303,7 +303,7 @@ func (st *SimulationTool) deleteScenarioSet(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.DeleteScenarioSet(ctx, uuid)
+	output, resp, err := client.AgentPlatform.DeleteScenarioSet(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete scenario set", err), nil
 	}
@@ -330,7 +330,7 @@ func (st *SimulationTool) listScenarioLibrary(ctx context.Context, req mcp.CallT
 		opt.Category = strings.TrimSpace(category)
 	}
 
-	output, _, err := client.GradientAI.ListScenarioLibrary(ctx, opt)
+	output, _, err := client.AgentPlatform.ListScenarioLibrary(ctx, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list scenario library", err), nil
 	}
@@ -362,7 +362,7 @@ func (st *SimulationTool) listScenarioLibraryScenarios(ctx context.Context, req 
 		opt.Search = strings.TrimSpace(search)
 	}
 
-	output, _, err := client.GradientAI.ListScenarioLibraryScenarios(ctx, uuid, opt)
+	output, _, err := client.AgentPlatform.ListScenarioLibraryScenarios(ctx, uuid, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list scenario library scenarios", err), nil
 	}
@@ -389,7 +389,7 @@ func (st *SimulationTool) createScenarioSetFromLibrary(ctx context.Context, req 
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.CreateScenarioSetFromLibrary(ctx, uuid, &godo.CreateScenarioSetFromLibraryRequest{
+	output, _, err := client.AgentPlatform.CreateScenarioSetFromLibrary(ctx, uuid, &godo.CreateScenarioSetFromLibraryRequest{
 		LibraryScenarioUUID: uuid,
 		Name:                strings.TrimSpace(stringArg(args, "name")),
 	})
@@ -446,7 +446,7 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.CreateSimulationRun(ctx, createReq)
+	output, _, err := client.AgentPlatform.CreateSimulationRun(ctx, createReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create simulation run", err), nil
 	}
@@ -473,7 +473,7 @@ func (st *SimulationTool) listRuns(ctx context.Context, req mcp.CallToolRequest)
 		opt.Statuses = append(opt.Statuses, godo.SimulationRunStatus(status))
 	}
 
-	output, _, err := client.GradientAI.ListSimulationRuns(ctx, opt)
+	output, _, err := client.AgentPlatform.ListSimulationRuns(ctx, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list simulation runs", err), nil
 	}
@@ -498,7 +498,7 @@ func (st *SimulationTool) getRun(ctx context.Context, req mcp.CallToolRequest) (
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetSimulationRun(ctx, uuid)
+	output, _, err := client.AgentPlatform.GetSimulationRun(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation run", err), nil
 	}
@@ -522,7 +522,7 @@ func (st *SimulationTool) updateRun(ctx context.Context, req mcp.CallToolRequest
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.UpdateSimulationRun(ctx, uuid, &godo.UpdateSimulationRunRequest{
+	output, _, err := client.AgentPlatform.UpdateSimulationRun(ctx, uuid, &godo.UpdateSimulationRunRequest{
 		RunUUID: uuid,
 		Name:    name,
 	})
@@ -550,7 +550,7 @@ func (st *SimulationTool) cancelRun(ctx context.Context, req mcp.CallToolRequest
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.CancelSimulationRun(ctx, uuid)
+	output, resp, err := client.AgentPlatform.CancelSimulationRun(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to cancel simulation run", err), nil
 	}
@@ -578,7 +578,7 @@ func (st *SimulationTool) deleteRun(ctx context.Context, req mcp.CallToolRequest
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.DeleteSimulationRun(ctx, uuid)
+	output, resp, err := client.AgentPlatform.DeleteSimulationRun(ctx, uuid)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete simulation run", err), nil
 	}
@@ -617,7 +617,7 @@ func (st *SimulationTool) listJourneys(ctx context.Context, req mcp.CallToolRequ
 		opt.Verdicts = append(opt.Verdicts, godo.SimulationJourneyVerdict(verdict))
 	}
 
-	output, _, err := client.GradientAI.ListSimulationJourneys(ctx, runUUID, opt)
+	output, _, err := client.AgentPlatform.ListSimulationJourneys(ctx, runUUID, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list simulation journeys", err), nil
 	}
@@ -646,7 +646,7 @@ func (st *SimulationTool) getJourney(ctx context.Context, req mcp.CallToolReques
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetSimulationJourney(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationJourney(ctx, runUUID, journeyUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey", err), nil
 	}
@@ -670,7 +670,7 @@ func (st *SimulationTool) getJourneyTrajectory(ctx context.Context, req mcp.Call
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetSimulationJourneyTrajectory(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationJourneyTrajectory(ctx, runUUID, journeyUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory", err), nil
 	}
@@ -694,7 +694,7 @@ func (st *SimulationTool) getJourneyTrajectoryURL(ctx context.Context, req mcp.C
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetSimulationJourneyTrajectoryURL(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationJourneyTrajectoryURL(ctx, runUUID, journeyUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory URL", err), nil
 	}

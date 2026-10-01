@@ -26,14 +26,14 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 
 	uuids := []string{"12345678-1234-1234-1234-123456789012"}
 
-	mockGradientAI := NewMockGradientAIService(ctrl)
-	mockGradientAI.EXPECT().
+	mockAgentPlatform := NewMockAgentPlatformService(ctrl)
+	mockAgentPlatform.EXPECT().
 		SearchModels(gomock.Any(), "llama").
 		Return(uuids, nil, nil).
 		Times(1)
 
 	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
-	svr.AddTools(setupModelToolWithMock(mockGradientAI).Tools()...)
+	svr.AddTools(setupModelToolWithMock(mockAgentPlatform).Tools()...)
 
 	ctx := context.Background()
 	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+

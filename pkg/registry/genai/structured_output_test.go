@@ -32,8 +32,8 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	defer ctrl.Finish()
 
 	created := godo.Timestamp{Time: time.Date(2024, 5, 1, 12, 0, 0, 0, time.UTC)}
-	mockGradient := NewMockGradientAIService(ctrl)
-	mockGradient.EXPECT().
+	mockAgentPlatform := NewMockAgentPlatformService(ctrl)
+	mockAgentPlatform.EXPECT().
 		ListModelEvaluationRuns(gomock.Any(), gomock.Any()).
 		Return(&godo.ModelEvaluationRunListResponse{
 			Runs: []*godo.ModelEvaluationRunSummary{
@@ -49,7 +49,7 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 		Times(1)
 
 	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
-	svr.AddTools(setupModelEvalToolWithGradientMock(mockGradient).Tools()...)
+	svr.AddTools(setupModelEvalToolWithAgentPlatformMock(mockAgentPlatform).Tools()...)
 
 	ctx := context.Background()
 	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+
@@ -96,14 +96,14 @@ func TestScenarioSetCreateInlineStructuredOutput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().
 		CreateScenarioSet(gomock.Any(), gomock.Any()).
 		Return(&godo.ScenarioSet{ScenarioSetUUID: "ss-new", Name: "inline-set"}, okResponse(201), nil).
 		Times(1)
 
 	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
-	svr.AddTools(setupSimulationToolWithGradientMock(m).Tools()...)
+	svr.AddTools(setupSimulationToolWithAgentPlatformMock(m).Tools()...)
 
 	ctx := context.Background()
 	svr.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize",`+

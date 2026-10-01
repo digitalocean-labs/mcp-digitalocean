@@ -84,7 +84,7 @@ func (met *ModelEvaluationTool) listMetrics(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.ListModelEvaluationMetrics(ctx)
+	output, _, err := client.AgentPlatform.ListModelEvaluationMetrics(ctx)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation metrics", err), nil
 	}
@@ -143,7 +143,7 @@ func (met *ModelEvaluationTool) listPresets(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.ListModelEvaluationPresets(ctx)
+	output, _, err := client.AgentPlatform.ListModelEvaluationPresets(ctx)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation presets", err), nil
 	}
@@ -166,7 +166,7 @@ func (met *ModelEvaluationTool) getPreset(ctx context.Context, req mcp.CallToolR
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetModelEvaluationPreset(ctx, presetUUID)
+	output, _, err := client.AgentPlatform.GetModelEvaluationPreset(ctx, presetUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get model evaluation preset", err), nil
 	}
@@ -332,7 +332,7 @@ func (met *ModelEvaluationTool) createRun(ctx context.Context, req mcp.CallToolR
 
 	createReq.CandidateInferenceConfig = godoInferenceConfigFromArgs(args)
 
-	output, _, err := client.GradientAI.CreateModelEvaluationRun(ctx, createReq)
+	output, _, err := client.AgentPlatform.CreateModelEvaluationRun(ctx, createReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create model evaluation run", err), nil
 	}
@@ -366,7 +366,7 @@ func (met *ModelEvaluationTool) listRuns(ctx context.Context, req mcp.CallToolRe
 		opt.PerPage = int(perPage)
 	}
 
-	output, _, err := client.GradientAI.ListModelEvaluationRuns(ctx, opt)
+	output, _, err := client.AgentPlatform.ListModelEvaluationRuns(ctx, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation runs", err), nil
 	}
@@ -399,7 +399,7 @@ func (met *ModelEvaluationTool) getRun(ctx context.Context, req mcp.CallToolRequ
 		opt.PerPage = int(perPage)
 	}
 
-	output, _, err := client.GradientAI.GetModelEvaluationRun(ctx, runUUID, opt)
+	output, _, err := client.AgentPlatform.GetModelEvaluationRun(ctx, runUUID, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get model evaluation run", err), nil
 	}
@@ -426,7 +426,7 @@ func (met *ModelEvaluationTool) updateRun(ctx context.Context, req mcp.CallToolR
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.UpdateModelEvaluationRun(ctx, runUUID, &godo.UpdateModelEvaluationRunRequest{
+	output, _, err := client.AgentPlatform.UpdateModelEvaluationRun(ctx, runUUID, &godo.UpdateModelEvaluationRunRequest{
 		Name: name,
 	})
 	if err != nil {
@@ -452,7 +452,7 @@ func (met *ModelEvaluationTool) getResultsDownloadURL(ctx context.Context, req m
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.GradientAI.GetModelEvaluationRunResultsDownloadURL(ctx, runUUID)
+	output, _, err := client.AgentPlatform.GetModelEvaluationRunResultsDownloadURL(ctx, runUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to get results download URL", err), nil
 	}
@@ -501,7 +501,7 @@ func (met *ModelEvaluationTool) deleteRun(ctx context.Context, req mcp.CallToolR
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.DeleteModelEvaluationRun(ctx, runUUID)
+	output, resp, err := client.AgentPlatform.DeleteModelEvaluationRun(ctx, runUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete model evaluation run", err), nil
 	}
@@ -531,7 +531,7 @@ func (met *ModelEvaluationTool) cancelRun(ctx context.Context, req mcp.CallToolR
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.CancelModelEvaluationRun(ctx, runUUID)
+	output, resp, err := client.AgentPlatform.CancelModelEvaluationRun(ctx, runUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to cancel model evaluation run", err), nil
 	}
@@ -561,7 +561,7 @@ func (met *ModelEvaluationTool) deletePreset(ctx context.Context, req mcp.CallTo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.DeleteModelEvaluationPreset(ctx, presetUUID)
+	output, resp, err := client.AgentPlatform.DeleteModelEvaluationPreset(ctx, presetUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete model evaluation preset", err), nil
 	}
@@ -596,7 +596,7 @@ func (met *ModelEvaluationTool) deleteDataset(ctx context.Context, req mcp.CallT
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, resp, err := client.GradientAI.DeleteEvaluationDataset(ctx, datasetUUID)
+	output, resp, err := client.AgentPlatform.DeleteEvaluationDataset(ctx, datasetUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete evaluation dataset", err), nil
 	}
@@ -632,7 +632,7 @@ func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	metric, resp, err := client.GradientAI.CreateCustomEvaluationMetric(ctx, &godo.CreateCustomEvaluationMetricRequest{
+	metric, resp, err := client.AgentPlatform.CreateCustomEvaluationMetric(ctx, &godo.CreateCustomEvaluationMetricRequest{
 		MetricName:  metricName,
 		Description: strings.TrimSpace(stringArg(args, "description")),
 		Config: &godo.CustomEvaluationMetricConfig{
@@ -688,7 +688,7 @@ func (met *ModelEvaluationTool) updateCustomMetric(ctx context.Context, req mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	metric, resp, err := client.GradientAI.UpdateCustomEvaluationMetric(ctx, metricUUID, updateReq)
+	metric, resp, err := client.AgentPlatform.UpdateCustomEvaluationMetric(ctx, metricUUID, updateReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update custom evaluation metric", err), nil
 	}
@@ -720,7 +720,7 @@ func (met *ModelEvaluationTool) deleteCustomMetric(ctx context.Context, req mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	resp, err := client.GradientAI.DeleteCustomEvaluationMetric(ctx, metricUUID)
+	resp, err := client.AgentPlatform.DeleteCustomEvaluationMetric(ctx, metricUUID)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to delete custom evaluation metric", err), nil
 	}
@@ -829,7 +829,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 
 	// Step 5: List metrics if none provided
 	if len(metricUUIDs) == 0 {
-		metricsOutput, _, err := client.GradientAI.ListModelEvaluationMetrics(ctx)
+		metricsOutput, _, err := client.AgentPlatform.ListModelEvaluationMetrics(ctx)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("step 5: failed to list metrics", err), nil
 		}
@@ -853,7 +853,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 
 	createReq.CandidateInferenceConfig = godoInferenceConfigFromArgs(args)
 
-	runOutput, _, err := client.GradientAI.CreateModelEvaluationRun(ctx, createReq)
+	runOutput, _, err := client.AgentPlatform.CreateModelEvaluationRun(ctx, createReq)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 6: failed to create model evaluation run", err), nil
 	}
@@ -871,7 +871,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 			return mcp.NewToolResultError("step 7: evaluation polling timed out"), nil
 		}
 
-		output, _, err := client.GradientAI.GetModelEvaluationRun(ctx, evalRunUUID, nil)
+		output, _, err := client.AgentPlatform.GetModelEvaluationRun(ctx, evalRunUUID, nil)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("step 7: failed to poll evaluation run", err), nil
 		}

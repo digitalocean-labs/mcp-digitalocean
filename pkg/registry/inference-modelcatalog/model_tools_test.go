@@ -12,10 +12,10 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupModelToolWithMock(mockGradientAI godo.GradientAIService) *ModelTool {
+func setupModelToolWithMock(mockAgentPlatform godo.AgentPlatformService) *ModelTool {
 	client := func(ctx context.Context) (*godo.Client, error) {
 		return &godo.Client{
-			GradientAI: mockGradientAI,
+			AgentPlatform: mockAgentPlatform,
 		}, nil
 	}
 	return NewModelTool(client)
@@ -33,7 +33,7 @@ func TestModelTool_searchModels(t *testing.T) {
 	tests := []struct {
 		name          string
 		args          map[string]any
-		mockSetup     func(*MockGradientAIService)
+		mockSetup     func(*MockAgentPlatformService)
 		expectError   bool
 		expectGoError bool
 		checkUUIDs    bool
@@ -41,7 +41,7 @@ func TestModelTool_searchModels(t *testing.T) {
 		{
 			name: "missing SearchQuery returns all models",
 			args: map[string]any{},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				// Missing parameter defaults to empty string, which matches all models
 				m.EXPECT().SearchModels(gomock.Any(), "").Return(testUUIDs, nil, nil)
 			},
@@ -50,7 +50,7 @@ func TestModelTool_searchModels(t *testing.T) {
 		{
 			name: "empty SearchQuery returns all models",
 			args: map[string]any{"SearchQuery": ""},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				// Empty string matches all models
 				m.EXPECT().SearchModels(gomock.Any(), "").Return(testUUIDs, nil, nil)
 			},
@@ -59,7 +59,7 @@ func TestModelTool_searchModels(t *testing.T) {
 		{
 			name: "api error",
 			args: map[string]any{"SearchQuery": "llama"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().SearchModels(gomock.Any(), "llama").Return(nil, nil, errors.New("api error"))
 			},
 			expectError: true,
@@ -67,7 +67,7 @@ func TestModelTool_searchModels(t *testing.T) {
 		{
 			name: "success with results",
 			args: map[string]any{"SearchQuery": "llama"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().SearchModels(gomock.Any(), "llama").Return(testUUIDs, nil, nil)
 			},
 			checkUUIDs: true,
@@ -75,7 +75,7 @@ func TestModelTool_searchModels(t *testing.T) {
 		{
 			name: "success with no results",
 			args: map[string]any{"SearchQuery": "nonexistent"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().SearchModels(gomock.Any(), "nonexistent").Return([]string{}, nil, nil)
 			},
 		},
@@ -83,7 +83,7 @@ func TestModelTool_searchModels(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mock := NewMockGradientAIService(ctrl)
+			mock := NewMockAgentPlatformService(ctrl)
 			if tc.mockSetup != nil {
 				tc.mockSetup(mock)
 			}
@@ -160,7 +160,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 	tests := []struct {
 		name          string
 		args          map[string]any
-		mockSetup     func(*MockGradientAIService)
+		mockSetup     func(*MockAgentPlatformService)
 		expectError   bool
 		expectGoError bool
 		checkModel    bool
@@ -178,7 +178,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 		{
 			name: "api error",
 			args: map[string]any{"ModelUUID": "12345678-1234-1234-1234-123456789012"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().GetModelByUUID(gomock.Any(), "12345678-1234-1234-1234-123456789012").
 					Return(nil, nil, errors.New("api error"))
 			},
@@ -187,7 +187,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 		{
 			name: "model not found",
 			args: map[string]any{"ModelUUID": "99999999-9999-9999-9999-999999999999"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().GetModelByUUID(gomock.Any(), "99999999-9999-9999-9999-999999999999").
 					Return(nil, nil, nil)
 			},
@@ -196,7 +196,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 		{
 			name: "success",
 			args: map[string]any{"ModelUUID": "12345678-1234-1234-1234-123456789012"},
-			mockSetup: func(m *MockGradientAIService) {
+			mockSetup: func(m *MockAgentPlatformService) {
 				m.EXPECT().GetModelByUUID(gomock.Any(), "12345678-1234-1234-1234-123456789012").
 					Return(testModel, nil, nil)
 			},
@@ -206,7 +206,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mock := NewMockGradientAIService(ctrl)
+			mock := NewMockAgentPlatformService(ctrl)
 			if tc.mockSetup != nil {
 				tc.mockSetup(mock)
 			}
@@ -288,7 +288,7 @@ func TestModelTool_Tools(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	tool := setupModelToolWithMock(mock)
 
 	tools := tool.Tools()

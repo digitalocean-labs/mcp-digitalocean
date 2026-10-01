@@ -48,7 +48,7 @@ func (m *ModelTool) getModelMetadata(ctx context.Context, modelUUID string) (*Mo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	model, _, err := client.GradientAI.GetModelByUUID(ctx, modelUUID)
+	model, _, err := client.AgentPlatform.GetModelByUUID(ctx, modelUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get model: %w", err)
 	}
@@ -87,7 +87,7 @@ func (m *ModelTool) searchModels(ctx context.Context, req mcp.CallToolRequest) (
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	uuids, _, err := client.GradientAI.SearchModels(ctx, searchQuery)
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, searchQuery)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to search models", err), nil
 	}

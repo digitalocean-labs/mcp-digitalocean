@@ -169,7 +169,7 @@ func listAllEvalModels(ctx context.Context, client *godo.Client) ([]*EvalCatalog
 }
 
 func fetchEvalCatalogModels(ctx context.Context, client *godo.Client) ([]*EvalCatalogModel, error) {
-	uuids, _, err := client.GradientAI.SearchModels(ctx, "")
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to search catalog: %w", err)
 	}
@@ -191,7 +191,7 @@ func fetchEvalCatalogModels(ctx context.Context, client *godo.Client) ([]*EvalCa
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			model, _, getErr := client.GradientAI.GetModelByUUID(ctx, id)
+			model, _, getErr := client.AgentPlatform.GetModelByUUID(ctx, id)
 			if getErr != nil || model == nil {
 				results[idx] = result{err: getErr}
 				return
@@ -222,7 +222,7 @@ func fetchEvalCustomModels(ctx context.Context, client *godo.Client) ([]*EvalCat
 	page := 1
 
 	for {
-		out, resp, err := client.GradientAI.ListCustomModels(ctx, &godo.CustomModelListOptions{
+		out, resp, err := client.AgentPlatform.ListCustomModels(ctx, &godo.CustomModelListOptions{
 			ListOptions: godo.ListOptions{Page: page, PerPage: perPage},
 		})
 		if err != nil {
@@ -361,14 +361,14 @@ func lookupEvalCatalogModelByName(ctx context.Context, client *godo.Client, name
 		return nil, fmt.Errorf("name is required")
 	}
 
-	uuids, _, err := client.GradientAI.SearchModels(ctx, name)
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search catalog: %w", err)
 	}
 
 	var exact []*modelEvalResolvedModel
 	for _, id := range uuids {
-		model, _, getErr := client.GradientAI.GetModelByUUID(ctx, id)
+		model, _, getErr := client.AgentPlatform.GetModelByUUID(ctx, id)
 		if getErr != nil || model == nil || model.Uuid == "" {
 			continue
 		}
@@ -683,7 +683,7 @@ func evalModelToMatchCandidateFromResolved(m modelEvalResolvedModel) ModelEvalMa
 
 // lookupEvalModelByUUID loads the canonical api_name (inference slug) and display_name for a model UUID.
 func lookupEvalModelByUUID(ctx context.Context, client *godo.Client, uuid string) (*modelEvalResolvedModel, error) {
-	model, _, err := client.GradientAI.GetModelByUUID(ctx, uuid)
+	model, _, err := client.AgentPlatform.GetModelByUUID(ctx, uuid)
 	if err == nil && model != nil {
 		apiName, displayName := catalogModelNames(model)
 		return &modelEvalResolvedModel{
@@ -694,7 +694,7 @@ func lookupEvalModelByUUID(ctx context.Context, client *godo.Client, uuid string
 		}, nil
 	}
 
-	customModel, _, err := client.GradientAI.GetCustomModel(ctx, uuid)
+	customModel, _, err := client.AgentPlatform.GetCustomModel(ctx, uuid)
 	if err != nil {
 		return nil, fmt.Errorf("model %q not found in catalog or custom models: %w", uuid, err)
 	}

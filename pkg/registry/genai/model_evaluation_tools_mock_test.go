@@ -12,12 +12,12 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// setupModelEvalToolWithGradientMock wires a ModelEvaluationTool to a mocked
-// godo.GradientAIService so tests can exercise the success paths without hitting
+// setupModelEvalToolWithAgentPlatformMock wires a ModelEvaluationTool to a mocked
+// godo.AgentPlatformService so tests can exercise the success paths without hitting
 // the real DigitalOcean API.
-func setupModelEvalToolWithGradientMock(m godo.GradientAIService) *ModelEvaluationTool {
+func setupModelEvalToolWithAgentPlatformMock(m godo.AgentPlatformService) *ModelEvaluationTool {
 	client := func(ctx context.Context) (*godo.Client, error) {
-		return &godo.Client{GradientAI: m}, nil
+		return &godo.Client{AgentPlatform: m}, nil
 	}
 	return NewModelEvaluationTool(client)
 }
@@ -51,7 +51,7 @@ func TestModelEvaluationTool_listMetrics_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListModelEvaluationMetrics(gomock.Any()).Return(&godo.ModelEvaluationMetricListResponse{
 		Metrics: []*godo.EvaluationMetric{
 			{MetricUUID: "metric-1", MetricName: "accuracy"},
@@ -59,7 +59,7 @@ func TestModelEvaluationTool_listMetrics_success(t *testing.T) {
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).listMetrics, map[string]any{})
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listMetrics, map[string]any{})
 
 	require.False(t, resp.IsError)
 	text := resultText(t, resp)
@@ -72,10 +72,10 @@ func TestModelEvaluationTool_listMetrics_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListModelEvaluationMetrics(gomock.Any()).Return(nil, nil, errors.New("boom"))
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).listMetrics, map[string]any{})
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listMetrics, map[string]any{})
 	require.True(t, resp.IsError)
 }
 
@@ -83,14 +83,14 @@ func TestModelEvaluationTool_listPresets_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListModelEvaluationPresets(gomock.Any()).Return(&godo.ModelEvaluationPresetListResponse{
 		Presets: []*godo.ModelEvaluationPreset{
 			{EvalPresetUuid: "preset-1", DatasetName: "qa-dataset"},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).listPresets, map[string]any{})
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listPresets, map[string]any{})
 
 	require.False(t, resp.IsError)
 	text := resultText(t, resp)
@@ -103,7 +103,7 @@ func TestModelEvaluationTool_getPreset_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetModelEvaluationPreset(gomock.Any(), "preset-1").Return(&godo.ModelEvaluationPresetGetResponse{
 		Preset: &godo.ModelEvaluationPreset{
 			EvalPresetUuid: "preset-1",
@@ -111,7 +111,7 @@ func TestModelEvaluationTool_getPreset_success(t *testing.T) {
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).getPreset, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).getPreset, map[string]any{
 		"eval_preset_uuid": "preset-1",
 	})
 
@@ -125,14 +125,14 @@ func TestModelEvaluationTool_listRuns_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().ListModelEvaluationRuns(gomock.Any(), gomock.Any()).Return(&godo.ModelEvaluationRunListResponse{
 		Runs: []*godo.ModelEvaluationRunSummary{
 			{EvalRunUuid: "run-1", Name: "nightly-eval", Status: godo.ModelEvaluationRunSuccessful},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).listRuns, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listRuns, map[string]any{
 		"status":   "SUCCESSFUL",
 		"page":     float64(1),
 		"per_page": float64(20),
@@ -149,7 +149,7 @@ func TestModelEvaluationTool_getRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetModelEvaluationRun(gomock.Any(), "run-1", gomock.Any()).Return(&godo.ModelEvaluationRunGetResponse{
 		Run: &godo.ModelEvaluationRunDetail{
 			CandidateModelName: "candidate-model",
@@ -157,7 +157,7 @@ func TestModelEvaluationTool_getRun_success(t *testing.T) {
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).getRun, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).getRun, map[string]any{
 		"eval_run_uuid": "run-1",
 	})
 
@@ -169,13 +169,13 @@ func TestModelEvaluationTool_getResultsDownloadURL_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().GetModelEvaluationRunResultsDownloadURL(gomock.Any(), "run-1").Return(
 		&godo.ModelEvaluationRunResultsDownloadURLResponse{
 			DownloadURL: "https://example.com/results.json.gz",
 		}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).getResultsDownloadURL, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).getResultsDownloadURL, map[string]any{
 		"eval_run_uuid": "run-1",
 	})
 
@@ -187,12 +187,12 @@ func TestModelEvaluationTool_deleteRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteModelEvaluationRun(gomock.Any(), "run-1").Return(
 		&godo.ModelEvaluationRunDeleteResponse{Status: godo.DeleteModelEvaluationRunStatusSuccess},
 		okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteRun, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteRun, map[string]any{
 		"eval_run_uuid":    "run-1",
 		"confirm_deletion": true,
 	})
@@ -204,11 +204,11 @@ func TestModelEvaluationTool_deleteRun_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteModelEvaluationRun(gomock.Any(), "run-1").Return(
 		&godo.ModelEvaluationRunDeleteResponse{}, okResponse(http.StatusInternalServerError), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteRun, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteRun, map[string]any{
 		"eval_run_uuid":    "run-1",
 		"confirm_deletion": true,
 	})
@@ -221,13 +221,13 @@ func TestModelEvaluationTool_cancelRun_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CancelModelEvaluationRun(gomock.Any(), "run-1").Return(
 		&godo.ModelEvaluationRunCancelResponse{
 			Run: &godo.ModelEvaluationRunSummary{EvalRunUuid: "run-1", Status: godo.ModelEvaluationRunCancelled},
 		}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).cancelRun, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).cancelRun, map[string]any{
 		"eval_run_uuid":  "run-1",
 		"confirm_cancel": true,
 	})
@@ -240,11 +240,11 @@ func TestModelEvaluationTool_deletePreset_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteModelEvaluationPreset(gomock.Any(), "preset-1").Return(
 		&godo.ModelEvaluationPresetDeleteResponse{}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deletePreset, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deletePreset, map[string]any{
 		"eval_preset_uuid": "preset-1",
 		"confirm_deletion": true,
 	})
@@ -259,11 +259,11 @@ func TestModelEvaluationTool_deleteDataset_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteEvaluationDataset(gomock.Any(), "dataset-1").Return(
 		&godo.EvaluationDatasetDeleteResponse{}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteDataset, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteDataset, map[string]any{
 		"dataset_uuid":     "dataset-1",
 		"confirm_deletion": true,
 	})
@@ -278,11 +278,11 @@ func TestModelEvaluationTool_deleteDataset_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteEvaluationDataset(gomock.Any(), "dataset-1").Return(
 		&godo.EvaluationDatasetDeleteResponse{}, okResponse(http.StatusInternalServerError), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteDataset, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteDataset, map[string]any{
 		"dataset_uuid":     "dataset-1",
 		"confirm_deletion": true,
 	})
@@ -295,10 +295,10 @@ func TestModelEvaluationTool_deleteDataset_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteEvaluationDataset(gomock.Any(), "dataset-1").Return(nil, nil, errors.New("boom"))
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteDataset, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteDataset, map[string]any{
 		"dataset_uuid":     "dataset-1",
 		"confirm_deletion": true,
 	})
@@ -310,7 +310,7 @@ func TestModelEvaluationTool_createCustomMetric_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), &godo.CreateCustomEvaluationMetricRequest{
 		MetricName:  "helpfulness",
 		Description: "How helpful the response is",
@@ -324,7 +324,7 @@ func TestModelEvaluationTool_createCustomMetric_success(t *testing.T) {
 		Source:     godo.EvaluationMetricSourceCustom,
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).createCustomMetric, map[string]any{
 		"metric_name":           "helpfulness",
 		"description":           "How helpful the response is",
 		"scoring_prompt":        "Score the response for helpfulness",
@@ -341,11 +341,11 @@ func TestModelEvaluationTool_createCustomMetric_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), gomock.Any()).Return(
 		&godo.EvaluationMetric{}, okResponse(http.StatusInternalServerError), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).createCustomMetric, map[string]any{
 		"metric_name":    "helpfulness",
 		"scoring_prompt": "Score the response",
 	})
@@ -358,10 +358,10 @@ func TestModelEvaluationTool_createCustomMetric_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), gomock.Any()).Return(nil, nil, errors.New("boom"))
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).createCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).createCustomMetric, map[string]any{
 		"metric_name":    "helpfulness",
 		"scoring_prompt": "Score the response",
 	})
@@ -373,7 +373,7 @@ func TestModelEvaluationTool_updateCustomMetric_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", &godo.UpdateCustomEvaluationMetricRequest{
 		MetricUUID: "metric-1",
 		MetricName: "helpfulness-v2",
@@ -385,7 +385,7 @@ func TestModelEvaluationTool_updateCustomMetric_success(t *testing.T) {
 		MetricName: "helpfulness-v2",
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).updateCustomMetric, map[string]any{
 		"metric_uuid":    "metric-1",
 		"metric_name":    "helpfulness-v2",
 		"scoring_prompt": "Updated scoring prompt",
@@ -401,11 +401,11 @@ func TestModelEvaluationTool_updateCustomMetric_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", gomock.Any()).Return(
 		&godo.EvaluationMetric{}, okResponse(http.StatusInternalServerError), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).updateCustomMetric, map[string]any{
 		"metric_uuid": "metric-1",
 		"metric_name": "helpfulness-v2",
 	})
@@ -418,10 +418,10 @@ func TestModelEvaluationTool_updateCustomMetric_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().UpdateCustomEvaluationMetric(gomock.Any(), "metric-1", gomock.Any()).Return(nil, nil, errors.New("boom"))
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).updateCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).updateCustomMetric, map[string]any{
 		"metric_uuid": "metric-1",
 		"metric_name": "helpfulness-v2",
 	})
@@ -433,10 +433,10 @@ func TestModelEvaluationTool_deleteCustomMetric_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteCustomMetric, map[string]any{
 		"metric_uuid":      "metric-1",
 		"confirm_deletion": true,
 	})
@@ -451,10 +451,10 @@ func TestModelEvaluationTool_deleteCustomMetric_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(okResponse(http.StatusInternalServerError), nil)
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteCustomMetric, map[string]any{
 		"metric_uuid":      "metric-1",
 		"confirm_deletion": true,
 	})
@@ -467,10 +467,10 @@ func TestModelEvaluationTool_deleteCustomMetric_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := NewMockGradientAIService(ctrl)
+	m := NewMockAgentPlatformService(ctrl)
 	m.EXPECT().DeleteCustomEvaluationMetric(gomock.Any(), "metric-1").Return(nil, errors.New("boom"))
 
-	resp := callTool(t, setupModelEvalToolWithGradientMock(m).deleteCustomMetric, map[string]any{
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).deleteCustomMetric, map[string]any{
 		"metric_uuid":      "metric-1",
 		"confirm_deletion": true,
 	})
