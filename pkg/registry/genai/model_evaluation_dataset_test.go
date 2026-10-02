@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/digitalocean/godo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,8 +52,9 @@ func TestModelEvaluationDatasetContentType(t *testing.T) {
 
 func TestCreateEvaluationDatasetInput_modelType(t *testing.T) {
 	input := CreateEvaluationDatasetInput{
-		Name:        "test",
-		DatasetType: EvaluationDatasetTypeModel,
+		Name:            "test",
+		DatasetType:     EvaluationDatasetTypeModel,
+		DatasetParadigm: EvaluationDatasetParadigmSingleTurn,
 		FileUploadDataSource: FileUploadDataSource{
 			OriginalFileName: "data.csv",
 			StoredObjectKey:  "datasets/abc.csv",
@@ -63,5 +65,41 @@ func TestCreateEvaluationDatasetInput_modelType(t *testing.T) {
 	data, err := json.Marshal(input)
 	require.NoError(t, err)
 	require.Contains(t, string(data), "EVALUATION_DATASET_TYPE_MODEL")
+	require.Contains(t, string(data), "EVALUATION_DATASET_PARADIGM_SINGLE_TURN")
 	require.Contains(t, string(data), "file_upload_dataset")
+}
+
+func TestGodoInferenceConfigFromArgs_reasoningEffort(t *testing.T) {
+	cfg := godoInferenceConfigFromArgs(map[string]interface{}{
+		"candidate_inference_config": map[string]interface{}{
+			"max_tokens":       float64(128),
+			"temperature":      float64(0.2),
+			"reasoning_effort": "low",
+		},
+	})
+	require.NotNil(t, cfg)
+	require.Equal(t, int64(128), cfg.MaxTokens)
+	require.Equal(t, float32(0.2), cfg.Temperature)
+	require.Equal(t, "low", cfg.ReasoningEffort)
+}
+
+func TestApplyModelEvalCreateRunExtras(t *testing.T) {
+	req := &godo.CreateModelEvaluationRunRequest{}
+	applyModelEvalCreateRunExtras(req, map[string]interface{}{
+		"epochs": float64(2),
+		"preset_save_sections": []interface{}{
+			"PRESET_SAVE_SECTION_CANDIDATE",
+			"PRESET_SAVE_SECTION_METRICS",
+		},
+		"candidate_inference_config": map[string]interface{}{
+			"reasoning_effort": "medium",
+		},
+	})
+	require.Equal(t, uint32(2), req.Epochs)
+	require.Equal(t, []godo.PresetSaveSection{
+		godo.PresetSaveSectionCandidate,
+		godo.PresetSaveSectionMetrics,
+	}, req.PresetSaveSections)
+	require.NotNil(t, req.CandidateInferenceConfig)
+	require.Equal(t, "medium", req.CandidateInferenceConfig.ReasoningEffort)
 }

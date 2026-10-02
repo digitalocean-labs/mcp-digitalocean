@@ -114,16 +114,25 @@ const (
 	EvaluationDatasetTypeModel   = "EVALUATION_DATASET_TYPE_MODEL"
 )
 
+// Evaluation dataset paradigms (row/content shape), orthogonal to dataset type.
+const (
+	EvaluationDatasetParadigmSingleTurn = "EVALUATION_DATASET_PARADIGM_SINGLE_TURN"
+	EvaluationDatasetParadigmMultiTurn  = "EVALUATION_DATASET_PARADIGM_MULTI_TURN"
+	EvaluationDatasetParadigmCoding     = "EVALUATION_DATASET_PARADIGM_CODING"
+	EvaluationDatasetParadigmNPlus1     = "EVALUATION_DATASET_PARADIGM_N_PLUS_1"
+)
+
 // ModelEvalDatasetListItem is a single dataset returned by GET /evaluation_datasets.
 // Matches the apiEvaluationDataset schema (file_size is a string per the API spec).
 type ModelEvalDatasetListItem struct {
-	DatasetUUID    string `json:"dataset_uuid"`
-	DatasetName    string `json:"dataset_name"`
-	DatasetType    string `json:"dataset_type,omitempty"`
-	CreatedAt      string `json:"created_at,omitempty"`
-	FileSize       string `json:"file_size,omitempty"`
-	RowCount       int64  `json:"row_count,omitempty"`
-	HasGroundTruth bool   `json:"has_ground_truth,omitempty"`
+	DatasetUUID     string `json:"dataset_uuid"`
+	DatasetName     string `json:"dataset_name"`
+	DatasetType     string `json:"dataset_type,omitempty"`
+	DatasetParadigm string `json:"dataset_paradigm,omitempty"`
+	CreatedAt       string `json:"created_at,omitempty"`
+	FileSize        string `json:"file_size,omitempty"`
+	RowCount        int64  `json:"row_count,omitempty"`
+	HasGroundTruth  bool   `json:"has_ground_truth,omitempty"`
 }
 
 // ListEvaluationDatasetsOutput is the response from GET /evaluation_datasets.
@@ -135,6 +144,7 @@ type ListEvaluationDatasetsOutput struct {
 type CreateEvaluationDatasetInput struct {
 	Name                 string               `json:"name"`
 	DatasetType          string               `json:"dataset_type,omitempty"`
+	DatasetParadigm      string               `json:"dataset_paradigm,omitempty"`
 	FileUploadDataSource FileUploadDataSource `json:"file_upload_dataset"`
 }
 

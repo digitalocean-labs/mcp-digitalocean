@@ -66,8 +66,7 @@ func TestModelEvaluationToolListParamSchemas(t *testing.T) {
 	_, ok := byName["genai-model-eval-list-datasets"]
 	require.True(t, ok, "genai-model-eval-list-datasets must be registered")
 
-	// metric_uuids must be advertised as an array of strings (not an object) so
-	// schema-driven callers send ["uuid", ...] rather than guessing.
+	// metric_uuids / preset_save_sections must be advertised as arrays of strings.
 	for _, toolName := range []string{"genai-model-eval-create-run", "genai-model-eval-run-workflow"} {
 		props, ok := byName[toolName]
 		require.True(t, ok, "tool %s not registered", toolName)
@@ -78,6 +77,20 @@ func TestModelEvaluationToolListParamSchemas(t *testing.T) {
 		require.True(t, ok, "tool %s metric_uuids missing items", toolName)
 		require.Equal(t, "string", items["type"], "tool %s metric_uuids items should be string", toolName)
 	}
+
+	createRunProps := byName["genai-model-eval-create-run"]
+	require.Contains(t, createRunProps, "epochs")
+	require.Contains(t, createRunProps, "preset_save_sections")
+	sections, ok := createRunProps["preset_save_sections"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "array", sections["type"])
+
+	listDatasetsProps := byName["genai-model-eval-list-datasets"]
+	require.Contains(t, listDatasetsProps, "dataset_paradigm")
+	require.Contains(t, listDatasetsProps, "has_ground_truth")
+
+	createDatasetProps := byName["genai-model-eval-create-dataset"]
+	require.Contains(t, createDatasetProps, "dataset_paradigm")
 }
 
 func TestSimulationToolListParamSchemas(t *testing.T) {

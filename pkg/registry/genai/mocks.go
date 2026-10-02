@@ -201,6 +201,22 @@ func (mr *MockAgentPlatformServiceMockRecorder) CreateCustomEvaluationMetric(ctx
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCustomEvaluationMetric", reflect.TypeOf((*MockAgentPlatformService)(nil).CreateCustomEvaluationMetric), ctx, createRequest)
 }
 
+// CreateEvaluationDataset mocks base method.
+func (m *MockAgentPlatformService) CreateEvaluationDataset(ctx context.Context, createRequest *godo.CreateEvaluationDatasetRequest) (*godo.CreateEvaluationDatasetResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEvaluationDataset", ctx, createRequest)
+	ret0, _ := ret[0].(*godo.CreateEvaluationDatasetResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateEvaluationDataset indicates an expected call of CreateEvaluationDataset.
+func (mr *MockAgentPlatformServiceMockRecorder) CreateEvaluationDataset(ctx, createRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEvaluationDataset", reflect.TypeOf((*MockAgentPlatformService)(nil).CreateEvaluationDataset), ctx, createRequest)
+}
+
 // CreateFunctionRoute mocks base method.
 func (m *MockAgentPlatformService) CreateFunctionRoute(arg0 context.Context, arg1 string, arg2 *godo.FunctionRouteCreateRequest) (*godo.Agent, *godo.Response, error) {
 	m.ctrl.T.Helper()
