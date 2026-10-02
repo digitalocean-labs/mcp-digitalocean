@@ -126,12 +126,14 @@ func modelEvaluationDatasetContentType(fileName string) string {
 }
 
 // uploadAndRegisterModelEvaluationDataset presigns, uploads to Spaces, and registers the dataset record.
+// datasetParadigm is optional; when empty the API defaults to single-turn.
 func uploadAndRegisterModelEvaluationDataset(
 	ctx context.Context,
 	client *godo.Client,
 	name string,
 	fileData []byte,
 	fileName string,
+	datasetParadigm string,
 ) (*ModelEvalDatasetResult, error) {
 	fileSize := int64(len(fileData))
 
@@ -174,8 +176,9 @@ func uploadAndRegisterModelEvaluationDataset(
 	}
 
 	datasetInput := &CreateEvaluationDatasetInput{
-		Name:        name,
-		DatasetType: EvaluationDatasetTypeModel,
+		Name:            name,
+		DatasetType:     EvaluationDatasetTypeModel,
+		DatasetParadigm: datasetParadigm,
 		FileUploadDataSource: FileUploadDataSource{
 			OriginalFileName: fileName,
 			StoredObjectKey:  upload.ObjectKey,
@@ -209,4 +212,11 @@ func uploadAndRegisterModelEvaluationDataset(
 		FileName:              fileName,
 		FileSize:              fileSize,
 	}, nil
+}
+
+func datasetParadigmFromArgs(args map[string]interface{}) string {
+	if v, ok := args["dataset_paradigm"].(string); ok {
+		return strings.TrimSpace(v)
+	}
+	return ""
 }
