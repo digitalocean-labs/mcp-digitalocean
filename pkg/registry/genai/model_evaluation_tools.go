@@ -3,8 +3,6 @@ package genai
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -49,7 +47,35 @@ func godoInferenceConfigFromArgs(args map[string]interface{}) *godo.CandidateInf
 	if temp, ok := raw["temperature"].(float64); ok {
 		config.Temperature = float32(temp)
 	}
+	if stopToken, ok := raw["stop_token"].(string); ok {
+		config.StopToken = stopToken
+	}
+	if systemPrompt, ok := raw["system_prompt"].(string); ok {
+		config.SystemPrompt = systemPrompt
+	}
+	if reasoningEffort, ok := raw["reasoning_effort"].(string); ok {
+		config.ReasoningEffort = strings.TrimSpace(reasoningEffort)
+	}
 	return config
+}
+
+// applyModelEvalCreateRunExtras copies optional create-run fields from tool args
+// onto a godo create request (epochs, preset_save_sections, inference config).
+func applyModelEvalCreateRunExtras(createReq *godo.CreateModelEvaluationRunRequest, args map[string]interface{}) {
+	if createReq == nil {
+		return
+	}
+	if epochs, ok := args["epochs"].(float64); ok && epochs > 0 {
+		createReq.Epochs = uint32(epochs)
+	}
+	if sectionsRaw, ok := args["preset_save_sections"].([]interface{}); ok {
+		for _, s := range sectionsRaw {
+			if str, ok := s.(string); ok && strings.TrimSpace(str) != "" {
+				createReq.PresetSaveSections = append(createReq.PresetSaveSections, godo.PresetSaveSection(strings.TrimSpace(str)))
+			}
+		}
+	}
+	createReq.CandidateInferenceConfig = godoInferenceConfigFromArgs(args)
 }
 
 // isGodoModelEvalRunTerminal reports whether a godo run status is terminal.
@@ -105,34 +131,49 @@ func (met *ModelEvaluationTool) listDatasets(ctx context.Context, req mcp.CallTo
 		datasetType = strings.TrimSpace(v)
 	}
 
+	opt := &godo.EvaluationDatasetListOptions{
+		DatasetType: godo.EvaluationDatasetType(datasetType),
+	}
+	if v, ok := args["dataset_paradigm"].(string); ok && strings.TrimSpace(v) != "" {
+		opt.DatasetParadigm = godo.EvaluationDatasetParadigm(strings.TrimSpace(v))
+	}
+	if v, ok := args["has_ground_truth"].(bool); ok {
+		opt.HasGroundTruth = &v
+	}
+
 	client, err := met.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	path := genAIAPIPath + "/evaluation_datasets"
-	q := url.Values{}
-	if datasetType != "" {
-		q.Set("dataset_type", datasetType)
-	}
-	if enc := q.Encode(); enc != "" {
-		path += "?" + enc
-	}
-
-	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
+	output, _, err := client.AgentPlatform.ListEvaluationDatasets(ctx, opt)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to create request", err), nil
-	}
-
-	var output ListEvaluationDatasetsOutput
-	resp, err := client.Do(ctx, apiReq, &output)
-	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return mcp.NewToolResultErrorFromErr("failed to list evaluation datasets", err), nil
 	}
 
+	datasets := make([]*ModelEvalDatasetListItem, 0, len(output.EvaluationDatasets))
+	for _, d := range output.EvaluationDatasets {
+		if d == nil {
+			continue
+		}
+		item := &ModelEvalDatasetListItem{
+			DatasetUUID:     d.DatasetUUID,
+			DatasetName:     d.DatasetName,
+			DatasetType:     string(d.DatasetType),
+			DatasetParadigm: string(d.DatasetParadigm),
+			FileSize:        d.FileSize,
+			RowCount:        d.RowCount,
+			HasGroundTruth:  d.HasGroundTruth,
+		}
+		if d.CreatedAt != nil {
+			item.CreatedAt = d.CreatedAt.String()
+		}
+		datasets = append(datasets, item)
+	}
+
 	return modelEvalDatasetListOut.Result(modelEvalDatasetList{
-		Datasets: output.EvaluationDatasets,
-		Count:    len(output.EvaluationDatasets),
+		Datasets: datasets,
+		Count:    len(datasets),
 	})
 }
 
@@ -202,7 +243,7 @@ func (met *ModelEvaluationTool) createDataset(ctx context.Context, req mcp.CallT
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	result, err := uploadAndRegisterModelEvaluationDataset(ctx, client, name, fileData, getFileName(filePath))
+	result, err := uploadAndRegisterModelEvaluationDataset(ctx, client, name, fileData, getFileName(filePath), datasetParadigmFromArgs(args))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create model evaluation dataset", err), nil
 	}
@@ -330,7 +371,7 @@ func (met *ModelEvaluationTool) createRun(ctx context.Context, req mcp.CallToolR
 		createReq.CandidateModelSource = godo.CandidateModelSource(candidateModelSource)
 	}
 
-	createReq.CandidateInferenceConfig = godoInferenceConfigFromArgs(args)
+	applyModelEvalCreateRunExtras(createReq, args)
 
 	output, _, err := client.AgentPlatform.CreateModelEvaluationRun(ctx, createReq)
 	if err != nil {
@@ -822,7 +863,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 	datasetName := runName + "-dataset"
 
 	// Steps 2–4: presign, upload to Spaces, register dataset record.
-	datasetResult, err := uploadAndRegisterModelEvaluationDataset(ctx, client, datasetName, fileData, fileName)
+	datasetResult, err := uploadAndRegisterModelEvaluationDataset(ctx, client, datasetName, fileData, fileName, datasetParadigmFromArgs(args))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 2: failed to upload and register dataset", err), nil
 	}
@@ -851,7 +892,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 		Source:             "mcp",
 	}
 
-	createReq.CandidateInferenceConfig = godoInferenceConfigFromArgs(args)
+	applyModelEvalCreateRunExtras(createReq, args)
 
 	runOutput, _, err := client.AgentPlatform.CreateModelEvaluationRun(ctx, createReq)
 	if err != nil {
@@ -923,8 +964,10 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				modelEvalDatasetListOut.Schema(),
-				mcp.WithDescription("List previously uploaded evaluation datasets so you can reuse an existing dataset's UUID in genai-model-eval-create-run. Defaults to model-evaluation datasets. Each item includes dataset_uuid, dataset_name, created_at, row_count, file_size, and has_ground_truth. Use this to find the dataset_uuid for a dataset the user already uploaded (instead of uploading a new one)."),
+				mcp.WithDescription("List previously uploaded evaluation datasets so you can reuse an existing dataset's UUID in genai-model-eval-create-run. Defaults to model-evaluation datasets. Each item includes dataset_uuid, dataset_name, dataset_paradigm, created_at, row_count, file_size, and has_ground_truth. Use this to find the dataset_uuid for a dataset the user already uploaded (instead of uploading a new one)."),
 				mcp.WithString("dataset_type", mcp.Description("Filter by dataset type. Defaults to EVALUATION_DATASET_TYPE_MODEL (datasets usable for model evaluation). Other values: EVALUATION_DATASET_TYPE_UNKNOWN, EVALUATION_DATASET_TYPE_ADK, EVALUATION_DATASET_TYPE_NON_ADK.")),
+				mcp.WithString("dataset_paradigm", mcp.Description("Filter by row/content shape: EVALUATION_DATASET_PARADIGM_SINGLE_TURN, EVALUATION_DATASET_PARADIGM_MULTI_TURN, EVALUATION_DATASET_PARADIGM_CODING, EVALUATION_DATASET_PARADIGM_N_PLUS_1.")),
+				mcp.WithBoolean("has_ground_truth", mcp.Description("Filter by whether the dataset includes ground-truth values.")),
 			),
 		},
 		{
@@ -958,6 +1001,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithDescription("Upload and register a model evaluation dataset (presign → Spaces upload → database record). Accepts .csv (with 'input' column) or .jsonl (one JSON object per line with 'input' field); 'ground_truth' is optional. Returns evaluation_dataset_uuid for use with genai-model-eval-create-run."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
 				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl dataset file to upload")),
+				mcp.WithString("dataset_paradigm", mcp.Description("Optional row/content shape. Defaults to EVALUATION_DATASET_PARADIGM_SINGLE_TURN. Other values: EVALUATION_DATASET_PARADIGM_MULTI_TURN, EVALUATION_DATASET_PARADIGM_CODING, EVALUATION_DATASET_PARADIGM_N_PLUS_1.")),
 			),
 		},
 		{
@@ -977,10 +1021,12 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithString("judge_model_uuid", mcp.Description("Exact full judge model UUID. Optional if judge_model_name is exact; partial uuids return matches only.")),
 				mcp.WithArray("metric_uuids", mcp.Description("Array of metric UUID strings to evaluate (required if not using a preset). Get UUIDs from genai-model-eval-list-metrics. Pass plain UUID strings, e.g. [\"<metric-uuid-1>\", \"<metric-uuid-2>\"], not metric objects."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithObject("star_metric", mcp.Description("Primary success metric: metric_uuid and optional success_threshold_pct")),
-				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), top_p (float)")),
+				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high for reasoning-capable models)")),
+				mcp.WithNumber("epochs", mcp.Description("Number of times to evaluate each dataset row (n-pass). Defaults to 1; capped at 3. When >1, results include avg@k/pass@k/cons@k.")),
+				mcp.WithArray("preset_save_sections", mcp.Description("Which sections of this run's config to save as a reusable preset. Values: PRESET_SAVE_SECTION_CANDIDATE, PRESET_SAVE_SECTION_METRICS, PRESET_SAVE_SECTION_JUDGE, PRESET_SAVE_SECTION_DATASET, PRESET_SAVE_SECTION_SYSTEM_PROMPT. Ignored when eval_preset_uuid is set."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("source", mcp.Description("Source identifier for this run (e.g., 'mcp')")),
-				mcp.WithString("preset_name", mcp.Description("Name for a new preset; providing this saves the run's configuration as a reusable preset")),
-				mcp.WithString("candidate_model_source", mcp.Description("Source of the candidate model")),
+				mcp.WithString("preset_name", mcp.Description("Name for a new preset; use with preset_save_sections to persist selected sections")),
+				mcp.WithString("candidate_model_source", mcp.Description("Source of the candidate model: CANDIDATE_MODEL_SOURCE_SERVERLESS, CANDIDATE_MODEL_SOURCE_DEDICATED, CANDIDATE_MODEL_SOURCE_ROUTER, or CANDIDATE_MODEL_SOURCE_AGENT")),
 				mcp.WithString("user_message", mcp.Description(genaiModelEvalUserMessageDescription)),
 			),
 		},
@@ -1148,7 +1194,9 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithString("judge_model_name", mcp.Required(), mcp.Description("Exact judge model name. Partial names return nearest matches only.")),
 				mcp.WithString("judge_model_uuid", mcp.Description("Exact full judge model UUID. Optional if judge_model_name is exact.")),
 				mcp.WithArray("metric_uuids", mcp.Description("Array of metric UUID strings to evaluate (if empty, all available metrics are used). Get UUIDs from genai-model-eval-list-metrics. Pass plain UUID strings, not metric objects."), mcp.Items(map[string]any{"type": "string"})),
-				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), top_p (float)")),
+				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high)")),
+				mcp.WithNumber("epochs", mcp.Description("Number of times to evaluate each dataset row (n-pass). Defaults to 1; capped at 3.")),
+				mcp.WithString("dataset_paradigm", mcp.Description("Optional row/content shape for the uploaded dataset. Defaults to EVALUATION_DATASET_PARADIGM_SINGLE_TURN.")),
 				mcp.WithNumber("timeout_seconds", mcp.Description("Timeout for polling evaluation results in seconds (default: 300)")),
 				mcp.WithNumber("poll_interval_seconds", mcp.Description("Interval between status polls in seconds (default: 5)")),
 				mcp.WithString("user_message", mcp.Description(genaiModelEvalUserMessageDescription)),
