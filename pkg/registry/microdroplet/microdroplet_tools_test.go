@@ -38,15 +38,15 @@ func TestMicroDropletTool_create(t *testing.T) {
 		require.NoError(t, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"micro_droplet":{"id":"9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f","name":"agent-sandbox-1","state":"creating"}}`))
+		_, _ = w.Write([]byte(`{"microvm":{"id":"9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f","name":"agent-sandbox-1","state":"creating"}}`))
 	})
 
 	tool := testTool(t, testGodoClient(t, srv))
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
 		"name":   "agent-sandbox-1",
 		"region": "nyc1",
-		"size":   "mv-2vcpu-4gb",
-		"image":  "do:microdroplet_image:9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
+		"size":   map[string]any{"cpu": float64(2), "memory": float64(4096)},
+		"source": map[string]any{"oci_ref": "docker.io/library/nginx:1.27"},
 		"tags":   []any{"prod"},
 	}}}
 
@@ -56,14 +56,19 @@ func TestMicroDropletTool_create(t *testing.T) {
 	require.False(t, resp.IsError)
 
 	require.Equal(t, http.MethodPost, gotMethod)
-	require.Equal(t, "/v2/microdroplets/instances", gotPath)
+	require.Equal(t, "/v2/microvms", gotPath)
 
 	var decoded map[string]any
 	require.NoError(t, json.Unmarshal(gotBody, &decoded))
 	require.Equal(t, "agent-sandbox-1", decoded["name"])
 	require.Equal(t, "nyc1", decoded["region"])
-	require.Equal(t, "mv-2vcpu-4gb", decoded["size"])
-	require.Equal(t, "do:microdroplet_image:9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f", decoded["image"])
+	size, ok := decoded["size"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, float64(2), size["cpu"])
+	require.Equal(t, float64(4096), size["memory"])
+	source, ok := decoded["source"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "docker.io/library/nginx:1.27", source["oci_ref"])
 
 	text := resp.Content[0].(mcp.TextContent).Text
 	require.Contains(t, text, "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f")
@@ -80,25 +85,34 @@ func TestMicroDropletTool_create_validation(t *testing.T) {
 		want string
 	}{
 		{
-			name: "missing boot source",
-			args: map[string]any{"name": "n", "region": "nyc1", "size": "mv-2vcpu-4gb"},
-			want: "exactly one of image, checkpoint, or container",
+			name: "missing source",
+			args: map[string]any{"name": "n", "region": "nyc1"},
+			want: "source is required",
 		},
 		{
-			name: "multiple boot sources",
-			args: map[string]any{
-				"name": "n", "region": "nyc1", "size": "mv-2vcpu-4gb",
-				"image": "img", "checkpoint": "chk",
-			},
-			want: "not more than one",
+			name: "empty source",
+			args: map[string]any{"name": "n", "source": map[string]any{}},
+			want: "exactly one of oci_ref or checkpoint_id",
 		},
 		{
-			name: "empty container",
+			name: "both sources",
 			args: map[string]any{
-				"name": "n", "region": "nyc1", "size": "mv-2vcpu-4gb",
-				"container": map[string]any{},
+				"name": "n",
+				"source": map[string]any{
+					"oci_ref":       "docker.io/library/nginx:1.27",
+					"checkpoint_id": "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+				},
 			},
-			want: "exactly one of image, checkpoint, or container",
+			want: "not both",
+		},
+		{
+			name: "oci_ref missing region",
+			args: map[string]any{
+				"name":   "n",
+				"size":   map[string]any{"cpu": float64(2), "memory": float64(4096)},
+				"source": map[string]any{"oci_ref": "docker.io/library/nginx:1.27"},
+			},
+			want: "region is required",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -111,24 +125,22 @@ func TestMicroDropletTool_create_validation(t *testing.T) {
 	}
 }
 
-func TestMicroDropletTool_create_container(t *testing.T) {
+func TestMicroDropletTool_create_checkpoint(t *testing.T) {
 	var gotBody []byte
 	srv := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/v2/microdroplets/instances", r.URL.Path)
+		require.Equal(t, "/v2/microvms", r.URL.Path)
 		var err error
 		gotBody, err = io.ReadAll(r.Body)
 		require.NoError(t, err)
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"micro_droplet":{"id":"9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f","state":"creating"}}`))
+		_, _ = w.Write([]byte(`{"microvm":{"id":"9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f","state":"running"}}`))
 	})
 
 	tool := testTool(t, testGodoClient(t, srv))
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-		"name":      "agent-sandbox-1",
-		"region":    "nyc1",
-		"size":      "mv-2vcpu-4gb",
-		"container": map[string]any{"image": "docker.io/library/nginx:1.27"},
+		"name":   "from-chk",
+		"source": map[string]any{"checkpoint_id": "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d"},
 	}}}
 
 	resp, err := tool.create(context.Background(), req)
@@ -137,11 +149,11 @@ func TestMicroDropletTool_create_container(t *testing.T) {
 
 	var decoded map[string]any
 	require.NoError(t, json.Unmarshal(gotBody, &decoded))
-	container, ok := decoded["container"].(map[string]any)
+	source, ok := decoded["source"].(map[string]any)
 	require.True(t, ok)
-	require.Equal(t, "docker.io/library/nginx:1.27", container["image"])
-	_, hasImage := decoded["image"]
-	require.False(t, hasImage)
+	require.Equal(t, "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d", source["checkpoint_id"])
+	_, hasRegion := decoded["region"]
+	require.False(t, hasRegion)
 }
 
 func TestMicroDropletTool_get_notFound(t *testing.T) {
@@ -165,9 +177,9 @@ func TestMicroDropletTool_list(t *testing.T) {
 	var gotQuery string
 	srv := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, "/v2/microdroplets/instances", r.URL.Path)
+		require.Equal(t, "/v2/microvms", r.URL.Path)
 		gotQuery = r.URL.RawQuery
-		_, _ = w.Write([]byte(`{"micro_droplets":[],"links":{},"meta":{"total":0}}`))
+		_, _ = w.Write([]byte(`{"microvms":[],"links":{},"meta":{"total":0}}`))
 	})
 
 	tool := testTool(t, testGodoClient(t, srv))
@@ -200,7 +212,7 @@ func TestMicroDropletTool_delete(t *testing.T) {
 	resp, err := tool.delete(context.Background(), req)
 	require.NoError(t, err)
 	require.False(t, resp.IsError)
-	require.Equal(t, "/v2/microdroplets/instances/"+id, gotPath)
+	require.Equal(t, "/v2/microvms/"+id, gotPath)
 	require.Contains(t, resp.Content[0].(mcp.TextContent).Text, "deleted successfully")
 }
 
@@ -224,7 +236,7 @@ func TestMicroDropletTool_checkpointCreate(t *testing.T) {
 	resp, err := tool.checkpointCreate(context.Background(), req)
 	require.NoError(t, err)
 	require.False(t, resp.IsError)
-	require.Equal(t, "/v2/microdroplets/instances/"+mdID+"/checkpoints", gotPath)
+	require.Equal(t, "/v2/microvms/"+mdID+"/checkpoints", gotPath)
 	require.Equal(t, "chk-1", gotBody["name"])
 }
 
@@ -250,13 +262,14 @@ func TestMicroDropletTool_checkpointCreate_omittedName(t *testing.T) {
 	resp, err := tool.checkpointCreate(context.Background(), req)
 	require.NoError(t, err)
 	require.False(t, resp.IsError)
-	require.Equal(t, "/v2/microdroplets/instances/"+mdID+"/checkpoints", gotPath)
+	require.Equal(t, "/v2/microvms/"+mdID+"/checkpoints", gotPath)
 	require.Empty(t, gotBody)
 }
 
 func TestMicroDropletTool_checkpointList_filter(t *testing.T) {
 	var gotQuery string
 	srv := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/v2/microvms/checkpoints", r.URL.Path)
 		gotQuery = r.URL.RawQuery
 		_, _ = w.Write([]byte(`{"checkpoints":[],"links":{},"meta":{"total":0}}`))
 	})
@@ -264,11 +277,11 @@ func TestMicroDropletTool_checkpointList_filter(t *testing.T) {
 	tool := testTool(t, testGodoClient(t, srv))
 	mdID := "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f"
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-		"micro_droplet_id": mdID,
+		"microvm_id": mdID,
 	}}}
 
 	resp, err := tool.checkpointList(context.Background(), req)
 	require.NoError(t, err)
 	require.False(t, resp.IsError)
-	require.Contains(t, gotQuery, "micro_droplet_id="+mdID)
+	require.Contains(t, gotQuery, "microvm_id="+mdID)
 }

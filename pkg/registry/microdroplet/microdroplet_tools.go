@@ -36,17 +36,8 @@ func (t *MicroDropletTool) api(ctx context.Context) (*apiClient, error) {
 func (t *MicroDropletTool) create(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
-	name, _ := args["name"].(string)
-	region, _ := args["region"].(string)
-	size, _ := args["size"].(string)
-	if strings.TrimSpace(name) == "" {
+	if strings.TrimSpace(argString(args["name"])) == "" {
 		return mcp.NewToolResultError("name is required"), nil
-	}
-	if strings.TrimSpace(region) == "" {
-		return mcp.NewToolResultError("region is required"), nil
-	}
-	if strings.TrimSpace(size) == "" {
-		return mcp.NewToolResultError("size is required"), nil
 	}
 
 	body, err := buildCreateBody(args)
@@ -59,7 +50,7 @@ func (t *MicroDropletTool) create(ctx context.Context, req mcp.CallToolRequest) 
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodPost, "/instances", nil, body)
+	out, err := api.do(ctx, http.MethodPost, "", nil, body)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet create", err), nil
 	}
@@ -86,7 +77,7 @@ func (t *MicroDropletTool) list(ctx context.Context, req mcp.CallToolRequest) (*
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodGet, "/instances", query, nil)
+	out, err := api.do(ctx, http.MethodGet, "", query, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet list", err), nil
 	}
@@ -104,7 +95,7 @@ func (t *MicroDropletTool) get(ctx context.Context, req mcp.CallToolRequest) (*m
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodGet, "/instances/"+id, nil, nil)
+	out, err := api.do(ctx, http.MethodGet, "/"+id, nil, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet get", err), nil
 	}
@@ -122,10 +113,10 @@ func (t *MicroDropletTool) delete(ctx context.Context, req mcp.CallToolRequest) 
 		return nil, err
 	}
 
-	if err := api.doNoContent(ctx, http.MethodDelete, "/instances/"+id); err != nil {
+	if err := api.doNoContent(ctx, http.MethodDelete, "/"+id); err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet delete", err), nil
 	}
-	return mcp.NewToolResultText("MicroDroplet deleted successfully"), nil
+	return mcp.NewToolResultText("MicroVM deleted successfully"), nil
 }
 
 func (t *MicroDropletTool) pause(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -139,7 +130,7 @@ func (t *MicroDropletTool) pause(ctx context.Context, req mcp.CallToolRequest) (
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodPost, "/instances/"+id+"/pause", nil, nil)
+	out, err := api.do(ctx, http.MethodPost, "/"+id+"/pause", nil, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet pause", err), nil
 	}
@@ -157,7 +148,7 @@ func (t *MicroDropletTool) resume(ctx context.Context, req mcp.CallToolRequest) 
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodPost, "/instances/"+id+"/resume", nil, nil)
+	out, err := api.do(ctx, http.MethodPost, "/"+id+"/resume", nil, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet resume", err), nil
 	}
@@ -181,7 +172,7 @@ func (t *MicroDropletTool) checkpointCreate(ctx context.Context, req mcp.CallToo
 		return nil, err
 	}
 
-	out, err := api.do(ctx, http.MethodPost, "/instances/"+id+"/checkpoints", nil, body)
+	out, err := api.do(ctx, http.MethodPost, "/"+id+"/checkpoints", nil, body)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("checkpoint create", err), nil
 	}
@@ -193,8 +184,8 @@ func (t *MicroDropletTool) checkpointList(ctx context.Context, req mcp.CallToolR
 	query := url.Values{}
 	query.Set("page", fmt.Sprintf("%d", intFromArg(args["page"], 1)))
 	query.Set("per_page", fmt.Sprintf("%d", intFromArg(args["per_page"], 25)))
-	if v, _ := args["micro_droplet_id"].(string); v != "" {
-		query.Set("micro_droplet_id", v)
+	if v, _ := args["microvm_id"].(string); v != "" {
+		query.Set("microvm_id", v)
 	}
 
 	api, err := t.api(ctx)
@@ -245,50 +236,49 @@ func (t *MicroDropletTool) checkpointDelete(ctx context.Context, req mcp.CallToo
 }
 
 func buildCreateBody(args map[string]any) (map[string]any, error) {
-	image, hasImage := args["image"].(string)
-	checkpoint, hasCheckpoint := args["checkpoint"].(string)
-	container, hasContainer, err := parseContainer(args["container"])
+	source, err := parseSource(args["source"])
 	if err != nil {
 		return nil, err
 	}
 
-	hasImage = hasImage && strings.TrimSpace(image) != ""
-	hasCheckpoint = hasCheckpoint && strings.TrimSpace(checkpoint) != ""
-
-	switch {
-	case !hasImage && !hasCheckpoint && !hasContainer:
-		return nil, fmt.Errorf("exactly one of image, checkpoint, or container must be provided")
-	case hasImage && hasCheckpoint, hasImage && hasContainer, hasCheckpoint && hasContainer:
-		return nil, fmt.Errorf("exactly one of image, checkpoint, or container must be provided, not more than one")
-	}
-
 	body := map[string]any{
 		"name":   args["name"],
-		"region": args["region"],
-		"size":   args["size"],
+		"source": source,
 	}
 
-	if hasImage {
-		body["image"] = image
-	}
-	if hasCheckpoint {
-		body["checkpoint"] = checkpoint
-	}
-	if hasContainer {
-		body["container"] = container
-	}
-
+	copyOptionalString(body, args, "region")
 	copyOptionalString(body, args, "networking")
 	copyOptionalString(body, args, "vpc_uuid")
 	copyOptionalBool(body, args, "auto_resume")
 	copyOptionalNumber(body, args, "http_port")
 	copyOptionalString(body, args, "http_protocol")
 
+	size, hasSize, err := parseSize(args["size"])
+	if err != nil {
+		return nil, err
+	}
+	if hasSize {
+		body["size"] = size
+	}
+
+	_, hasOCI := source["oci_ref"]
+	if hasOCI {
+		if _, ok := body["region"]; !ok {
+			return nil, fmt.Errorf("region is required when source.oci_ref is set")
+		}
+		if !hasSize {
+			return nil, fmt.Errorf("size is required when source.oci_ref is set")
+		}
+	}
+
 	if v, ok := args["auto_pause"]; ok && v != nil {
 		body["auto_pause"] = v
 	}
 	if v, ok := args["environment"]; ok && v != nil {
 		body["environment"] = v
+	}
+	if ports := numberSliceArg(args["ports"]); len(ports) > 0 {
+		body["ports"] = ports
 	}
 	if tags := stringSliceArg(args["tags"]); len(tags) > 0 {
 		body["tags"] = tags
@@ -315,21 +305,78 @@ func copyOptionalNumber(body, args map[string]any, key string) {
 	}
 }
 
-// parseContainer treats nil, {}, and missing/blank image as omitted so create
-// fails with the same "exactly one of ..." message as a missing boot source.
-func parseContainer(raw any) (map[string]any, bool, error) {
+func parseSource(raw any) (map[string]any, error) {
+	source, ok := raw.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("source is required")
+	}
+	ociRef := strings.TrimSpace(argString(source["oci_ref"]))
+	checkpointID := strings.TrimSpace(argString(source["checkpoint_id"]))
+	switch {
+	case ociRef == "" && checkpointID == "":
+		return nil, fmt.Errorf("source must have exactly one of oci_ref or checkpoint_id")
+	case ociRef != "" && checkpointID != "":
+		return nil, fmt.Errorf("source must have exactly one of oci_ref or checkpoint_id, not both")
+	}
+	if ociRef != "" {
+		return map[string]any{"oci_ref": ociRef}, nil
+	}
+	return map[string]any{"checkpoint_id": checkpointID}, nil
+}
+
+func parseSize(raw any) (map[string]any, bool, error) {
 	if raw == nil {
 		return nil, false, nil
 	}
-	container, ok := raw.(map[string]any)
+	size, ok := raw.(map[string]any)
 	if !ok {
-		return nil, false, fmt.Errorf("container must be an object with an image field")
+		return nil, false, fmt.Errorf("size must be an object with cpu and memory")
 	}
-	image, _ := container["image"].(string)
-	if strings.TrimSpace(image) == "" {
+	cpu, hasCPU := intArg(size["cpu"])
+	memory, hasMemory := intArg(size["memory"])
+	if !hasCPU && !hasMemory {
 		return nil, false, nil
 	}
-	return container, true, nil
+	if !hasCPU || !hasMemory {
+		return nil, false, fmt.Errorf("size must include cpu and memory")
+	}
+	return map[string]any{"cpu": cpu, "memory": memory}, true, nil
+}
+
+func argString(v any) string {
+	s, _ := v.(string)
+	return s
+}
+
+func intArg(v any) (int, bool) {
+	switch x := v.(type) {
+	case float64:
+		return int(x), true
+	case int:
+		return x, true
+	default:
+		return 0, false
+	}
+}
+
+func numberSliceArg(v any) []int {
+	switch x := v.(type) {
+	case nil:
+		return nil
+	case []int:
+		return x
+	case []any:
+		var out []int
+		for _, el := range x {
+			n, ok := intArg(el)
+			if ok {
+				out = append(out, n)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func requiredUUID(args map[string]any, key string) (string, string) {
@@ -394,7 +441,7 @@ func stringSliceArg(v any) []string {
 	}
 }
 
-// Tools registers MCP tools for MicroDroplet lifecycle management.
+// Tools registers MCP tools for MicroVM lifecycle management.
 func (t *MicroDropletTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
@@ -402,18 +449,24 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
-				mcp.WithDescription("Create a MicroDroplet. Provide exactly one of image, checkpoint, or container as the boot source."),
+				mcp.WithDescription("Create a MicroVM. source must have exactly one of oci_ref or checkpoint_id. region and size are required for oci_ref; both are inherited from the checkpoint when omitted."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Human-readable name.")),
-				mcp.WithString("region", mcp.Required(), mcp.Description("Region slug (e.g. nyc1).")),
-				mcp.WithString("size", mcp.Required(), mcp.Description("Size slug (e.g. mv-2vcpu-4gb).")),
-				mcp.WithString("image", mcp.Description("Imported image UUID or do:microdroplet_image URN. Mutually exclusive with checkpoint and container.")),
-				mcp.WithString("checkpoint", mcp.Description("Checkpoint UUID to restore from. Mutually exclusive with image and container.")),
-				mcp.WithObject("container", mcp.Description("Golden-mode OCI workload ref."),
+				mcp.WithObject("source", mcp.Required(), mcp.Description("Workload source. Exactly one of oci_ref or checkpoint_id."),
 					mcp.Properties(map[string]any{
-						"image": map[string]any{
+						"oci_ref": map[string]any{
 							"type":        "string",
-							"description": "OCI reference (public Hub or team DOCR).",
+							"description": "OCI reference (public Hub or team DOCR), pulled at boot.",
 						},
+						"checkpoint_id": map[string]any{
+							"type":        "string",
+							"description": "Checkpoint UUID to restore. Mutually exclusive with oci_ref.",
+						},
+					})),
+				mcp.WithString("region", mcp.Description("Region slug (e.g. nyc1). Required with oci_ref.")),
+				mcp.WithObject("size", mcp.Description("Compute capacity. Required with oci_ref; must match the checkpoint if supplied on restore."),
+					mcp.Properties(map[string]any{
+						"cpu":    map[string]any{"type": "integer", "description": "vCPU count."},
+						"memory": map[string]any{"type": "integer", "description": "Memory in MiB."},
 					})),
 				mcp.WithString("networking", mcp.Enum("public", "vpc"), mcp.Description("Network posture: public or vpc.")),
 				mcp.WithString("vpc_uuid", mcp.Description("Required when networking is vpc.")),
@@ -421,6 +474,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 				mcp.WithBoolean("auto_resume", mcp.Description("Whether to auto-resume on HTTP traffic (default true).")),
 				mcp.WithNumber("http_port", mcp.Description("HTTP listen port for ingress and auto-resume probing.")),
 				mcp.WithString("http_protocol", mcp.Enum("http", "http2"), mcp.Description("Application protocol on http_port: http or http2.")),
+				mcp.WithArray("ports", mcp.Description("Guest ports to open for ingress (max 5). Must include http_port when set."), mcp.Items(map[string]any{"type": "integer"})),
 				mcp.WithObject("environment", mcp.Description("Key-value environment variables injected at boot.")),
 				mcp.WithArray("tags", mcp.Description("Resource tags."), mcp.Items(map[string]any{"type": "string"})),
 			),
@@ -430,7 +484,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("List MicroDroplets for the authenticated team."),
+				mcp.WithDescription("List MicroVMs for the authenticated team."),
 				mcp.WithNumber("page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1).")),
 				mcp.WithNumber("per_page", mcp.DefaultNumber(25), mcp.Description("Items per page (default 25, max 200).")),
 				mcp.WithString("region", mcp.Description("Filter by region slug.")),
@@ -443,8 +497,8 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Get a MicroDroplet by ID."),
-				mcp.WithString("id", mcp.Required(), mcp.Description("MicroDroplet UUID.")),
+				mcp.WithDescription("Get a MicroVM by ID."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
 		},
 		{
@@ -452,8 +506,8 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
-				mcp.WithDescription("Delete a MicroDroplet. Irreversible; checkpoints are retained until deleted separately."),
-				mcp.WithString("id", mcp.Required(), mcp.Description("MicroDroplet UUID.")),
+				mcp.WithDescription("Delete a MicroVM. Irreversible; checkpoints are retained until deleted separately."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
 		},
 		{
@@ -461,8 +515,8 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-pause",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
-				mcp.WithDescription("Pause a running MicroDroplet (synchronous, idempotent)."),
-				mcp.WithString("id", mcp.Required(), mcp.Description("MicroDroplet UUID.")),
+				mcp.WithDescription("Pause a running MicroVM (synchronous, idempotent)."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
 		},
 		{
@@ -470,8 +524,8 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-resume",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
-				mcp.WithDescription("Resume a paused MicroDroplet (synchronous, idempotent)."),
-				mcp.WithString("id", mcp.Required(), mcp.Description("MicroDroplet UUID.")),
+				mcp.WithDescription("Resume a paused MicroVM (synchronous, idempotent)."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
 		},
 		{
@@ -479,8 +533,8 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-checkpoint-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
-				mcp.WithDescription("Start async checkpoint of a running MicroDroplet without pausing. Poll checkpoint-get until available or failed."),
-				mcp.WithString("id", mcp.Required(), mcp.Description("MicroDroplet UUID.")),
+				mcp.WithDescription("Start async checkpoint of a running or paused MicroVM. Poll checkpoint-get until available or failed."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 				mcp.WithString("name", mcp.Description("Optional checkpoint name.")),
 			),
 		},
@@ -492,7 +546,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 				mcp.WithDescription("List team checkpoints, newest first."),
 				mcp.WithNumber("page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1).")),
 				mcp.WithNumber("per_page", mcp.DefaultNumber(25), mcp.Description("Items per page (default 25, max 200).")),
-				mcp.WithString("micro_droplet_id", mcp.Description("Filter by source MicroDroplet UUID.")),
+				mcp.WithString("microvm_id", mcp.Description("Filter by source MicroVM UUID.")),
 			),
 		},
 		{

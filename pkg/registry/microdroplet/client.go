@@ -10,7 +10,7 @@ import (
 	"github.com/digitalocean/godo"
 )
 
-const apiBasePath = "v2/microdroplets"
+const apiBasePath = "v2/microvms"
 
 type apiClient struct {
 	client *godo.Client
