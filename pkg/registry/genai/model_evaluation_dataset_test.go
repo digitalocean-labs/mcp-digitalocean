@@ -27,6 +27,8 @@ func TestValidateModelEvaluationDataset(t *testing.T) {
 
 	require.NoError(t, validateModelEvaluationDataset(validPath))
 	require.NoError(t, validateModelEvaluationDataset(validJSONLPath))
+	require.NoError(t, validateModelEvaluationDatasetBytes("valid.csv", []byte("input,ground_truth\nWhat is 2+2?,4\n")))
+	require.NoError(t, validateModelEvaluationDatasetBytes("valid.jsonl", []byte(`{"input":"What is 2+2?","ground_truth":"4"}`+"\n")))
 
 	err := validateModelEvaluationDataset(noInputPath)
 	require.Error(t, err)
@@ -43,6 +45,10 @@ func TestValidateModelEvaluationDataset(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), ".csv")
 	require.Contains(t, err.Error(), ".jsonl")
+
+	err = validateModelEvaluationDatasetBytes("bad.json", []byte(`{"input":"x"}`))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), ".csv")
 }
 
 func TestModelEvaluationDatasetContentType(t *testing.T) {

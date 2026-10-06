@@ -49,14 +49,20 @@ func (es *EvaluationService) ValidateEvaluationDataset(filePath string) error {
 	if !isCSVFile(filePath) {
 		return fmt.Errorf("file must have .csv extension")
 	}
-
-	file, err := os.Open(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	return es.ValidateEvaluationDatasetBytes(getFileName(filePath), data)
+}
 
-	reader := csv.NewReader(file)
+// ValidateEvaluationDatasetBytes validates CSV dataset bytes for agent evaluation.
+func (es *EvaluationService) ValidateEvaluationDatasetBytes(fileName string, data []byte) error {
+	if !isCSVFile(fileName) {
+		return fmt.Errorf("file must have .csv extension")
+	}
+
+	reader := csv.NewReader(bytes.NewReader(data))
 	header, err := reader.Read()
 	if err != nil {
 		return fmt.Errorf("failed to read CSV header: %w", err)
@@ -252,13 +258,13 @@ func (et *EvaluationTool) createEvaluationDataset(ctx context.Context, req mcp.C
 		return mcp.NewToolResultError("name is required"), nil
 	}
 
-	filePath, ok := args["file_path"].(string)
-	if !ok || filePath == "" {
-		return mcp.NewToolResultError("file_path is required"), nil
+	resolved, err := resolveFileInput(ctx, args, createDatasetFileKeys)
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
 	// Validate the dataset
-	if err := et.service.ValidateEvaluationDataset(filePath); err != nil {
+	if err := et.service.ValidateEvaluationDatasetBytes(resolved.FileName, resolved.Data); err != nil {
 		return mcp.NewToolResultErrorFromErr("dataset validation failed", err), nil
 	}
 
@@ -267,15 +273,9 @@ func (et *EvaluationTool) createEvaluationDataset(ctx context.Context, req mcp.C
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	// Read file
-	fileData, err := os.ReadFile(filePath)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to read file", err), nil
-	}
-
-	// Get presigned URL
+	fileData := resolved.Data
 	fileSize := int64(len(fileData))
-	fileName := getFileName(filePath)
+	fileName := resolved.FileName
 
 	presignedInput := &CreateEvaluationDatasetFileUploadPresignedUrlsInput{
 		Files: []PresignedUrlFile{
@@ -489,18 +489,14 @@ func (et *EvaluationTool) runEvaluationTestCase(ctx context.Context, req mcp.Cal
 
 	testCaseUUID, _ := args["test_case_uuid"].(string)
 	runName, _ := args["run_name"].(string)
-
-	// Convert deployment names
-	deploymentsRaw, _ := args["agent_deployment_names"].([]interface{})
-	var deployments []string
-	for _, d := range deploymentsRaw {
-		if depStr, ok := d.(string); ok {
-			deployments = append(deployments, depStr)
-		}
-	}
+	agentUUIDs := parseStringSlice(args["agent_uuids"])
+	deployments := parseStringSlice(args["agent_deployment_names"])
 
 	if testCaseUUID == "" || runName == "" {
 		return mcp.NewToolResultError("test_case_uuid and run_name are required"), nil
+	}
+	if len(agentUUIDs) == 0 && len(deployments) == 0 {
+		return mcp.NewToolResultError("provide at least one of agent_uuids or agent_deployment_names"), nil
 	}
 
 	client, err := et.client(ctx)
@@ -510,6 +506,7 @@ func (et *EvaluationTool) runEvaluationTestCase(ctx context.Context, req mcp.Cal
 
 	input := &RunEvaluationTestCaseInput{
 		TestCaseUUID:         testCaseUUID,
+		AgentUUIDs:           agentUUIDs,
 		AgentDeploymentNames: deployments,
 		RunName:              runName,
 	}
@@ -564,7 +561,6 @@ func (et *EvaluationTool) getEvaluationRun(ctx context.Context, req mcp.CallTool
 func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
-	datasetFilePath, _ := args["dataset_file_path"].(string)
 	workspaceName, _ := args["workspace_name"].(string)
 	runName, _ := args["run_name"].(string)
 	testCaseName, _ := args["test_case_name"].(string)
@@ -589,17 +585,17 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 		}
 	}
 
-	// Convert deployment names
-	deploymentsRaw, _ := args["agent_deployment_names"].([]interface{})
-	var deployments []string
-	for _, d := range deploymentsRaw {
-		if depStr, ok := d.(string); ok {
-			deployments = append(deployments, depStr)
-		}
-	}
+	agentUUIDs := parseStringSlice(args["agent_uuids"])
+	deployments := parseStringSlice(args["agent_deployment_names"])
 
-	if datasetFilePath == "" || workspaceName == "" || runName == "" || testCaseName == "" {
-		return mcp.NewToolResultError("dataset_file_path, workspace_name, run_name, and test_case_name are required"), nil
+	if workspaceName == "" || runName == "" || testCaseName == "" {
+		return mcp.NewToolResultError("workspace_name, run_name, and test_case_name are required"), nil
+	}
+	if !fileSourceProvided(args, workflowDatasetFileKeys) {
+		return mcp.NewToolResultError("provide exactly one of dataset_file_path, dataset_file_content, or dataset_file_url"), nil
+	}
+	if len(agentUUIDs) == 0 && len(deployments) == 0 {
+		return mcp.NewToolResultError("provide at least one of agent_uuids or agent_deployment_names"), nil
 	}
 
 	client, err := et.client(ctx)
@@ -609,8 +605,12 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 
 	startTime := time.Now()
 
-	// Step 1: Validate dataset
-	if err := et.service.ValidateEvaluationDataset(datasetFilePath); err != nil {
+	// Step 1: Resolve and validate dataset
+	resolved, err := resolveFileInput(ctx, args, workflowDatasetFileKeys)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("step 1: failed to load dataset", err), nil
+	}
+	if err := et.service.ValidateEvaluationDatasetBytes(resolved.FileName, resolved.Data); err != nil {
 		return mcp.NewToolResultErrorFromErr("step 1: dataset validation failed", err), nil
 	}
 
@@ -643,13 +643,9 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 	}
 
 	// Step 4: Upload dataset
-	fileData, err := os.ReadFile(datasetFilePath)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("step 4: failed to read dataset file", err), nil
-	}
-
+	fileData := resolved.Data
 	fileSize := int64(len(fileData))
-	fileName := getFileName(datasetFilePath)
+	fileName := resolved.FileName
 
 	presignedInput := &CreateEvaluationDatasetFileUploadPresignedUrlsInput{
 		Files: []PresignedUrlFile{
@@ -784,6 +780,7 @@ func (et *EvaluationTool) runEvaluationWorkflow(ctx context.Context, req mcp.Cal
 	// Step 6: Run evaluation
 	runInput := &RunEvaluationTestCaseInput{
 		TestCaseUUID:         testCaseUUID,
+		AgentUUIDs:           agentUUIDs,
 		AgentDeploymentNames: deployments,
 		RunName:              runName,
 	}
@@ -898,9 +895,12 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
 				evaluationDatasetCreatedOut.Schema(),
-				mcp.WithDescription("Create an evaluation dataset by uploading a CSV file. The file must contain a 'query' column with JSON objects."),
+				mcp.WithDescription("Create an evaluation dataset by uploading a CSV file. The file must contain a 'query' column with JSON objects. Provide exactly one of file_path (local MCP), file_content (inline CSV text), or file_url (server-fetched)."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
-				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the CSV file to upload")),
+				mcp.WithString("file_path", mcp.Description("Local path to the CSV file (for local MCP only)")),
+				mcp.WithString("file_content", mcp.Description("Inline CSV file contents (for hosted MCP / Action Gateway)")),
+				mcp.WithString("file_url", mcp.Description("HTTP(S) URL the server can fetch the CSV from")),
+				mcp.WithString("file_name", mcp.Description("File name including .csv extension (required with file_content; optional with file_url if the URL path includes it)")),
 			),
 		},
 		{
@@ -943,9 +943,10 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				evaluationRunStartedOut.Schema(),
-				mcp.WithDescription("Run an evaluation test case."),
+				mcp.WithDescription("Run an evaluation test case against agents. Provide at least one of agent_uuids (regular agents) or agent_deployment_names (ADK deployments)."),
 				mcp.WithString("test_case_uuid", mcp.Required(), mcp.Description("Test case UUID to run")),
-				mcp.WithArray("agent_deployment_names", mcp.Description("List of agent deployment names"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("agent_uuids", mcp.Description("List of agent UUIDs to evaluate (regular agents)"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("agent_deployment_names", mcp.Description("List of agent deployment names to evaluate (ADK deployments)"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("run_name", mcp.Required(), mcp.Description("Name for this evaluation run")),
 			),
 		},
@@ -967,11 +968,15 @@ func (et *EvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
 				evaluationWorkflowOut.Schema(),
-				mcp.WithDescription("Run a complete evaluation workflow: validate dataset, create/update test case, run evaluation, and poll for results. This is a convenience tool for users unfamiliar with the multi-step evaluation process."),
-				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the CSV evaluation dataset")),
+				mcp.WithDescription("Run a complete evaluation workflow: validate dataset, create/update test case, run evaluation, and poll for results. Provide exactly one dataset source (dataset_file_path, dataset_file_content, or dataset_file_url) and at least one of agent_uuids or agent_deployment_names."),
+				mcp.WithString("dataset_file_path", mcp.Description("Local path to the CSV evaluation dataset (for local MCP only)")),
+				mcp.WithString("dataset_file_content", mcp.Description("Inline CSV file contents (for hosted MCP / Action Gateway)")),
+				mcp.WithString("dataset_file_url", mcp.Description("HTTP(S) URL the server can fetch the CSV from")),
+				mcp.WithString("dataset_file_name", mcp.Description("File name including .csv extension (required with dataset_file_content; optional with dataset_file_url if the URL path includes it)")),
 				mcp.WithString("workspace_name", mcp.Required(), mcp.Description("Agent workspace name")),
 				mcp.WithString("test_case_name", mcp.Required(), mcp.Description("Name for the evaluation test case")),
-				mcp.WithArray("agent_deployment_names", mcp.Required(), mcp.Description("List of agent deployment names to evaluate"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("agent_uuids", mcp.Description("List of agent UUIDs to evaluate (regular agents)"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("agent_deployment_names", mcp.Description("List of agent deployment names to evaluate (ADK deployments)"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("run_name", mcp.Required(), mcp.Description("Name for this evaluation run")),
 				mcp.WithString("description", mcp.Description("Description for the test case")),
 				mcp.WithArray("metric_categories", mcp.Description("List of metric categories to filter by (e.g., 'METRIC_CATEGORY_CORRECTNESS'). If empty, all metrics are used."), mcp.Items(map[string]any{"type": "string"})),

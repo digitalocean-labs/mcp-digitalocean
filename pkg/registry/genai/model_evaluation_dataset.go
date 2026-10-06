@@ -28,24 +28,31 @@ type ModelEvalDatasetResult struct {
 
 // validateModelEvaluationDataset checks that a CSV or JSONL file has the required input field for model evaluation.
 func validateModelEvaluationDataset(filePath string) error {
+	fileName := getFileName(filePath)
+	if !isCSVFile(fileName) && !isJSONLFile(fileName) {
+		return fmt.Errorf("file must have .csv or .jsonl extension")
+	}
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	return validateModelEvaluationDatasetBytes(fileName, data)
+}
+
+// validateModelEvaluationDatasetBytes checks CSV/JSONL bytes have the required input field.
+func validateModelEvaluationDatasetBytes(fileName string, data []byte) error {
 	switch {
-	case isCSVFile(filePath):
-		return validateModelEvaluationDatasetCSV(filePath)
-	case isJSONLFile(filePath):
-		return validateModelEvaluationDatasetJSONL(filePath)
+	case isCSVFile(fileName):
+		return validateModelEvaluationDatasetCSVBytes(data)
+	case isJSONLFile(fileName):
+		return validateModelEvaluationDatasetJSONLBytes(data)
 	default:
 		return fmt.Errorf("file must have .csv or .jsonl extension")
 	}
 }
 
-func validateModelEvaluationDatasetCSV(filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
+func validateModelEvaluationDatasetCSVBytes(data []byte) error {
+	reader := csv.NewReader(bytes.NewReader(data))
 	header, err := reader.Read()
 	if err != nil {
 		return fmt.Errorf("failed to read CSV header: %w", err)
@@ -80,14 +87,8 @@ func validateModelEvaluationDatasetCSV(filePath string) error {
 	return nil
 }
 
-func validateModelEvaluationDatasetJSONL(filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
+func validateModelEvaluationDatasetJSONLBytes(data []byte) error {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	lineNum := 0
 	recordCount := 0
 

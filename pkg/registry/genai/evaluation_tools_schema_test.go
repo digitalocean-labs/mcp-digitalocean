@@ -17,8 +17,8 @@ func TestAgentEvaluationToolListParamSchemas(t *testing.T) {
 	cases := map[string][]string{
 		"genai-create-evaluation-test-case": {"metrics"},
 		"genai-update-evaluation-test-case": {"metrics"},
-		"genai-run-evaluation-test-case":    {"agent_deployment_names"},
-		"genai-run-evaluation-workflow":     {"agent_deployment_names", "metric_categories"},
+		"genai-run-evaluation-test-case":    {"agent_uuids", "agent_deployment_names"},
+		"genai-run-evaluation-workflow":     {"agent_uuids", "agent_deployment_names", "metric_categories"},
 	}
 
 	byName := make(map[string]map[string]any)
@@ -44,6 +44,16 @@ func TestAgentEvaluationToolListParamSchemas(t *testing.T) {
 			require.Equal(t, "string", items["type"], "tool %s field %s items should be string", toolName, field)
 		}
 	}
+
+	createDatasetProps := byName["genai-create-evaluation-dataset"]
+	require.Contains(t, createDatasetProps, "file_content")
+	require.Contains(t, createDatasetProps, "file_url")
+	require.Contains(t, createDatasetProps, "file_name")
+
+	workflowProps := byName["genai-run-evaluation-workflow"]
+	require.Contains(t, workflowProps, "dataset_file_content")
+	require.Contains(t, workflowProps, "dataset_file_url")
+	require.Contains(t, workflowProps, "dataset_file_name")
 }
 
 func TestModelEvaluationToolListParamSchemas(t *testing.T) {
@@ -91,6 +101,14 @@ func TestModelEvaluationToolListParamSchemas(t *testing.T) {
 
 	createDatasetProps := byName["genai-model-eval-create-dataset"]
 	require.Contains(t, createDatasetProps, "dataset_paradigm")
+	require.Contains(t, createDatasetProps, "file_content")
+	require.Contains(t, createDatasetProps, "file_url")
+	require.Contains(t, createDatasetProps, "file_name")
+
+	workflowProps := byName["genai-model-eval-run-workflow"]
+	require.Contains(t, workflowProps, "dataset_file_content")
+	require.Contains(t, workflowProps, "dataset_file_url")
+	require.Contains(t, workflowProps, "dataset_file_name")
 }
 
 func TestSimulationToolListParamSchemas(t *testing.T) {

@@ -40,7 +40,8 @@ const (
 		"CONFIRMATION (chat): (1) call without user_message to get prompt_for_user, show it to the user, wait for their reply; " +
 		"(2) call again with user_message set to that reply and same arguments. Created only on step 2."
 
-	genaiModelEvalWorkflowToolDescription = "Run a complete model evaluation workflow: upload dataset, create evaluation run, and poll for results.\n\n" +
+	genaiModelEvalWorkflowToolDescription = "Run a complete model evaluation workflow: upload dataset, create evaluation run, and poll for results. " +
+		"Provide exactly one of dataset_file_path, dataset_file_content, or dataset_file_url.\n\n" +
 		"MODEL NAMES and USER CONSENT: same two-step chat confirmation as genai-model-eval-create-run."
 )
 

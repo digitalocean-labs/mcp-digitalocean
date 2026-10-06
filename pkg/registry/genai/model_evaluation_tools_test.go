@@ -111,9 +111,10 @@ func TestModelEvaluationTool_createDataset_validation(t *testing.T) {
 	}{
 		{name: "missing name", args: map[string]any{"file_path": "/tmp/test.csv"}},
 		{name: "empty name", args: map[string]any{"name": "", "file_path": "/tmp/test.csv"}},
-		{name: "missing file_path", args: map[string]any{"name": "test"}},
+		{name: "missing file source", args: map[string]any{"name": "test"}},
 		{name: "empty file_path", args: map[string]any{"name": "test", "file_path": ""}},
-		{name: "unsupported file format", args: map[string]any{"name": "test", "file_path": "/tmp/test.json"}},
+		{name: "file_content missing file_name", args: map[string]any{"name": "test", "file_content": "input\nx\n"}},
+		{name: "unsupported file format", args: map[string]any{"name": "test", "file_content": "{}", "file_name": "test.json"}},
 	}
 
 	for _, tc := range tests {
@@ -268,7 +269,7 @@ func TestModelEvaluationTool_runWorkflow_validation(t *testing.T) {
 		args map[string]any
 	}{
 		{name: "missing all required", args: map[string]any{}},
-		{name: "missing dataset_file_path", args: map[string]any{
+		{name: "missing dataset source", args: map[string]any{
 			"name":                 "run1",
 			"candidate_model_name": "model", "judge_model_name": "judge",
 		}},
