@@ -261,6 +261,25 @@ func (met *ModelEvaluationTool) resolveEvalModelsOnly(
 		return nil, nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
+	candidateUUID := strings.TrimSpace(stringArg(args, "candidate_model_uuid"))
+	judgeUUID := strings.TrimSpace(stringArg(args, "judge_model_uuid"))
+	judgeName := strings.TrimSpace(stringArg(args, "judge_model_name"))
+
+	// Fast path: when exact UUIDs are provided, skip listing the full catalog
+	// (SearchModels + N× GetModelByUUID) and look up only the needed models.
+	if canResolveEvalModelsByUUID(candidateUUID, judgeUUID, requireJudge) {
+		resolved, err := resolveEvalModelsByUUIDFastPath(
+			ctx, client, candidateUUID, candidateModelName, judgeUUID, judgeName, requireJudge,
+		)
+		if err != nil {
+			return nil, mcp.NewToolResultError(err.Error()), nil
+		}
+		if err := validateModelEvalResolvedUUIDs(resolved, requireJudge); err != nil {
+			return nil, mcp.NewToolResultError(err.Error()), nil
+		}
+		return resolved, nil, nil
+	}
+
 	models, err := listAllEvalModels(ctx, client)
 	if err != nil {
 		return nil, mcp.NewToolResultErrorFromErr("failed to list models for evaluation run resolution", err), nil
@@ -269,10 +288,10 @@ func (met *ModelEvaluationTool) resolveEvalModelsOnly(
 	resolved, unresolved, err := resolveEvalModelsForRun(
 		ctx,
 		client,
-		strings.TrimSpace(stringArg(args, "candidate_model_uuid")),
+		candidateUUID,
 		candidateModelName,
-		strings.TrimSpace(stringArg(args, "judge_model_uuid")),
-		strings.TrimSpace(stringArg(args, "judge_model_name")),
+		judgeUUID,
+		judgeName,
 		requireJudge,
 		models,
 	)

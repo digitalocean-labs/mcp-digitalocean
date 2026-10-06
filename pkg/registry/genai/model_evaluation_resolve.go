@@ -271,6 +271,69 @@ func fetchEvalCustomModels(ctx context.Context, client *godo.Client) ([]*EvalCat
 	return all, nil
 }
 
+// canResolveEvalModelsByUUID reports whether candidate (and judge, when required)
+// can be loaded via direct UUID lookups instead of listing the full model catalog.
+func canResolveEvalModelsByUUID(candidateUUID, judgeUUID string, requireJudge bool) bool {
+	if !isExactEvalModelUUID(candidateUUID) {
+		return false
+	}
+	if requireJudge && !isExactEvalModelUUID(judgeUUID) {
+		return false
+	}
+	return true
+}
+
+// lookupEvalModelByUUIDMatchingName loads a model by UUID and, when name is set,
+// requires it to match the model's display or API name.
+func lookupEvalModelByUUIDMatchingName(
+	ctx context.Context,
+	client *godo.Client,
+	uuid, name, mismatchMsg string,
+) (*modelEvalResolvedModel, error) {
+	model, err := lookupEvalModelByUUID(ctx, client, uuid)
+	if err != nil {
+		return nil, err
+	}
+	if name != "" && !evalModelNameMatchesExact(&EvalCatalogModel{
+		DisplayName: model.DisplayName,
+		APIName:     model.APIName,
+	}, name) {
+		return nil, fmt.Errorf("%s", mismatchMsg)
+	}
+	return model, nil
+}
+
+// resolveEvalModelsByUUIDFastPath loads candidate/judge via GetModelByUUID /
+// GetCustomModel only — no SearchModels catalog scrape.
+func resolveEvalModelsByUUIDFastPath(
+	ctx context.Context,
+	client *godo.Client,
+	candidateUUID, candidateName string,
+	judgeUUID, judgeName string,
+	requireJudge bool,
+) (*modelEvalRunModels, error) {
+	candidate, err := lookupEvalModelByUUIDMatchingName(
+		ctx, client, candidateUUID, candidateName, modelEvalUUIDNameMismatchMsg,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &modelEvalRunModels{Candidate: *candidate}
+	if !requireJudge {
+		return out, nil
+	}
+
+	judge, err := lookupEvalModelByUUIDMatchingName(
+		ctx, client, judgeUUID, judgeName, modelEvalJudgeUUIDNameMismatchMsg,
+	)
+	if err != nil {
+		return nil, err
+	}
+	out.Judge = judge
+	return out, nil
+}
+
 func resolveEvalModelsForRun(
 	ctx context.Context,
 	client *godo.Client,
