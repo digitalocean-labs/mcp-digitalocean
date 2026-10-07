@@ -41,6 +41,22 @@ func (m *MockSignalsService) EXPECT() *MockSignalsServiceMockRecorder {
 	return m.recorder
 }
 
+// CreateExport mocks base method.
+func (m *MockSignalsService) CreateExport(arg0 context.Context, arg1 *godo.SignalsCreateExportRequest) (*godo.SignalsExportJob, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateExport", arg0, arg1)
+	ret0, _ := ret[0].(*godo.SignalsExportJob)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateExport indicates an expected call of CreateExport.
+func (mr *MockSignalsServiceMockRecorder) CreateExport(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateExport", reflect.TypeOf((*MockSignalsService)(nil).CreateExport), arg0, arg1)
+}
+
 // GetAgentConsent mocks base method.
 func (m *MockSignalsService) GetAgentConsent(arg0 context.Context, arg1 string) (*godo.SignalsAgentConsent, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -151,6 +167,22 @@ func (m *MockSignalsService) ListAgentSessions(arg0 context.Context, arg1 string
 func (mr *MockSignalsServiceMockRecorder) ListAgentSessions(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAgentSessions", reflect.TypeOf((*MockSignalsService)(nil).ListAgentSessions), arg0, arg1, arg2)
+}
+
+// ListConsents mocks base method.
+func (m *MockSignalsService) ListConsents(arg0 context.Context) (*godo.SignalsListConsentsResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListConsents", arg0)
+	ret0, _ := ret[0].(*godo.SignalsListConsentsResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListConsents indicates an expected call of ListConsents.
+func (mr *MockSignalsServiceMockRecorder) ListConsents(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConsents", reflect.TypeOf((*MockSignalsService)(nil).ListConsents), arg0)
 }
 
 // ListExports mocks base method.

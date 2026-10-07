@@ -3,7 +3,7 @@ module mcp-digitalocean
 go 1.26.4
 
 require (
-	github.com/digitalocean/godo v1.217.0
+	github.com/digitalocean/godo v1.218.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/invopop/jsonschema v0.13.0
@@ -81,5 +81,3 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/digitalocean/godo => github.com/smirdha-source/godo v1.215.1-0.20261006090605-97a6300f4d20
