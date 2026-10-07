@@ -3,7 +3,6 @@ package genai
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -224,18 +223,13 @@ func (met *ModelEvaluationTool) createDataset(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultError("name is required"), nil
 	}
 
-	filePath, ok := args["file_path"].(string)
-	if !ok || filePath == "" {
-		return mcp.NewToolResultError("file_path is required"), nil
-	}
-
-	if err := validateModelEvaluationDataset(filePath); err != nil {
-		return mcp.NewToolResultErrorFromErr("dataset validation failed", err), nil
-	}
-
-	fileData, err := os.ReadFile(filePath)
+	resolved, err := resolveFileInput(ctx, args, createDatasetFileKeys)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to read file", err), nil
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	if err := validateModelEvaluationDatasetBytes(resolved.FileName, resolved.Data); err != nil {
+		return mcp.NewToolResultErrorFromErr("dataset validation failed", err), nil
 	}
 
 	client, err := met.client(ctx)
@@ -243,7 +237,7 @@ func (met *ModelEvaluationTool) createDataset(ctx context.Context, req mcp.CallT
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	result, err := uploadAndRegisterModelEvaluationDataset(ctx, client, name, fileData, getFileName(filePath), datasetParadigmFromArgs(args))
+	result, err := uploadAndRegisterModelEvaluationDataset(ctx, client, name, resolved.Data, resolved.FileName, datasetParadigmFromArgs(args))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create model evaluation dataset", err), nil
 	}
@@ -267,6 +261,25 @@ func (met *ModelEvaluationTool) resolveEvalModelsOnly(
 		return nil, nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
+	candidateUUID := strings.TrimSpace(stringArg(args, "candidate_model_uuid"))
+	judgeUUID := strings.TrimSpace(stringArg(args, "judge_model_uuid"))
+	judgeName := strings.TrimSpace(stringArg(args, "judge_model_name"))
+
+	// Fast path: when exact UUIDs are provided, skip listing the full catalog
+	// (SearchModels + N× GetModelByUUID) and look up only the needed models.
+	if canResolveEvalModelsByUUID(candidateUUID, judgeUUID, requireJudge) {
+		resolved, err := resolveEvalModelsByUUIDFastPath(
+			ctx, client, candidateUUID, candidateModelName, judgeUUID, judgeName, requireJudge,
+		)
+		if err != nil {
+			return nil, mcp.NewToolResultError(err.Error()), nil
+		}
+		if err := validateModelEvalResolvedUUIDs(resolved, requireJudge); err != nil {
+			return nil, mcp.NewToolResultError(err.Error()), nil
+		}
+		return resolved, nil, nil
+	}
+
 	models, err := listAllEvalModels(ctx, client)
 	if err != nil {
 		return nil, mcp.NewToolResultErrorFromErr("failed to list models for evaluation run resolution", err), nil
@@ -275,10 +288,10 @@ func (met *ModelEvaluationTool) resolveEvalModelsOnly(
 	resolved, unresolved, err := resolveEvalModelsForRun(
 		ctx,
 		client,
-		strings.TrimSpace(stringArg(args, "candidate_model_uuid")),
+		candidateUUID,
 		candidateModelName,
-		strings.TrimSpace(stringArg(args, "judge_model_uuid")),
-		strings.TrimSpace(stringArg(args, "judge_model_name")),
+		judgeUUID,
+		judgeName,
 		requireJudge,
 		models,
 	)
@@ -792,11 +805,13 @@ func isModelEvalTerminalStatus(status ModelEvaluationRunStatus) bool {
 func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
-	datasetFilePath, _ := args["dataset_file_path"].(string)
 	runName, _ := args["name"].(string)
 
-	if datasetFilePath == "" || runName == "" {
-		return mcp.NewToolResultError("dataset_file_path and name are required"), nil
+	if runName == "" {
+		return mcp.NewToolResultError("name is required"), nil
+	}
+	if !fileSourceProvided(args, workflowDatasetFileKeys) {
+		return mcp.NewToolResultError("provide exactly one of dataset_file_path, dataset_file_content, or dataset_file_url"), nil
 	}
 	if strings.TrimSpace(stringArg(args, "candidate_model_name")) == "" {
 		return mcp.NewToolResultError(modelEvalCandidateNameRequiredMsg), nil
@@ -831,7 +846,7 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 
 	workflowCfg := &modelEvalRunConfig{
 		RunName:         runName,
-		DatasetFilePath: datasetFilePath,
+		DatasetFilePath: fileSourceDisplay(args, workflowDatasetFileKeys),
 		MetricUUIDs:     append([]string(nil), metricUUIDs...),
 		StarMetric:      parseStarMetricArg(args),
 	}
@@ -850,20 +865,18 @@ func (met *ModelEvaluationTool) runWorkflow(ctx context.Context, req mcp.CallToo
 
 	startTime := time.Now()
 
-	if err := validateModelEvaluationDataset(datasetFilePath); err != nil {
+	file, err := resolveFileInput(ctx, args, workflowDatasetFileKeys)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("step 1: failed to load dataset", err), nil
+	}
+	if err := validateModelEvaluationDatasetBytes(file.FileName, file.Data); err != nil {
 		return mcp.NewToolResultErrorFromErr("step 1: dataset validation failed", err), nil
 	}
 
-	fileData, err := os.ReadFile(datasetFilePath)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("step 1: failed to read dataset file", err), nil
-	}
-
-	fileName := getFileName(datasetFilePath)
 	datasetName := runName + "-dataset"
 
 	// Steps 2–4: presign, upload to Spaces, register dataset record.
-	datasetResult, err := uploadAndRegisterModelEvaluationDataset(ctx, client, datasetName, fileData, fileName, datasetParadigmFromArgs(args))
+	datasetResult, err := uploadAndRegisterModelEvaluationDataset(ctx, client, datasetName, file.Data, file.FileName, datasetParadigmFromArgs(args))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("step 2: failed to upload and register dataset", err), nil
 	}
@@ -998,9 +1011,12 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
 				modelEvalDatasetOut.Schema(),
-				mcp.WithDescription("Upload and register a model evaluation dataset (presign → Spaces upload → database record). Accepts .csv (with 'input' column) or .jsonl (one JSON object per line with 'input' field); 'ground_truth' is optional. Returns evaluation_dataset_uuid for use with genai-model-eval-create-run."),
+				mcp.WithDescription("Upload and register a model evaluation dataset (presign → Spaces upload → database record). Accepts .csv (with 'input' column) or .jsonl (one JSON object per line with 'input' field); 'ground_truth' is optional. Provide exactly one of file_path (local MCP), file_content (inline text), or file_url (server-fetched). Returns evaluation_dataset_uuid for use with genai-model-eval-create-run."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the dataset")),
-				mcp.WithString("file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl dataset file to upload")),
+				mcp.WithString("file_path", mcp.Description("Local path to the .csv or .jsonl dataset file (for local MCP only)")),
+				mcp.WithString("file_content", mcp.Description("Inline .csv or .jsonl file contents (for hosted MCP / Action Gateway)")),
+				mcp.WithString("file_url", mcp.Description("HTTP(S) URL the server can fetch the dataset from")),
+				mcp.WithString("file_name", mcp.Description("File name including .csv or .jsonl extension (required with file_content; optional with file_url if the URL path includes it)")),
 				mcp.WithString("dataset_paradigm", mcp.Description("Optional row/content shape. Defaults to EVALUATION_DATASET_PARADIGM_SINGLE_TURN. Other values: EVALUATION_DATASET_PARADIGM_MULTI_TURN, EVALUATION_DATASET_PARADIGM_CODING, EVALUATION_DATASET_PARADIGM_N_PLUS_1.")),
 			),
 		},
@@ -1187,7 +1203,10 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithRisk(common.RiskMedium),
 				modelEvalWorkflowOut.Schema(),
 				mcp.WithDescription(genaiModelEvalWorkflowToolDescription),
-				mcp.WithString("dataset_file_path", mcp.Required(), mcp.Description("Path to the .csv or .jsonl evaluation dataset")),
+				mcp.WithString("dataset_file_path", mcp.Description("Local path to the .csv or .jsonl evaluation dataset (for local MCP only)")),
+				mcp.WithString("dataset_file_content", mcp.Description("Inline .csv or .jsonl file contents (for hosted MCP / Action Gateway)")),
+				mcp.WithString("dataset_file_url", mcp.Description("HTTP(S) URL the server can fetch the dataset from")),
+				mcp.WithString("dataset_file_name", mcp.Description("File name including .csv or .jsonl extension (required with dataset_file_content; optional with dataset_file_url if the URL path includes it)")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Name for the evaluation run")),
 				mcp.WithString("candidate_model_name", mcp.Required(), mcp.Description("Exact candidate model name. Partial names return nearest matches only.")),
 				mcp.WithString("candidate_model_uuid", mcp.Description("Exact full candidate model UUID. Optional if name is exact.")),

@@ -121,6 +121,36 @@ func TestModelEvaluationTool_getPreset_success(t *testing.T) {
 	require.Contains(t, text, "gpt-judge")
 }
 
+func TestModelEvaluationTool_createRun_uuidFastPathSkipsCatalogList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	candUUID := "11111111-1111-1111-1111-111111111111"
+	judgeUUID := "22222222-2222-2222-2222-222222222222"
+
+	m := NewMockAgentPlatformService(ctrl)
+	// Fast path should only look up the provided UUIDs — not SearchModels / ListCustomModels.
+	m.EXPECT().GetModelByUUID(gomock.Any(), candUUID).Return(&godo.Model{
+		Uuid: candUUID, Name: "Candidate", InferenceName: "candidate-slug",
+	}, okResponse(http.StatusOK), nil)
+	m.EXPECT().GetModelByUUID(gomock.Any(), judgeUUID).Return(&godo.Model{
+		Uuid: judgeUUID, Name: "Judge", InferenceName: "judge-slug",
+	}, okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).createRun, map[string]any{
+		"name":                 "run1",
+		"candidate_model_name": "Candidate",
+		"candidate_model_uuid": candUUID,
+		"judge_model_name":     "Judge",
+		"judge_model_uuid":     judgeUUID,
+		"dataset_uuid":         "ds-1",
+		"metric_uuids":         []any{"m1"},
+	})
+
+	require.False(t, resp.IsError)
+	require.Contains(t, resultText(t, resp), "consent_required")
+}
+
 func TestModelEvaluationTool_listRuns_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

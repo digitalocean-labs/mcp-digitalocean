@@ -85,7 +85,11 @@ Creates an evaluation dataset by uploading a CSV file. The file is validated to 
 
 **Arguments:**
 - `name` (string, required): Name for the dataset
-- `file_path` (string, required): Path to the CSV file to upload
+- Provide exactly one dataset source:
+  - `file_path` (string): Local path to the CSV file (local MCP only)
+  - `file_content` (string): Inline CSV contents (hosted MCP / Action Gateway)
+  - `file_url` (string): HTTP(S) URL the server can fetch
+- `file_name` (string): File name including `.csv` (required with `file_content`; optional with `file_url` if the URL path includes it)
 
 **Returns:** JSON object with dataset UUID and metadata
 
@@ -140,12 +144,15 @@ Updates an existing evaluation test case.
 ```
 
 #### `genai-run-evaluation-test-case`
-Runs an evaluation test case against specified agent deployments.
+Runs an evaluation test case against regular agents and/or ADK deployments.
 
 **Arguments:**
 - `test_case_uuid` (string, required): Test case UUID to run
-- `agent_deployment_names` (array of strings, required): Deployment names to evaluate
+- `agent_uuids` (array of strings, optional): Agent UUIDs to evaluate (regular agents)
+- `agent_deployment_names` (array of strings, optional): Deployment names to evaluate (ADK)
 - `run_name` (string, required): Name for this evaluation run
+
+At least one of `agent_uuids` or `agent_deployment_names` must be provided.
 
 **Returns:** JSON object with evaluation run UUIDs
 
@@ -195,15 +202,22 @@ Runs a complete end-to-end evaluation workflow. This tool orchestrates all the s
 This tool is ideal for users unfamiliar with the multi-step evaluation process, as it handles all orchestration internally.
 
 **Arguments:**
-- `dataset_file_path` (string, required): Path to CSV evaluation dataset
+- Provide exactly one dataset source:
+  - `dataset_file_path` (string): Local path to CSV evaluation dataset (local MCP only)
+  - `dataset_file_content` (string): Inline CSV contents (hosted MCP / Action Gateway)
+  - `dataset_file_url` (string): HTTP(S) URL the server can fetch
+- `dataset_file_name` (string): File name including `.csv` (required with `dataset_file_content`)
 - `workspace_name` (string, required): Agent workspace name
 - `test_case_name` (string, required): Name for the test case
-- `agent_deployment_names` (array of strings, required): Deployment names to evaluate
+- `agent_uuids` (array of strings, optional): Agent UUIDs to evaluate (regular agents)
+- `agent_deployment_names` (array of strings, optional): Deployment names to evaluate (ADK)
 - `run_name` (string, required): Name for the evaluation run
 - `description` (string, optional): Test case description
 - `metric_categories` (array of strings, optional): Filter by metric categories (e.g., `"METRIC_CATEGORY_CORRECTNESS"`, `"METRIC_CATEGORY_SAFETY_AND_SECURITY"`). If empty, all metrics are used.
 - `timeout_seconds` (number, optional): Timeout for polling results (default: 300 seconds)
 - `poll_interval_seconds` (number, optional): Interval between status polls (default: 5 seconds)
+
+At least one of `agent_uuids` or `agent_deployment_names` must be provided.
 
 **Returns:** JSON object with complete workflow results
 
@@ -250,6 +264,7 @@ query,expected_output
    genai-create-evaluation-dataset
      name: "my_dataset"
      file_path: "/path/to/queries.csv"
+   # On hosted MCP / Action Gateway, use file_content + file_name (or file_url) instead of file_path.
 
 3. Create a test case:
    genai-create-evaluation-test-case
@@ -262,7 +277,8 @@ query,expected_output
 4. Run the evaluation:
    genai-run-evaluation-test-case
      test_case_uuid: "<uuid from step 3>"
-     agent_deployment_names: ["my_agent_deployment"]
+     agent_uuids: ["<agent-uuid>"]
+     # or agent_deployment_names: ["my_agent_deployment"] for ADK
      run_name: "run_1"
 
 5. Poll for results:
@@ -398,7 +414,11 @@ Upload and register a model evaluation dataset (presign → Spaces upload → da
 
 **Arguments:**
 - `name` (string, required): Name for the dataset
-- `file_path` (string, required): Path to a `.csv` or `.jsonl` file to upload. CSV must include an `input` column; JSONL must be one JSON object per line with an `input` field. `ground_truth` is optional in both formats.
+- Provide exactly one dataset source (`.csv` with `input` column, or `.jsonl` with one JSON object per line containing `input`; `ground_truth` optional):
+  - `file_path` (string): Local path (local MCP only)
+  - `file_content` (string): Inline file contents (hosted MCP / Action Gateway)
+  - `file_url` (string): HTTP(S) URL the server can fetch
+- `file_name` (string): File name including `.csv` or `.jsonl` (required with `file_content`)
 
 **Returns:** JSON object with the registered dataset UUID and upload metadata
 
@@ -574,7 +594,11 @@ Run a complete model evaluation workflow: upload dataset, create run, and poll f
 **User consent:** Same two-step chat confirmation as `genai-model-eval-create-run`.
 
 **Arguments:**
-- `dataset_file_path` (string, required): Path to the `.csv` or `.jsonl` evaluation dataset
+- Provide exactly one dataset source:
+  - `dataset_file_path` (string): Local path to `.csv` or `.jsonl` (local MCP only)
+  - `dataset_file_content` (string): Inline file contents (hosted MCP / Action Gateway)
+  - `dataset_file_url` (string): HTTP(S) URL the server can fetch
+- `dataset_file_name` (string): File name including `.csv` or `.jsonl` (required with `dataset_file_content`)
 - `name` (string, required): Name for the evaluation run
 - `candidate_model_name` (string, required): Exact candidate model name
 - `candidate_model_uuid` (string, optional): Exact full candidate UUID
