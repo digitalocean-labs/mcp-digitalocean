@@ -11,7 +11,7 @@ import (
 	"mcp-digitalocean/pkg/registry/common"
 )
 
-// Tool provides Signals investigation GETs plus consent enable/disable.
+// Tool provides Signals investigation GETs, consent list/get/set, and export create/list/get.
 type Tool struct {
 	client func(ctx context.Context) (*godo.Client, error)
 }
@@ -89,6 +89,18 @@ func argStringSlice(args map[string]any, key string) []string {
 	default:
 		return nil
 	}
+}
+
+func (t *Tool) listConsents(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.doClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Signals.ListConsents(ctx)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to list consents", err), nil
+	}
+	return consentsListOut.Result(out)
 }
 
 func (t *Tool) getAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -257,6 +269,29 @@ func (t *Tool) getSignalReport(ctx context.Context, req mcp.CallToolRequest) (*m
 	return reportOut.Result(out)
 }
 
+func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.doClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	args := req.GetArguments()
+	agentID := argString(args, "AgentID")
+	if agentID == "" {
+		return mcp.NewToolResultError("AgentID is required"), nil
+	}
+	createReq := &godo.SignalsCreateExportRequest{
+		AgentID:    agentID,
+		SignalType: argStringSlice(args, "SignalType"),
+		StartTime:  argInt64Ptr(args, "StartTime"),
+		EndTime:    argInt64Ptr(args, "EndTime"),
+	}
+	out, _, err := client.Signals.CreateExport(ctx, createReq)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create export", err), nil
+	}
+	return exportJobOut.Result(out)
+}
+
 func (t *Tool) listExports(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.doClient(ctx)
 	if err != nil {
@@ -335,6 +370,15 @@ func signalTypeOpt() mcp.ToolOption {
 // Tools returns MCP tools for Signals.
 func (t *Tool) Tools() []server.ServerTool {
 	return []server.ServerTool{
+		{
+			Handler: t.listConsents,
+			Tool: mcp.NewTool("signals-list-consents",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
+				consentsListOut.Schema(),
+				mcp.WithDescription("List Signals collection consent records for the team (GET /v1/consent)."),
+			),
+		},
 		{
 			Handler: t.getAgentConsent,
 			Tool: mcp.NewTool("signals-get-agent-consent",
@@ -431,6 +475,19 @@ func (t *Tool) Tools() []server.ServerTool {
 				reportOut.Schema(),
 				mcp.WithDescription("Get the persisted post-session analysis report for a segment, if one exists."),
 				mcp.WithString("SegmentID", mcp.Required(), mcp.Description("Segment id")),
+			),
+		},
+		{
+			Handler: t.createExport,
+			Tool: mcp.NewTool("signals-create-export",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
+				exportJobOut.Schema(),
+				mcp.WithDescription("Create a Signals export job for an agent (POST /v1/signals/exports). Poll with signals-get-export, then download with signals-get-export-download when completed."),
+				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent id whose signal data to export")),
+				signalTypeOpt(),
+				mcp.WithNumber("StartTime", mcp.Description("Optional lower bound, Unix epoch seconds")),
+				mcp.WithNumber("EndTime", mcp.Description("Optional upper bound, Unix epoch seconds")),
 			),
 		},
 		{

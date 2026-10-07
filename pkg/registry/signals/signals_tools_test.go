@@ -27,6 +27,7 @@ func TestToolsRegistered(t *testing.T) {
 		names = append(names, st.Tool.Name)
 	}
 	require.Equal(t, []string{
+		"signals-list-consents",
 		"signals-get-agent-consent",
 		"signals-set-agent-consent",
 		"signals-list-agent-sessions",
@@ -34,11 +35,66 @@ func TestToolsRegistered(t *testing.T) {
 		"signals-list-session-dialogues",
 		"signals-get-segment",
 		"signals-get-signal-report",
+		"signals-create-export",
 		"signals-list-exports",
 		"signals-get-export",
 		"signals-get-export-download",
 		"signals-get-export-options",
 	}, names)
+}
+
+func TestListConsents(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockSignalsService(ctrl)
+	tool := setupToolWithMock(mock)
+
+	mock.EXPECT().ListConsents(gomock.Any()).Return(&godo.SignalsListConsentsResponse{
+		TeamID: 123,
+		Consents: []godo.SignalsConsentRecord{
+			{ID: 1, TeamID: 123, AgentID: "agent-1", Enabled: true},
+		},
+	}, &godo.Response{}, nil)
+
+	res, err := tool.listConsents(context.Background(), mcp.CallToolRequest{})
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Contains(t, callText(res), "agent-1")
+}
+
+func TestCreateExport(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockSignalsService(ctrl)
+	tool := setupToolWithMock(mock)
+
+	t.Run("missing AgentID", func(t *testing.T) {
+		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{}},
+		})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		start := int64(1727740800)
+		mock.EXPECT().CreateExport(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, req *godo.SignalsCreateExportRequest) (*godo.SignalsExportJob, *godo.Response, error) {
+				require.Equal(t, "agent-1", req.AgentID)
+				require.Equal(t, []string{"Looping"}, req.SignalType)
+				require.Equal(t, &start, req.StartTime)
+				return &godo.SignalsExportJob{ExportID: "export-1", AgentID: "agent-1", Status: "queued"}, &godo.Response{}, nil
+			},
+		)
+		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{
+				"AgentID":    "agent-1",
+				"SignalType": []any{"Looping"},
+				"StartTime":  float64(1727740800),
+			}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		require.Contains(t, callText(res), "export-1")
+	})
 }
 
 func TestGetAgentConsent(t *testing.T) {
@@ -164,6 +220,7 @@ var expectedAnnotations = map[string]struct {
 	risk                                         common.Risk
 	parallelizable, streamingSafe                bool
 }{
+	"signals-list-consents":          {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-agent-consent":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-set-agent-consent":      {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"signals-list-agent-sessions":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
@@ -171,6 +228,7 @@ var expectedAnnotations = map[string]struct {
 	"signals-list-session-dialogues": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-segment":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-signal-report":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"signals-create-export":          {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
 	"signals-list-exports":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-export":             {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-export-download":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},

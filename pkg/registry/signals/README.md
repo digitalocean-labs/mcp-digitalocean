@@ -2,7 +2,7 @@
 
 ## What this service does
 
-This package registers **Signals** tools for the DigitalOcean MCP server: investigation GETs on `api.digitalocean.com/v1/signals` plus consent enable/disable on `PUT /v1/consent/{agent_id}`. Create-export and generate-report are omitted until they are an explicit product ask.
+This package registers **Signals** tools for the DigitalOcean MCP server: investigation GETs on `api.digitalocean.com/v1/signals`, consent list/get/set on `/v1/consent`, and export create/list/get/download on `/v1/signals/exports`. Generate-report is omitted until it is an explicit product ask.
 
 **Enable these tools** with service name **`signals`**. Hosted URL: `https://signals.mcp.digitalocean.com/mcp`.
 
@@ -22,13 +22,15 @@ This package registers **Signals** tools for the DigitalOcean MCP server: invest
 
 | Tool | What it does |
 | --- | --- |
+| `signals-list-consents` | List collection consent records for the team. |
 | `signals-get-agent-consent` | GET collection consent for one agent. Missing row is default deny. |
-| `signals-set-agent-consent` | PUT enable or disable collection for one agent (only v1 write). |
+| `signals-set-agent-consent` | PUT enable or disable collection for one agent. |
 | `signals-list-agent-sessions` | List sessions for an agent. |
 | `signals-list-session-segments` | List segments in a session. |
 | `signals-list-session-dialogues` | List dialogue turns for a session. |
 | `signals-get-segment` | Get one segment plus nested signals. |
 | `signals-get-signal-report` | Get a persisted post-session analysis report if present. |
+| `signals-create-export` | Create an export job for an agent. |
 | `signals-list-exports` | List prior export jobs. |
 | `signals-get-export` | Poll one export job. |
 | `signals-get-export-download` | 15-minute presigned Spaces URL for a completed export. |
@@ -38,4 +40,4 @@ This package registers **Signals** tools for the DigitalOcean MCP server: invest
 
 ## Auth
 
-Requires a DigitalOcean API token with `signals:query` (GETs) and `signals:update` (consent PUT). The public API is gated by Flipper `fi_signals_apis`. Ingest may take up to 15 minutes to honor a consent change.
+Requires a DigitalOcean API token with `signals:query` (GETs) and `signals:update` (writes such as consent PUT and create export). The public API is gated by Flipper `fi_signals_apis`. Ingest may take up to 15 minutes to honor a consent change.
