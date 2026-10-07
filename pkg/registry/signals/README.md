@@ -1,6 +1,6 @@
 ## Signals MCP Tools
 
-Tools for investigating Gradient AI agent sessions, segments, dialogue, and exports, and for managing Signals collection consent.
+Tools for investigating Agent Platform agent sessions, segments, dialogue, and exports, and for managing Signals collection consent.
 
 Enable these tools with service name **`signals`**. Hosted URL: `https://signals.mcp.digitalocean.com/mcp`.
 
