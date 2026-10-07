@@ -32,9 +32,3 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - Show the dialogue turns in this session.
 - Get the segment details and signals for this segment ID.
 - Create an export for this agent, then download it when it completes.
-
----
-
-## Authentication
-
-Use a DigitalOcean API token with `signals:query` for reads and `signals:update` for consent changes and creating exports.
