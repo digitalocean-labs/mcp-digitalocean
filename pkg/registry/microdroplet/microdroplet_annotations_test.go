@@ -17,16 +17,16 @@ var expectedAnnotations = map[string]struct {
 	risk                                         common.Risk
 	parallelizable, streamingSafe                bool
 }{
-	"microdroplet-create":             {false, false, false, false, common.OpCreate, common.RiskHigh, false, false},
-	"microdroplet-list":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"microdroplet-get":                {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"microdroplet-delete":             {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
-	"microdroplet-pause":              {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
-	"microdroplet-resume":             {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
-	"microdroplet-checkpoint-create":  {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
-	"microdroplet-checkpoint-list":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"microdroplet-checkpoint-get":     {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"microdroplet-checkpoint-delete":  {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
+	"microdroplet-create":            {false, false, false, false, common.OpCreate, common.RiskHigh, false, false},
+	"microdroplet-list":              {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"microdroplet-get":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"microdroplet-delete":            {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
+	"microdroplet-pause":             {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"microdroplet-resume":            {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"microdroplet-checkpoint-create": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"microdroplet-checkpoint-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"microdroplet-checkpoint-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"microdroplet-checkpoint-delete": {false, true, true, false, common.OpDelete, common.RiskHigh, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
