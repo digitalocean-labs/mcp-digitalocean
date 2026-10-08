@@ -4,6 +4,19 @@ This directory provides tool-based handlers for interacting with DigitalOcean in
 Server. All insight operations are exposed as tools that accept structured arguments—no resource URIs are used.
 Pagination and filtering are supported where applicable.
 
+## Insights v2 (preferred)
+
+Uses `client.Insights` (`/v2/insights/...`).
+
+- **insights-alert-rule-*** — get/list/create/update/delete (`NotificationChannels` required on create)
+- **insights-notification-channel-*** — get/list/create/update/delete
+- **insights-alert-instance-*** — get/list
+- **insights-query**, **insights-query-range**, **insights-query-series**, **insights-query-labels**, **insights-query-label-values**
+
+## Deprecated v1
+
+`alert-policy-*` still call Monitoring. Tool descriptions and a second result text block say DEPRECATED and point at `insights-alert-rule-*`. Uptime tools are unchanged (no v2 MCP yet).
+
 ## Supported Tools
 
 ### UptimeCheck
