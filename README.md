@@ -185,6 +185,7 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 | docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
 | signals                  | https://signals.mcp.digitalocean.com/mcp                    | Investigate Gradient agent sessions, segments, and consent for DigitalOcean Signals. |
+| harness-runtime          | https://harness-runtime.mcp.digitalocean.com/mcp            | List and inspect hosted agent configs for DigitalOcean Harness Runtime. |
 | genai-custom-models      | https://genai-custom-models.mcp.digitalocean.com/mcp        | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform. |
 | genai-inferencerouter    | https://genai-inferencerouter.mcp.digitalocean.com/mcp      | Create, list, get, and delete GenAI model routers. |
 | dedicated-inference      | https://dedicated-inference.mcp.digitalocean.com/mcp        | Manage Dedicated Inference instances for GPU-accelerated model serving. |
@@ -668,6 +669,7 @@ Each service provides a detailed README describing all available tools, resource
 - [GenAI evaluation](pkg/registry/genai/README.md)
 - [GenAI Batch Inference Service](pkg/registry/genai-batchinference/README.md)
 - [Signals Service](pkg/registry/signals/README.md)
+- [Harness Runtime Service](pkg/registry/harness-runtime/README.md)
 - [GenAI Custom Models Service](pkg/registry/genai-custom-models/README.md)
 - [GenAI Inference Router](pkg/registry/genai-inferencerouter/README.md)
 - [NFS Service](pkg/registry/nfs/README.md)
