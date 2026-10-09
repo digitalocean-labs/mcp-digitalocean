@@ -17,12 +17,12 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-get-agent-consent**  
   Get collection consent for one agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID to look up
+    - `AgentID` (string, required): Environment Config ID (agent ID)
 
 - **signals-set-agent-consent**  
   Enable or disable collection for one agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID to update
+    - `AgentID` (string, required): Environment Config ID (agent ID)
     - `Enabled` (boolean, required): `true` to enable, `false` to disable
 
 ### Sessions and dialogues
@@ -30,7 +30,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-list-agent-sessions**  
   List sessions for an agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID whose sessions to list
+    - `AgentID` (string, required): Environment Config ID (agent ID)
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
@@ -58,7 +58,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-create-export**  
   Create an export job for an agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID whose data to export
+    - `AgentID` (string, required): Environment Config ID (agent ID)
     - `SignalType` (array of strings, optional): Filter by signal type
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
     - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
@@ -66,7 +66,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-list-exports**  
   List prior export jobs.  
   **Arguments:**
-    - `AgentID` (string, optional): Filter by agent ID
+    - `AgentID` (string, optional): Environment Config ID (agent ID)
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
 
@@ -132,7 +132,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 
 - All tools use argument-based input; do not use resource URIs.
 - Pagination uses `Limit` and `After`. Pass `page_info.end_cursor` as `After`.
-- `AgentID` is the Harness Runtime Environment Config UUID.
+- `AgentID` is the Harness Runtime **Environment Config ID** (environment ID). Use the same UUID from `doctl harness-runtime config list` or the Control Panel.
 - Consent changes can take up to 15 minutes to apply to ingest.
 - Export download URLs expire after about 15 minutes.
 - All responses are returned in JSON format.
