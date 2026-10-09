@@ -232,43 +232,6 @@ func (t *Tool) listSessionDialogues(ctx context.Context, req mcp.CallToolRequest
 	return dialoguesOut.Result(out)
 }
 
-func (t *Tool) getSegment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.doClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-	args := req.GetArguments()
-	segmentID := argString(args, "SegmentID")
-	if segmentID == "" {
-		return mcp.NewToolResultError("SegmentID is required"), nil
-	}
-	opts := &godo.SignalsCursorPageOptions{
-		Limit: argInt(args, "Limit"),
-		After: argString(args, "After"),
-	}
-	out, _, err := client.Signals.GetSegment(ctx, segmentID, opts)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to get segment", err), nil
-	}
-	return segmentOut.Result(out)
-}
-
-func (t *Tool) getSignalReport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.doClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-	segmentID := argString(req.GetArguments(), "SegmentID")
-	if segmentID == "" {
-		return mcp.NewToolResultError("SegmentID is required"), nil
-	}
-	out, _, err := client.Signals.GetSegmentSignalReport(ctx, segmentID)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to get signal report", err), nil
-	}
-	return reportOut.Result(out)
-}
-
 func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.doClient(ctx)
 	if err != nil {
@@ -453,28 +416,6 @@ func (t *Tool) Tools() []server.ServerTool {
 					mcp.WithNumber("EndTime", mcp.Description("Optional Unix epoch seconds upper bound")),
 					mcp.WithBoolean("ContinueSession", mcp.Description("When true, continue from the current session cursor")),
 				)...,
-			),
-		},
-		{
-			Handler: t.getSegment,
-			Tool: mcp.NewTool("signals-get-segment",
-				withLimitAfter(
-					common.WithHints(common.HintsRead),
-					common.WithRisk(common.RiskLow),
-					segmentOut.Schema(),
-					mcp.WithDescription("Get one segment plus nested signals (cursor-paginated)."),
-					mcp.WithString("SegmentID", mcp.Required(), mcp.Description("Segment id")),
-				)...,
-			),
-		},
-		{
-			Handler: t.getSignalReport,
-			Tool: mcp.NewTool("signals-get-signal-report",
-				common.WithHints(common.HintsRead),
-				common.WithRisk(common.RiskLow),
-				reportOut.Schema(),
-				mcp.WithDescription("Get the persisted post-session analysis report for a segment, if one exists."),
-				mcp.WithString("SegmentID", mcp.Required(), mcp.Description("Segment id")),
 			),
 		},
 		{

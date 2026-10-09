@@ -13,8 +13,6 @@ var (
 	sessionsOut       = common.NewObjectOutput[*godo.SignalsListAgentSessionsResponse]()
 	segmentsOut       = common.NewObjectOutput[*godo.SignalsListSegmentsResponse]()
 	dialoguesOut      = common.NewObjectOutput[*godo.SignalsSessionDialoguesResponse]()
-	segmentOut        = common.NewObjectOutput[*godo.SignalsSegmentDetailResponse]()
-	reportOut         = common.NewObjectOutput[*godo.SignalsReport]()
 	exportsOut        = common.NewObjectOutput[*godo.SignalsListExportsResponse]()
 	exportJobOut      = common.NewObjectOutput[*godo.SignalsExportJob]()
 	exportDownloadOut = common.NewObjectOutput[*godo.SignalsExportDownload]()
