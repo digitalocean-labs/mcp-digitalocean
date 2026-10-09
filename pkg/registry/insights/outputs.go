@@ -41,4 +41,5 @@ var (
 	promQueryRangeOut       = common.NewOutput[*godo.PromQueryRangeResponse]("query_range")
 	promSeriesOut           = common.NewOutput[*godo.PromSeriesResponse]("series")
 	promLabelsOut           = common.NewOutput[*godo.PromLabelsResponse]("labels")
+	logsSearchOut           = common.NewOutput[*godo.LogsSearchResponse]("logs")
 )

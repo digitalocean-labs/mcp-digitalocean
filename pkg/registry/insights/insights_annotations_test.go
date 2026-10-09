@@ -69,6 +69,7 @@ var expectedAnnotations = map[string]struct {
 	"insights-query-series":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"insights-query-labels":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"insights-query-label-values": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-logs-search":        {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {

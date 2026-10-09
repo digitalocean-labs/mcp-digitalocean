@@ -140,6 +140,23 @@ func (t *QueryTool) labelValues(ctx context.Context, req mcp.CallToolRequest) (*
 	return promLabelsOut.Result(out)
 }
 
+func (t *QueryTool) searchLogs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	region := stringArg(args, "Region")
+	if region == "" || stringArg(args, "From") == "" || stringArg(args, "To") == "" {
+		return mcp.NewToolResultError("Region, From, and To are required"), nil
+	}
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Insights.SearchLogs(ctx, region, logsSearchRequestFromArgs(args))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return logsSearchOut.Result(out)
+}
+
 func (t *QueryTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{Handler: t.query, Tool: mcp.NewTool("insights-query",
@@ -188,6 +205,19 @@ func (t *QueryTool) Tools() []server.ServerTool {
 			mcp.WithArray("Match", mcp.Description("Optional match[] selectors"), mcp.Items(map[string]any{"type": "string"})),
 			mcp.WithString("Start", mcp.Description("Start time")),
 			mcp.WithString("End", mcp.Description("End time")),
+		)},
+		{Handler: t.searchLogs, Tool: mcp.NewTool("insights-logs-search",
+			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), logsSearchOut.Schema(),
+			mcp.WithDescription("PREFERRED — Search Insights logs (POST /v2/insights/query/{region}/logs/search). Time range max 7 days."),
+			mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug, e.g. nyc3")),
+			mcp.WithString("From", mcp.Required(), mcp.Description("Window start: relative (now-1h), RFC3339, or unix nano")),
+			mcp.WithString("To", mcp.Required(), mcp.Description("Window end: relative (now), RFC3339, or unix nano")),
+			mcp.WithString("Query", mcp.Description("Substring search across body, service name, and resource URN")),
+			mcp.WithNumber("Limit", mcp.Description("Page size (default 100, max 1000)")),
+			mcp.WithString("Cursor", mcp.Description("Pagination cursor from the previous page")),
+			mcp.WithString("OrderByField", mcp.Description("Sort field name, e.g. timestamp")),
+			mcp.WithString("OrderByDirection", mcp.Description("SORT_DIRECTION_ASC or SORT_DIRECTION_DESC")),
+			mcp.WithString("OrderByScope", mcp.Description("FIELD_SCOPE_RESOURCE or FIELD_SCOPE_ATTRIBUTES")),
 		)},
 	}
 }

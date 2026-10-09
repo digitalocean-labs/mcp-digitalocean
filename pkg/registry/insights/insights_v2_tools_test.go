@@ -198,6 +198,35 @@ func TestQueryTool(t *testing.T) {
 	require.False(t, resp.IsError)
 }
 
+func TestQueryTool_searchLogs(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	_, _, _, tool := setupInsightsTools(mock)
+
+	resp, err := tool.searchLogs(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().SearchLogs(gomock.Any(), "nyc3", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, req *godo.LogsSearchRequest) (*godo.LogsSearchResponse, *godo.Response, error) {
+			require.Equal(t, "now-1h", req.TimeRange.From.Relative)
+			require.Equal(t, "now", req.TimeRange.To.Relative)
+			require.NotNil(t, req.Filter)
+			require.NotNil(t, req.Filter.TextSearch)
+			require.Equal(t, "timeout", req.Filter.TextSearch.Query)
+			require.NotNil(t, req.Pagination)
+			require.Equal(t, 50, req.Pagination.Limit)
+			return &godo.LogsSearchResponse{Data: []godo.InsightsLogRecord{{Body: "timeout"}}}, nil, nil
+		},
+	)
+	resp, err = tool.searchLogs(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"Region": "nyc3", "From": "now-1h", "To": "now", "Query": "timeout", "Limit": float64(50),
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
 func TestAlertPolicyDeprecationNotice(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
