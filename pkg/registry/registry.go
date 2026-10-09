@@ -20,6 +20,7 @@ import (
 	genaibi "mcp-digitalocean/pkg/registry/genai-batchinference"
 	genaicm "mcp-digitalocean/pkg/registry/genai-custom-models"
 	genaiinferencerouter "mcp-digitalocean/pkg/registry/genai-inferencerouter"
+	harnessruntime "mcp-digitalocean/pkg/registry/harness-runtime"
 	inferencemodelcatalog "mcp-digitalocean/pkg/registry/inference-modelcatalog"
 	"mcp-digitalocean/pkg/registry/insights"
 	"mcp-digitalocean/pkg/registry/marketplace"
@@ -60,6 +61,7 @@ var supportedServices = map[string]struct{}{
 	"nfs":                    {},
 	"vector-databases":       {},
 	"signals":                {},
+	"harness-runtime":        {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -254,6 +256,11 @@ func registerSignalsTools(s *server.MCPServer, getClient getClientFn) error {
 	return nil
 }
 
+func registerHarnessRuntimeTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(harnessruntime.NewTool(getClient).Tools()...)
+	return nil
+}
+
 // Register registers the set of tools for the specified services with the MCP server.
 // We either register a subset of tools of the services are specified, or we register all tools if no services are specified.
 func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, servicesToActivate ...string) error {
@@ -354,6 +361,10 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		case "signals":
 			if err := registerSignalsTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register signals tools: %w", err)
+			}
+		case "harness-runtime":
+			if err := registerHarnessRuntimeTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register harness-runtime tools: %w", err)
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
