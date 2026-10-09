@@ -4,7 +4,7 @@ Lifecycle tools for DigitalOcean MicroVMs over `POST/GET/DELETE /v2/microvms/*`.
 
 Activate with `--services microdroplets` (or include `microdroplets` in `SERVICES`). Requires a valid `DIGITALOCEAN_API_TOKEN`.
 
-Tool names keep the `microdroplet-*` prefix (same as the service flag). Paths follow the current public API (`/v2/microvms`, not `/instances`).
+Tool names use the `microdroplet-*` prefix (service flag is `microdroplets`). Paths follow the current public API (`/v2/microvms`, not `/instances`).
 
 ## Tools
 

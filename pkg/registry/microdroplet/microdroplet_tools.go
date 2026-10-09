@@ -54,7 +54,7 @@ func (t *MicroDropletTool) create(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet create", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(microVMOut, out)
 }
 
 func (t *MicroDropletTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -81,7 +81,7 @@ func (t *MicroDropletTool) list(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet list", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(microVMsListOut, out)
 }
 
 func (t *MicroDropletTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -99,7 +99,7 @@ func (t *MicroDropletTool) get(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet get", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(microVMOut, out)
 }
 
 func (t *MicroDropletTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -134,7 +134,7 @@ func (t *MicroDropletTool) pause(ctx context.Context, req mcp.CallToolRequest) (
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet pause", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(microVMOut, out)
 }
 
 func (t *MicroDropletTool) resume(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -152,7 +152,7 @@ func (t *MicroDropletTool) resume(ctx context.Context, req mcp.CallToolRequest) 
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("microdroplet resume", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(microVMOut, out)
 }
 
 func (t *MicroDropletTool) checkpointCreate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -176,7 +176,7 @@ func (t *MicroDropletTool) checkpointCreate(ctx context.Context, req mcp.CallToo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("checkpoint create", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(checkpointOut, out)
 }
 
 func (t *MicroDropletTool) checkpointList(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -197,7 +197,7 @@ func (t *MicroDropletTool) checkpointList(ctx context.Context, req mcp.CallToolR
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("checkpoint list", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(checkpointsListOut, out)
 }
 
 func (t *MicroDropletTool) checkpointGet(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -215,7 +215,7 @@ func (t *MicroDropletTool) checkpointGet(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("checkpoint get", err), nil
 	}
-	return toolResultJSON(out)
+	return toolResultJSON(checkpointOut, out)
 }
 
 func (t *MicroDropletTool) checkpointDelete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -388,19 +388,20 @@ func requiredUUID(args map[string]any, key string) (string, string) {
 	return id, ""
 }
 
-func toolResultJSON(raw json.RawMessage) (*mcp.CallToolResult, error) {
+func toolResultJSON[T any](out *common.Output[T], raw json.RawMessage) (*mcp.CallToolResult, error) {
 	if len(raw) == 0 {
-		return mcp.NewToolResultText("{}"), nil
+		raw = json.RawMessage("{}")
 	}
+	text := string(raw)
 	var pretty json.RawMessage
-	if err := json.Unmarshal(raw, &pretty); err != nil {
-		return mcp.NewToolResultText(string(raw)), nil
+	if err := json.Unmarshal(raw, &pretty); err == nil {
+		if b, err := json.MarshalIndent(pretty, "", "  "); err == nil {
+			text = string(b)
+		}
 	}
-	b, err := json.MarshalIndent(pretty, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal response: %w", err)
-	}
-	return mcp.NewToolResultText(string(b)), nil
+	// ResultRaw keeps the upstream document byte-for-byte in structuredContent
+	// while text stays the indented form clients already consumed.
+	return out.ResultRaw(text, raw), nil
 }
 
 func intFromArg(v any, def int) int {
@@ -449,6 +450,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
+				microVMOut.Schema(),
 				mcp.WithDescription("Create a MicroVM. source must have exactly one of oci_ref or checkpoint_id. region and size are required for oci_ref; both are inherited from the checkpoint when omitted."),
 				mcp.WithString("name", mcp.Required(), mcp.Description("Human-readable name.")),
 				mcp.WithObject("source", mcp.Required(), mcp.Description("Workload source. Exactly one of oci_ref or checkpoint_id."),
@@ -484,6 +486,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				microVMsListOut.Schema(),
 				mcp.WithDescription("List MicroVMs for the authenticated team."),
 				mcp.WithNumber("page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1).")),
 				mcp.WithNumber("per_page", mcp.DefaultNumber(25), mcp.Description("Items per page (default 25, max 200).")),
@@ -497,6 +500,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				microVMOut.Schema(),
 				mcp.WithDescription("Get a MicroVM by ID."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
@@ -515,6 +519,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-pause",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				microVMOut.Schema(),
 				mcp.WithDescription("Pause a running MicroVM (synchronous, idempotent)."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
@@ -524,6 +529,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-resume",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				microVMOut.Schema(),
 				mcp.WithDescription("Resume a paused MicroVM (synchronous, idempotent)."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 			),
@@ -533,6 +539,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-checkpoint-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				checkpointOut.Schema(),
 				mcp.WithDescription("Start async checkpoint of a running or paused MicroVM. Poll checkpoint-get until available or failed."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 				mcp.WithString("name", mcp.Description("Optional checkpoint name.")),
@@ -543,6 +550,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-checkpoint-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				checkpointsListOut.Schema(),
 				mcp.WithDescription("List team checkpoints, newest first."),
 				mcp.WithNumber("page", mcp.DefaultNumber(1), mcp.Description("Page number (default 1).")),
 				mcp.WithNumber("per_page", mcp.DefaultNumber(25), mcp.Description("Items per page (default 25, max 200).")),
@@ -554,6 +562,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("microdroplet-checkpoint-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				checkpointOut.Schema(),
 				mcp.WithDescription("Get a checkpoint by ID."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("Checkpoint UUID.")),
 			),
