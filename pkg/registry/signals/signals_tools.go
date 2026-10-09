@@ -285,13 +285,13 @@ func (t *Tool) getExportOptions(ctx context.Context, req mcp.CallToolRequest) (*
 
 func withLimitAfter(opts ...mcp.ToolOption) []mcp.ToolOption {
 	return append(opts,
-		mcp.WithNumber("Limit", mcp.Description("Page size (default 20, max 100)")),
-		mcp.WithString("After", mcp.Description("Cursor from page_info.end_cursor")),
+		mcp.WithNumber("Limit", mcp.Description("Page size for cursor pagination (default 20, max 100).")),
+		mcp.WithString("After", mcp.Description("Opaque cursor from the previous response's page_info.end_cursor. Omit on the first page.")),
 	)
 }
 
 func signalTypeOpt() mcp.ToolOption {
-	return mcp.WithArray("SignalType", mcp.Description("Optional signal_type filter. Repeatable (OR)."), mcp.Items(map[string]any{"type": "string"}))
+	return mcp.WithArray("SignalType", mcp.Description("Optional signal type filter. When set, results must include at least one of these types (OR). Example values: MisalignmentRephrase, ExecutionLoopsRetry."), mcp.Items(map[string]any{"type": "string"}))
 }
 
 // Tools returns MCP tools for Signals.
@@ -303,7 +303,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				consentsListOut.Schema(),
-				mcp.WithDescription("List Signals collection consent records for the team (GET /v1/consent)."),
+				mcp.WithDescription("List Signals collection consent records for the authenticated team. Returns each agent's AgentID and whether collection is Enabled. Use before enabling or auditing collection."),
 			),
 		},
 		{
@@ -312,8 +312,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				consentOut.Schema(),
-				mcp.WithDescription("Get Signals collection consent for one agent. Missing row is default deny (enabled=false, allowed=false)."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent id (Mars SPI config_id / Agent Config UUID)")),
+				mcp.WithDescription("Get Signals collection consent for one agent. If no consent row exists, collection is denied (enabled=false, allowed=false). Use AgentID from doctl harness-runtime config list or harness-runtime-list-agent-configs."),
+				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent ID: Harness Runtime Environment Config UUID (agent config ID).")),
 			),
 		},
 		{
@@ -322,9 +322,9 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
 				consentSetOut.Schema(),
-				mcp.WithDescription("Enable or disable Signals collection for one agent. PUT /v1/consent/{agent_id} on consent-gateway. Requires signals:update. Ingest cache can take up to 15 minutes."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent id to update")),
-				mcp.WithBoolean("Enabled", mcp.Required(), mcp.Description("true to collect, false to deny")),
+				mcp.WithDescription("Enable or disable Signals collection for one agent. Ingest may take up to 15 minutes to honor the change. Collection applies to conversations that begin after consent is enabled."),
+				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent ID: Harness Runtime Environment Config UUID to update.")),
+				mcp.WithBoolean("Enabled", mcp.Required(), mcp.Description("true to collect Signals data for this agent; false to deny collection.")),
 			),
 		},
 		{
@@ -334,10 +334,10 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithHints(common.HintsRead),
 					common.WithRisk(common.RiskLow),
 					sessionsOut.Schema(),
-					mcp.WithDescription("List sessions for an agent (cursor page of session summaries)."),
-					mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent id whose sessions to list")),
-					mcp.WithNumber("StartTime", mcp.Description("Optional lower bound, Unix epoch seconds")),
-					mcp.WithNumber("EndTime", mcp.Description("Optional upper bound, Unix epoch seconds")),
+					mcp.WithDescription("List conversation sessions for an agent as a cursor page of session summaries (session_id, turns, duration, started_at). Pass a returned session_id to signals-list-session-dialogues."),
+					mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent ID whose sessions to list.")),
+					mcp.WithNumber("StartTime", mcp.Description("Optional lower bound as Unix epoch seconds (inclusive).")),
+					mcp.WithNumber("EndTime", mcp.Description("Optional upper bound as Unix epoch seconds (inclusive).")),
 					signalTypeOpt(),
 				)...,
 			),
@@ -349,13 +349,13 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithHints(common.HintsRead),
 					common.WithRisk(common.RiskLow),
 					dialoguesOut.Schema(),
-					mcp.WithDescription("List dialogue turns for a session."),
-					mcp.WithString("SessionID", mcp.Required(), mcp.Description("Session id")),
-					mcp.WithString("Before", mcp.Description("Upper cursor bound")),
+					mcp.WithDescription("List dialogue turns for a session, including nested signal instances when present. Use SessionID from signals-list-agent-sessions."),
+					mcp.WithString("SessionID", mcp.Required(), mcp.Description("Session ID returned by signals-list-agent-sessions.")),
+					mcp.WithString("Before", mcp.Description("Optional upper cursor bound for the page.")),
 					signalTypeOpt(),
-					mcp.WithNumber("StartTime", mcp.Description("Optional Unix epoch seconds lower bound")),
-					mcp.WithNumber("EndTime", mcp.Description("Optional Unix epoch seconds upper bound")),
-					mcp.WithBoolean("ContinueSession", mcp.Description("When true, continue from the current session cursor")),
+					mcp.WithNumber("StartTime", mcp.Description("Optional lower bound as Unix epoch seconds.")),
+					mcp.WithNumber("EndTime", mcp.Description("Optional upper bound as Unix epoch seconds.")),
+					mcp.WithBoolean("ContinueSession", mcp.Description("When true, continue paging within the current session using the session cursor (continue_session query param).")),
 				)...,
 			),
 		},
@@ -365,11 +365,11 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				exportJobOut.Schema(),
-				mcp.WithDescription("Create a Signals export job for an agent (POST /v1/signals/exports). Poll with signals-get-export, then download with signals-get-export-download when completed."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent id whose signal data to export")),
+				mcp.WithDescription("Create a Signals export job for an agent. Returns an ExportID. Poll with signals-get-export until status is completed or failed, then call signals-get-export-download for a short-lived download URL."),
+				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Agent ID whose Signals data to export.")),
 				signalTypeOpt(),
-				mcp.WithNumber("StartTime", mcp.Description("Optional lower bound, Unix epoch seconds")),
-				mcp.WithNumber("EndTime", mcp.Description("Optional upper bound, Unix epoch seconds")),
+				mcp.WithNumber("StartTime", mcp.Description("Optional lower bound as Unix epoch seconds.")),
+				mcp.WithNumber("EndTime", mcp.Description("Optional upper bound as Unix epoch seconds.")),
 			),
 		},
 		{
@@ -379,8 +379,8 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithHints(common.HintsRead),
 					common.WithRisk(common.RiskLow),
 					exportsOut.Schema(),
-					mcp.WithDescription("List prior export jobs for the team. Optional AgentID filter."),
-					mcp.WithString("AgentID", mcp.Description("If set, only exports for this agent")),
+					mcp.WithDescription("List prior Signals export jobs for the team. Optionally filter by AgentID. Does not include download URLs; use signals-get-export-download for a completed job."),
+					mcp.WithString("AgentID", mcp.Description("If set, only return export jobs for this agent.")),
 				)...,
 			),
 		},
@@ -390,8 +390,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				exportJobOut.Schema(),
-				mcp.WithDescription("Poll one export job until status is completed or failed."),
-				mcp.WithString("ExportID", mcp.Required(), mcp.Description("Export job id")),
+				mcp.WithDescription("Get one export job by ID (status, filters, timestamps). Poll until status is completed or failed before calling signals-get-export-download."),
+				mcp.WithString("ExportID", mcp.Required(), mcp.Description("Export job ID from signals-create-export or signals-list-exports.")),
 			),
 		},
 		{
@@ -400,8 +400,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				exportDownloadOut.Schema(),
-				mcp.WithDescription("Get a 15-minute presigned Spaces URL for a completed export. Do not persist the URL."),
-				mcp.WithString("ExportID", mcp.Required(), mcp.Description("Export job id")),
+				mcp.WithDescription("Get a short-lived (~15 minute) presigned Spaces download URL for a completed export. Do not persist the URL; call again if it expires."),
+				mcp.WithString("ExportID", mcp.Required(), mcp.Description("Export job ID whose status is completed.")),
 			),
 		},
 		{
@@ -410,7 +410,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				exportOptionsOut.Schema(),
-				mcp.WithDescription("Catalog of exportable entity types. Unauthenticated on the API; MCP still sends the team token."),
+				mcp.WithDescription("List exportable entity types and filter options for signals-create-export. Call this when you need the catalog of supported export filters."),
 			),
 		},
 	}
