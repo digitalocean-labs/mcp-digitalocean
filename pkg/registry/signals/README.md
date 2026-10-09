@@ -15,22 +15,22 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
   **Arguments:** None
 
 - **signals-get-agent-consent**  
-  Get Signals consent for one agent.  
+  Get Signals consent for one environment.  
   **Arguments:**
-    - `AgentID` (string, required): Environment Config ID
+    - `AgentID` (string, required): Environment ID
 
 - **signals-set-agent-consent**  
-  Enable or disable Signals for one agent.  
+  Enable or disable Signals for one environment.  
   **Arguments:**
-    - `AgentID` (string, required): Environment Config ID
+    - `AgentID` (string, required): Environment ID
     - `Enabled` (boolean, required): `true` to enable, `false` to disable
 
 ### Sessions and dialogues
 
 - **signals-list-agent-sessions**  
-  List sessions for an agent.  
+  List sessions for an environment.  
   **Arguments:**
-    - `AgentID` (string, required): Environment Config ID
+    - `AgentID` (string, required): Environment ID
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
@@ -56,9 +56,9 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
   **Arguments:** None
 
 - **signals-create-export**  
-  Create an export for an agent.  
+  Create an export for an environment.  
   **Arguments:**
-    - `AgentID` (string, required): Environment Config ID
+    - `AgentID` (string, required): Environment ID
     - `SignalType` (array of strings, optional): Filter by signal type
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
     - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
@@ -66,7 +66,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-list-exports**  
   List exports for the team.  
   **Arguments:**
-    - `AgentID` (string, optional): Environment Config ID
+    - `AgentID` (string, optional): Environment ID
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
 
@@ -88,18 +88,18 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
   Tool: `signals-list-consents`  
   Arguments: `{}`
 
-- **Get consent for one agent:**  
+- **Get consent for one environment:**  
   Tool: `signals-get-agent-consent`  
   Arguments:
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
 
-- **Enable Signals for an agent:**  
+- **Enable Signals for an environment:**  
   Tool: `signals-set-agent-consent`  
   Arguments:
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
     - `Enabled`: `true`
 
-- **List sessions for an agent:**  
+- **List sessions for an environment:**  
   Tool: `signals-list-agent-sessions`  
   Arguments:
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
@@ -132,7 +132,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 
 - All tools use argument-based input; do not use resource URIs.
 - Pagination uses `Limit` and `After`. Pass `page_info.end_cursor` as `After`.
-- `AgentID` is the Harness Runtime Environment Config ID (the environment ID). You can get it from `doctl harness-runtime config list`.
+- The `AgentID` argument is the Environment ID (Environment Config ID). Run `doctl harness-runtime config list` to find it.
 - After you change consent, ingest can take up to 15 minutes to apply it.
 - Export download URLs expire after about 15 minutes.
 - Responses are JSON.
