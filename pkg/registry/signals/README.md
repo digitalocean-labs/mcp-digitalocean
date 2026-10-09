@@ -12,7 +12,6 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **`signals-get-agent-consent`** — Get collection consent for one agent. Missing consent is treated as deny.
 - **`signals-set-agent-consent`** — Enable or disable collection for one agent.
 - **`signals-list-agent-sessions`** — List sessions for an agent.
-- **`signals-list-session-segments`** — List segments in a session.
 - **`signals-list-session-dialogues`** — List dialogue turns for a session.
 - **`signals-create-export`** — Create an export job for an agent.
 - **`signals-list-exports`** — List prior export jobs.

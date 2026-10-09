@@ -11,7 +11,6 @@ var (
 	consentSetOut     = common.NewObjectOutput[*godo.SignalsConsentRecord]()
 	consentsListOut   = common.NewObjectOutput[*godo.SignalsListConsentsResponse]()
 	sessionsOut       = common.NewObjectOutput[*godo.SignalsListAgentSessionsResponse]()
-	segmentsOut       = common.NewObjectOutput[*godo.SignalsListSegmentsResponse]()
 	dialoguesOut      = common.NewObjectOutput[*godo.SignalsSessionDialoguesResponse]()
 	exportsOut        = common.NewObjectOutput[*godo.SignalsListExportsResponse]()
 	exportJobOut      = common.NewObjectOutput[*godo.SignalsExportJob]()
