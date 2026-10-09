@@ -1,6 +1,6 @@
 ## Signals MCP Tools
 
-This directory contains tools for investigating DigitalOcean Signals on Agent Platform conversations: collection consent, sessions, dialogue turns, and exports. All operations are exposed as tools with argument-based input—no resource URIs are used. Cursor pagination (`Limit` / `After`) is supported where applicable.
+This directory contains tools for investigating DigitalOcean Signals on Agent Platform conversations: collection consent, sessions, dialogue turns, and exports. All operations are exposed as tools with argument-based input—no resource URIs are used. Cursor pagination and filtering are supported where applicable.
 
 Enable these tools with service name **`signals`**. Hosted URL: `https://signals.mcp.digitalocean.com/mcp`.
 
@@ -11,78 +11,78 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 ### Collection consent
 
 - **signals-list-consents**  
-  List Signals collection consent records for the authenticated team.  
+  List collection consent records for the team.  
   **Arguments:** None
 
 - **signals-get-agent-consent**  
-  Get Signals collection consent for one agent. If no consent row exists, collection is treated as denied (`enabled=false`, `allowed=false`).  
+  Get collection consent for one agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID (Harness Runtime Environment Config UUID / agent config ID)
+    - `AgentID` (string, required): Agent ID to look up
 
 - **signals-set-agent-consent**  
-  Enable or disable Signals collection for one agent. Ingest may take up to 15 minutes to honor a consent change.  
+  Enable or disable collection for one agent.  
   **Arguments:**
     - `AgentID` (string, required): Agent ID to update
-    - `Enabled` (boolean, required): `true` to collect Signals data; `false` to deny collection
+    - `Enabled` (boolean, required): `true` to enable, `false` to disable
 
 ### Sessions and dialogues
 
 - **signals-list-agent-sessions**  
-  List conversation sessions for an agent as a cursor page of session summaries. Use a returned `session_id` with `signals-list-session-dialogues`.  
+  List sessions for an agent.  
   **Arguments:**
     - `AgentID` (string, required): Agent ID whose sessions to list
-    - `Limit` (number, optional): Page size (default 20, max 100)
-    - `After` (string, optional): Cursor from the previous page's `page_info.end_cursor`
-    - `StartTime` (number, optional): Lower bound as Unix epoch seconds
-    - `EndTime` (number, optional): Upper bound as Unix epoch seconds
-    - `SignalType` (array of strings, optional): Filter to sessions that include any of these signal types (OR)
+    - `Limit` (number, default: 20, max: 100): Page size
+    - `After` (string, optional): Cursor from `page_info.end_cursor`
+    - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
+    - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
+    - `SignalType` (array of strings, optional): Filter by signal type
 
 - **signals-list-session-dialogues**  
-  List dialogue turns for a session, including nested signal instances when present.  
+  List dialogue turns for a session.  
   **Arguments:**
-    - `SessionID` (string, required): Session ID from `signals-list-agent-sessions`
-    - `Limit` (number, optional): Page size (default 20, max 100)
-    - `After` (string, optional): Cursor from the previous page's `page_info.end_cursor`
-    - `Before` (string, optional): Upper cursor bound for the page
-    - `ContinueSession` (boolean, optional): When `true`, continue paging within the current session using the session cursor
-    - `StartTime` (number, optional): Lower bound as Unix epoch seconds
-    - `EndTime` (number, optional): Upper bound as Unix epoch seconds
-    - `SignalType` (array of strings, optional): Filter dialogues that include any of these signal types (OR)
+    - `SessionID` (string, required): Session ID
+    - `Limit` (number, default: 20, max: 100): Page size
+    - `After` (string, optional): Cursor from `page_info.end_cursor`
+    - `Before` (string, optional): Upper cursor bound
+    - `ContinueSession` (boolean, optional): Continue from the session cursor
+    - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
+    - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
+    - `SignalType` (array of strings, optional): Filter by signal type
 
 ### Exports
 
 - **signals-get-export-options**  
-  List exportable entity types and filter options for create-export requests.  
+  List exportable entity types.  
   **Arguments:** None
 
 - **signals-create-export**  
-  Create a Signals export job for an agent. Poll with `signals-get-export` until `status` is `completed` or `failed`, then call `signals-get-export-download`.  
+  Create an export job for an agent.  
   **Arguments:**
-    - `AgentID` (string, required): Agent ID whose Signals data to export
-    - `SignalType` (array of strings, optional): Limit the export to these signal types
-    - `StartTime` (number, optional): Lower bound as Unix epoch seconds
-    - `EndTime` (number, optional): Upper bound as Unix epoch seconds
+    - `AgentID` (string, required): Agent ID whose data to export
+    - `SignalType` (array of strings, optional): Filter by signal type
+    - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
+    - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
 
 - **signals-list-exports**  
-  List prior export jobs for the team.  
+  List prior export jobs.  
   **Arguments:**
-    - `AgentID` (string, optional): If set, only exports for this agent
-    - `Limit` (number, optional): Page size (default 20, max 100)
-    - `After` (string, optional): Cursor from the previous page's `page_info.end_cursor`
+    - `AgentID` (string, optional): Filter by agent ID
+    - `Limit` (number, default: 20, max: 100): Page size
+    - `After` (string, optional): Cursor from `page_info.end_cursor`
 
 - **signals-get-export**  
-  Get one export job by ID (status, filters, timestamps). Use this to poll until the job finishes.  
+  Get one export job.  
   **Arguments:**
-    - `ExportID` (string, required): Export job ID from `signals-create-export` or `signals-list-exports`
+    - `ExportID` (string, required): Export job ID
 
 - **signals-get-export-download**  
-  Get a short-lived (about 15 minutes) presigned Spaces download URL for a completed export. Do not persist the URL.  
+  Get a short-lived download URL for a completed export.  
   **Arguments:**
-    - `ExportID` (string, required): Export job ID whose status is `completed`
+    - `ExportID` (string, required): Export job ID
 
 ---
 
-## Example usage
+## Example Usage
 
 - **List consent for the team:**  
   Tool: `signals-list-consents`  
@@ -99,40 +99,40 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
     - `Enabled`: `true`
 
-- **List recent sessions:**  
+- **List sessions for an agent:**  
   Tool: `signals-list-agent-sessions`  
   Arguments:
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
     - `Limit`: `20`
 
-- **Show dialogue turns in a session:**  
+- **List dialogue turns in a session:**  
   Tool: `signals-list-session-dialogues`  
   Arguments:
     - `SessionID`: `"01a10d59-80b2-70cf-8c2e-651ebb200ef8"`
     - `Limit`: `50`
 
-- **Create an export, then download it:**  
-  1. Tool: `signals-create-export` with `AgentID` (optional `SignalType`, `StartTime`, `EndTime`)  
-  2. Tool: `signals-get-export` with `ExportID` until `status` is `completed`  
-  3. Tool: `signals-get-export-download` with `ExportID`
+- **Create an export:**  
+  Tool: `signals-create-export`  
+  Arguments:
+    - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
 
----
+- **Get an export job:**  
+  Tool: `signals-get-export`  
+  Arguments:
+    - `ExportID`: `"export-1"`
 
-## Example queries using Signals MCP Tools
-
-- Show collection consent for this agent.
-- Enable Signals collection for agent X.
-- List recent sessions for this agent.
-- Show the dialogue turns in this session.
-- Create an export for this agent, then download it when it completes.
+- **Download a completed export:**  
+  Tool: `signals-get-export-download`  
+  Arguments:
+    - `ExportID`: `"export-1"`
 
 ---
 
 ## Notes
 
 - All tools use argument-based input; do not use resource URIs.
-- List endpoints that support paging use `Limit` and `After`. Pass `page_info.end_cursor` from the previous response as `After`.
-- `AgentID` is the Harness Runtime Environment Config UUID (the same ID `doctl harness-runtime config list` returns).
+- Pagination uses `Limit` and `After`. Pass `page_info.end_cursor` as `After`.
+- `AgentID` is the Harness Runtime Environment Config UUID.
 - Consent changes can take up to 15 minutes to apply to ingest.
-- Export download URLs expire quickly; fetch a new URL with `signals-get-export-download` if needed.
-- All responses are returned as JSON.
+- Export download URLs expire after about 15 minutes.
+- All responses are returned in JSON format.
