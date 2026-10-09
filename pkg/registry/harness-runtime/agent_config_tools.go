@@ -3,10 +3,12 @@ package harnessruntime
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -59,8 +61,8 @@ func (t *Tool) listAgentConfigs(ctx context.Context, req mcp.CallToolRequest) (*
 	query := url.Values{}
 
 	if v, ok := args["PageSize"].(float64); ok {
-		if v < 1 || v > maxPageSize {
-			return mcp.NewToolResultError(fmt.Sprintf("PageSize must be between 1 and %d", maxPageSize)), nil
+		if v != math.Trunc(v) || v < 1 || v > maxPageSize {
+			return mcp.NewToolResultError(fmt.Sprintf("PageSize must be an integer between 1 and %d", maxPageSize)), nil
 		}
 		query.Set("page_size", strconv.Itoa(int(v)))
 	}
@@ -68,7 +70,7 @@ func (t *Tool) listAgentConfigs(ctx context.Context, req mcp.CallToolRequest) (*
 		query.Set("page_token", v)
 	}
 	if v, _ := args["Search"].(string); v != "" {
-		if len(v) > maxSearchLen {
+		if utf8.RuneCountInString(v) > maxSearchLen {
 			return mcp.NewToolResultError(fmt.Sprintf("Search must be at most %d characters", maxSearchLen)), nil
 		}
 		query.Set("search", v)

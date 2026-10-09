@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
@@ -95,6 +96,7 @@ func TestListAgentConfigsValidation(t *testing.T) {
 	for name, args := range map[string]map[string]any{
 		"page size too small": {"PageSize": float64(0)},
 		"page size too large": {"PageSize": float64(201)},
+		"page size fraction":  {"PageSize": 1.9},
 		"search too long":     {"Search": string(make([]byte, 65))},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -103,6 +105,18 @@ func TestListAgentConfigsValidation(t *testing.T) {
 			require.True(t, res.IsError)
 		})
 	}
+}
+
+func TestListAgentConfigsSearchCountsRunes(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	})
+
+	// 64 multi-byte runes is valid even though it is well over 64 bytes.
+	res, err := tool.listAgentConfigs(context.Background(), request(map[string]any{"Search": strings.Repeat("é", 64)}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
 }
 
 func TestListAgentConfigsAPIError(t *testing.T) {
