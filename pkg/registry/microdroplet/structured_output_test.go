@@ -42,7 +42,7 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 		`"params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}`))
 
 	raw, err := json.Marshal(mcpServer.HandleMessage(ctx,
-		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"microdroplet-list","arguments":{"page":1,"per_page":10}}}`)))
+		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"microvm-list","arguments":{"page":1,"per_page":10}}}`)))
 	require.NoError(t, err)
 
 	var resp struct {
@@ -91,7 +91,7 @@ func TestCreateStructuredContentIsLossless(t *testing.T) {
 
 	args := `{"name":"agent-sandbox-1","region":"nyc1","size":{"cpu":2,"memory":4096},"source":{"oci_ref":"docker.io/library/nginx:1.27"}}`
 	raw, err := json.Marshal(mcpServer.HandleMessage(ctx,
-		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"microdroplet-create","arguments":`+args+`}}`)))
+		[]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"microvm-create","arguments":`+args+`}}`)))
 	require.NoError(t, err)
 
 	var resp struct {

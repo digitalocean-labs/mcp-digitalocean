@@ -63,7 +63,7 @@ var supportedServices = map[string]struct{}{
 	"vector-databases":       {},
 	"signals":                {},
 	"harness-runtime":        {},
-	"microdroplets":          {},
+	"microvms":               {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -373,9 +373,9 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 			if err := registerHarnessRuntimeTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register harness-runtime tools: %w", err)
 			}
-		case "microdroplets":
+		case "microvms":
 			if err := registerMicroDropletTools(s, getClient); err != nil {
-				return fmt.Errorf("failed to register microdroplets tools: %w", err)
+				return fmt.Errorf("failed to register microvms tools: %w", err)
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))

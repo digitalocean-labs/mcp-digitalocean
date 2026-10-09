@@ -52,7 +52,7 @@ func (t *MicroDropletTool) create(ctx context.Context, req mcp.CallToolRequest) 
 
 	out, err := api.do(ctx, http.MethodPost, "", nil, body)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet create", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm create", err), nil
 	}
 	return toolResultJSON(microVMOut, out)
 }
@@ -79,7 +79,7 @@ func (t *MicroDropletTool) list(ctx context.Context, req mcp.CallToolRequest) (*
 
 	out, err := api.do(ctx, http.MethodGet, "", query, nil)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet list", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm list", err), nil
 	}
 	return toolResultJSON(microVMsListOut, out)
 }
@@ -97,7 +97,7 @@ func (t *MicroDropletTool) get(ctx context.Context, req mcp.CallToolRequest) (*m
 
 	out, err := api.do(ctx, http.MethodGet, "/"+id, nil, nil)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet get", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm get", err), nil
 	}
 	return toolResultJSON(microVMOut, out)
 }
@@ -114,7 +114,7 @@ func (t *MicroDropletTool) delete(ctx context.Context, req mcp.CallToolRequest) 
 	}
 
 	if err := api.doNoContent(ctx, http.MethodDelete, "/"+id); err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet delete", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm delete", err), nil
 	}
 	return mcp.NewToolResultText("MicroVM deleted successfully"), nil
 }
@@ -132,7 +132,7 @@ func (t *MicroDropletTool) pause(ctx context.Context, req mcp.CallToolRequest) (
 
 	out, err := api.do(ctx, http.MethodPost, "/"+id+"/pause", nil, nil)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet pause", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm pause", err), nil
 	}
 	return toolResultJSON(microVMOut, out)
 }
@@ -150,7 +150,7 @@ func (t *MicroDropletTool) resume(ctx context.Context, req mcp.CallToolRequest) 
 
 	out, err := api.do(ctx, http.MethodPost, "/"+id+"/resume", nil, nil)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("microdroplet resume", err), nil
+		return mcp.NewToolResultErrorFromErr("microvm resume", err), nil
 	}
 	return toolResultJSON(microVMOut, out)
 }
@@ -447,7 +447,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{
 			Handler: t.create,
-			Tool: mcp.NewTool("microdroplet-create",
+			Tool: mcp.NewTool("microvm-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
 				microVMOut.Schema(),
@@ -483,7 +483,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.list,
-			Tool: mcp.NewTool("microdroplet-list",
+			Tool: mcp.NewTool("microvm-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				microVMsListOut.Schema(),
@@ -497,7 +497,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.get,
-			Tool: mcp.NewTool("microdroplet-get",
+			Tool: mcp.NewTool("microvm-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				microVMOut.Schema(),
@@ -507,7 +507,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.delete,
-			Tool: mcp.NewTool("microdroplet-delete",
+			Tool: mcp.NewTool("microvm-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a MicroVM. Irreversible; checkpoints are retained until deleted separately."),
@@ -516,7 +516,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.pause,
-			Tool: mcp.NewTool("microdroplet-pause",
+			Tool: mcp.NewTool("microvm-pause",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
 				microVMOut.Schema(),
@@ -526,7 +526,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.resume,
-			Tool: mcp.NewTool("microdroplet-resume",
+			Tool: mcp.NewTool("microvm-resume",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
 				microVMOut.Schema(),
@@ -536,7 +536,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.checkpointCreate,
-			Tool: mcp.NewTool("microdroplet-checkpoint-create",
+			Tool: mcp.NewTool("microvm-checkpoint-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				checkpointOut.Schema(),
@@ -547,7 +547,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.checkpointList,
-			Tool: mcp.NewTool("microdroplet-checkpoint-list",
+			Tool: mcp.NewTool("microvm-checkpoint-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				checkpointsListOut.Schema(),
@@ -559,7 +559,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.checkpointGet,
-			Tool: mcp.NewTool("microdroplet-checkpoint-get",
+			Tool: mcp.NewTool("microvm-checkpoint-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				checkpointOut.Schema(),
@@ -569,7 +569,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 		},
 		{
 			Handler: t.checkpointDelete,
-			Tool: mcp.NewTool("microdroplet-checkpoint-delete",
+			Tool: mcp.NewTool("microvm-checkpoint-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
 				mcp.WithDescription("Delete a checkpoint. Irreversible."),
