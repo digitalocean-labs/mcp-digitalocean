@@ -43,7 +43,7 @@ func TestToolsRegistered(t *testing.T) {
 	for _, st := range NewTool(nil).Tools() {
 		names = append(names, st.Tool.Name)
 	}
-	require.Equal(t, []string{"harness-runtime-list-agent-configs"}, names)
+	require.Equal(t, []string{"harness-runtime-list-agent-configs", "harness-runtime-get-agent-config"}, names)
 }
 
 func TestListAgentConfigs(t *testing.T) {
@@ -130,4 +130,55 @@ func TestListAgentConfigsAPIError(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to list agent configs")
+}
+
+const testConfigID = "019fb39c-14d9-7080-933e-b9b90e25acda"
+
+func TestGetAgentConfig(t *testing.T) {
+	var gotPath string
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"config":{"id":"` + testConfigID + `","name":"support-agent","agentspec_schema_version":"agents.digitalocean.com/flat.v1","content_hash":"abc","created_by":"user-1","created_at":"2026-08-01T12:00:00Z","updated_at":"2026-08-01T12:00:00Z","manifest":{"spec":{"runtime":"python"}},"credentials":[{"name":"OPENAI_API_KEY","source":"tenantSecret","provider":"openai"}]}}`))
+	})
+
+	res, err := tool.getAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/agents/configs/"+testConfigID, gotPath)
+	text := callText(t, res)
+	require.Contains(t, text, "support-agent")
+	require.Contains(t, text, "python")
+	require.Contains(t, text, "OPENAI_API_KEY")
+}
+
+func TestGetAgentConfigValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing":   {},
+		"not uuid":  {"ConfigID": "support-agent"},
+		"traversal": {"ConfigID": "../sessions"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.getAgentConfig(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestGetAgentConfigNotFound(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"id":"not_found","message":"config not found"}`))
+	})
+
+	res, err := tool.getAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+	require.Contains(t, callText(t, res), "Failed to get agent config")
 }

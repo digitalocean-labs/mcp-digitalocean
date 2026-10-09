@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/digitalocean/godo"
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
@@ -39,6 +40,28 @@ type AgentConfigSummary struct {
 type ListAgentConfigsResponse struct {
 	Configs       []AgentConfigSummary `json:"configs"`
 	NextPageToken string               `json:"next_page_token,omitempty"`
+}
+
+// AgentConfigCredentialSlot is redacted credential slot metadata; secret values are never returned.
+type AgentConfigCredentialSlot struct {
+	Name     string `json:"name"`
+	Source   string `json:"source,omitempty"`
+	Provider string `json:"provider,omitempty"`
+}
+
+// AgentConfig is a full agent config including its sanitized manifest.
+type AgentConfig struct {
+	AgentConfigSummary
+	// Manifest is the canonical runnable environment spec; its shape depends on
+	// the manifest format (flat or legacy v1alpha1), so it is passed through.
+	Manifest    map[string]any              `json:"manifest"`
+	Insights    map[string]any              `json:"insights,omitempty"`
+	Credentials []AgentConfigCredentialSlot `json:"credentials,omitempty"`
+}
+
+// AgentConfigResponse is the response of GET /v2/agents/configs/{config_id}.
+type AgentConfigResponse struct {
+	Config AgentConfig `json:"config"`
 }
 
 // Tool provides Harness Runtime (hosted agents) MCP tools.
@@ -96,6 +119,32 @@ func (t *Tool) listAgentConfigs(ctx context.Context, req mcp.CallToolRequest) (*
 	return agentConfigListOut.Result(out)
 }
 
+func (t *Tool) getAgentConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	configID, _ := req.GetArguments()["ConfigID"].(string)
+	if configID == "" {
+		return mcp.NewToolResultError("ConfigID is required"), nil
+	}
+	if _, err := uuid.Parse(configID); err != nil {
+		return mcp.NewToolResultError("ConfigID must be a UUID"), nil
+	}
+
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, agentConfigsPath+"/"+configID, nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+
+	var out AgentConfigResponse
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to get agent config", err), nil
+	}
+	return agentConfigOut.Result(out)
+}
+
 // Tools returns the Harness Runtime MCP tools.
 func (t *Tool) Tools() []server.ServerTool {
 	return []server.ServerTool{
@@ -109,6 +158,16 @@ func (t *Tool) Tools() []server.ServerTool {
 				mcp.WithNumber("PageSize", mcp.Description("Page size (1-200, default 50)")),
 				mcp.WithString("PageToken", mcp.Description("Opaque cursor from the previous response's next_page_token")),
 				mcp.WithString("Search", mcp.Description("Optional case-insensitive substring filter on config name (max 64 characters)")),
+			),
+		},
+		{
+			Handler: t.getAgentConfig,
+			Tool: mcp.NewTool("harness-runtime-get-agent-config",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
+				agentConfigOut.Schema(),
+				mcp.WithDescription("Get one active hosted agent config (Environment Config) by id, including its sanitized environment spec (manifest) and redacted credential slot metadata. Secret values are never returned."),
+				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID, as returned by harness-runtime-list-agent-configs")),
 			),
 		},
 	}
