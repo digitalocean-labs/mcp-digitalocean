@@ -1,6 +1,6 @@
 ## Signals MCP Tools
 
-Tools for investigating Agent Platform sessions, segments, dialogue, and exports, and for managing Signals collection consent.
+Tools for investigating Agent Platform sessions, dialogue, and exports, and for managing Signals collection consent.
 
 Enable these tools with service name **`signals`**. Hosted URL: `https://signals.mcp.digitalocean.com/mcp`.
 
@@ -12,10 +12,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **`signals-get-agent-consent`** — Get collection consent for one agent. Missing consent is treated as deny.
 - **`signals-set-agent-consent`** — Enable or disable collection for one agent.
 - **`signals-list-agent-sessions`** — List sessions for an agent.
-- **`signals-list-session-segments`** — List segments in a session.
 - **`signals-list-session-dialogues`** — List dialogue turns for a session.
-- **`signals-get-segment`** — Get one segment and its nested signals.
-- **`signals-get-signal-report`** — Get a saved post-session analysis report when one exists.
 - **`signals-create-export`** — Create an export job for an agent.
 - **`signals-list-exports`** — List prior export jobs.
 - **`signals-get-export`** — Get the status of one export job.
@@ -30,5 +27,4 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - Enable Signals collection for agent X.
 - List recent sessions for this agent.
 - Show the dialogue turns in this session.
-- Get the segment details and signals for this segment ID.
 - Create an export for this agent, then download it when it completes.

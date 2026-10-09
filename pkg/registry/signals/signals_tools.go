@@ -166,42 +166,6 @@ func (t *Tool) listAgentSessions(ctx context.Context, req mcp.CallToolRequest) (
 	return sessionsOut.Result(out)
 }
 
-func (t *Tool) listSessionSegments(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.doClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-	args := req.GetArguments()
-	sessionID := argString(args, "SessionID")
-	if sessionID == "" {
-		return mcp.NewToolResultError("SessionID is required"), nil
-	}
-	opts := &godo.SignalsListSegmentsOptions{
-		SignalsCursorPageOptions: godo.SignalsCursorPageOptions{
-			Limit: argInt(args, "Limit"),
-			After: argString(args, "After"),
-		},
-		Before:         argString(args, "Before"),
-		SignalType:     argStringSlice(args, "SignalType"),
-		SignalCategory: argString(args, "SignalCategory"),
-		SignalLayer:    argString(args, "SignalLayer"),
-		StartedAfter:   argString(args, "StartedAfter"),
-		StartedBefore:  argString(args, "StartedBefore"),
-		StartTime:      argInt64Ptr(args, "StartTime"),
-		EndTime:        argInt64Ptr(args, "EndTime"),
-		Sort:           argString(args, "Sort"),
-		Order:          argString(args, "Order"),
-	}
-	if v, ok := argBool(args, "Concerning"); ok {
-		opts.Concerning = &v
-	}
-	out, _, err := client.Signals.ListSessionSegments(ctx, sessionID, opts)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to list session segments", err), nil
-	}
-	return segmentsOut.Result(out)
-}
-
 func (t *Tool) listSessionDialogues(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.doClient(ctx)
 	if err != nil {
@@ -230,43 +194,6 @@ func (t *Tool) listSessionDialogues(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("Failed to list session dialogues", err), nil
 	}
 	return dialoguesOut.Result(out)
-}
-
-func (t *Tool) getSegment(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.doClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-	args := req.GetArguments()
-	segmentID := argString(args, "SegmentID")
-	if segmentID == "" {
-		return mcp.NewToolResultError("SegmentID is required"), nil
-	}
-	opts := &godo.SignalsCursorPageOptions{
-		Limit: argInt(args, "Limit"),
-		After: argString(args, "After"),
-	}
-	out, _, err := client.Signals.GetSegment(ctx, segmentID, opts)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to get segment", err), nil
-	}
-	return segmentOut.Result(out)
-}
-
-func (t *Tool) getSignalReport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.doClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-	segmentID := argString(req.GetArguments(), "SegmentID")
-	if segmentID == "" {
-		return mcp.NewToolResultError("SegmentID is required"), nil
-	}
-	out, _, err := client.Signals.GetSegmentSignalReport(ctx, segmentID)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to get signal report", err), nil
-	}
-	return reportOut.Result(out)
 }
 
 func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -416,29 +343,6 @@ func (t *Tool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: t.listSessionSegments,
-			Tool: mcp.NewTool("signals-list-session-segments",
-				withLimitAfter(
-					common.WithHints(common.HintsRead),
-					common.WithRisk(common.RiskLow),
-					segmentsOut.Schema(),
-					mcp.WithDescription("List segments in a session. Filter by signal_type, category, layer, concerning, and time."),
-					mcp.WithString("SessionID", mcp.Required(), mcp.Description("Session id")),
-					mcp.WithString("Before", mcp.Description("Upper cursor bound")),
-					signalTypeOpt(),
-					mcp.WithString("SignalCategory", mcp.Description("Filter by signal_category")),
-					mcp.WithString("SignalLayer", mcp.Description("Filter by signal_layer")),
-					mcp.WithBoolean("Concerning", mcp.Description("If set, only concerning or only non-concerning segments")),
-					mcp.WithString("StartedAfter", mcp.Description("RFC3339 lower bound on segment start")),
-					mcp.WithString("StartedBefore", mcp.Description("RFC3339 upper bound on segment start")),
-					mcp.WithNumber("StartTime", mcp.Description("Optional Unix epoch seconds lower bound")),
-					mcp.WithNumber("EndTime", mcp.Description("Optional Unix epoch seconds upper bound")),
-					mcp.WithString("Sort", mcp.Description("Sort field")),
-					mcp.WithString("Order", mcp.Description("Sort order: asc or desc")),
-				)...,
-			),
-		},
-		{
 			Handler: t.listSessionDialogues,
 			Tool: mcp.NewTool("signals-list-session-dialogues",
 				withLimitAfter(
@@ -453,28 +357,6 @@ func (t *Tool) Tools() []server.ServerTool {
 					mcp.WithNumber("EndTime", mcp.Description("Optional Unix epoch seconds upper bound")),
 					mcp.WithBoolean("ContinueSession", mcp.Description("When true, continue from the current session cursor")),
 				)...,
-			),
-		},
-		{
-			Handler: t.getSegment,
-			Tool: mcp.NewTool("signals-get-segment",
-				withLimitAfter(
-					common.WithHints(common.HintsRead),
-					common.WithRisk(common.RiskLow),
-					segmentOut.Schema(),
-					mcp.WithDescription("Get one segment plus nested signals (cursor-paginated)."),
-					mcp.WithString("SegmentID", mcp.Required(), mcp.Description("Segment id")),
-				)...,
-			),
-		},
-		{
-			Handler: t.getSignalReport,
-			Tool: mcp.NewTool("signals-get-signal-report",
-				common.WithHints(common.HintsRead),
-				common.WithRisk(common.RiskLow),
-				reportOut.Schema(),
-				mcp.WithDescription("Get the persisted post-session analysis report for a segment, if one exists."),
-				mcp.WithString("SegmentID", mcp.Required(), mcp.Description("Segment id")),
 			),
 		},
 		{
