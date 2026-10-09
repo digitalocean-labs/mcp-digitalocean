@@ -82,10 +82,11 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	require.Equal(t, []string{"ops@example.com"}, policy.Alerts.Email)
 	require.Len(t, policy.Alerts.Slack, 1)
 
-	// The text block is retained for backwards compatibility and carries the
-	// same payload, unenveloped as it has always been.
-	require.Len(t, resp.Result.Content, 1)
+	// Content[0] stays the unenveloped JSON payload for backwards compatibility.
+	// Content[1] is the v1 deprecation notice so models see it on every call.
+	require.GreaterOrEqual(t, len(resp.Result.Content), 2)
 	var fromText []godo.AlertPolicy
 	require.NoError(t, json.Unmarshal([]byte(resp.Result.Content[0].Text), &fromText))
 	require.Equal(t, resp.Result.StructuredContent.AlertPolicies, fromText)
+	require.Contains(t, resp.Result.Content[1].Text, "DEPRECATED:")
 }

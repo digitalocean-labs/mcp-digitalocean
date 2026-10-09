@@ -282,3 +282,98 @@ func TestAlertPolicyLifecycle(t *testing.T) {
 	require.Equal(t, updatedDescription, updatedPolicy.Description)
 	t.Logf("updated policy description to: %s", updatedPolicy.Description)
 }
+
+func deleteNotificationChannel(t *testing.T, tc testContext, id string) {
+	t.Logf("deleting notification channel %s...", id)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-notification-channel-delete",
+			Arguments: map[string]interface{}{"ID": id},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete notification channel: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-notification-channel-delete returned error: %v", resp.Content)
+	}
+}
+
+func deleteAlertRule(t *testing.T, tc testContext, id string) {
+	t.Logf("deleting alert rule %s...", id)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-alert-rule-delete",
+			Arguments: map[string]interface{}{"ID": id},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete alert rule: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-alert-rule-delete returned error: %v", resp.Content)
+	}
+}
+
+func TestInsightsV2AlertRuleLifecycle(t *testing.T) {
+	ctx, c := setupTest(t)
+	tc := testContext{ctx: ctx, client: c}
+
+	account := callTool[godo.Account](t, "account-get-information", map[string]interface{}{})
+	require.NotEmpty(t, account.Email)
+
+	channelName := fmt.Sprintf("test-insights-channel-%d", time.Now().Unix())
+	channel := callTool[godo.NotificationChannel](t, "insights-notification-channel-create", map[string]interface{}{
+		"Name":    channelName,
+		"EmailTo": account.Email,
+	})
+	require.NotEmpty(t, channel.ID)
+	defer func() { deleteNotificationChannel(t, tc, channel.ID) }()
+
+	fetchedChannel := callTool[godo.NotificationChannel](t, "insights-notification-channel-get", map[string]interface{}{"ID": channel.ID})
+	require.Equal(t, channel.ID, fetchedChannel.ID)
+
+	channels := callTool[[]godo.NotificationChannel](t, "insights-notification-channel-list", map[string]interface{}{"Page": 1, "PerPage": 50})
+	requireFoundInList(t, channels, func(ch godo.NotificationChannel) bool { return ch.ID == channel.ID }, "notification channel")
+
+	ruleName := fmt.Sprintf("test-insights-rule-%d", time.Now().Unix())
+	rule := callTool[godo.AlertRule](t, "insights-alert-rule-create", map[string]interface{}{
+		"Name":     ruleName,
+		"Metric":   "do.droplets.cpu_utilization",
+		"Operator": godo.InsightsThresholdOperatorGreaterThan,
+		"Critical": 95,
+		"Window":   godo.InsightsEvaluationWindow5m,
+		"Tags":     []string{"mcp-e2e"},
+		"NotificationChannels": []map[string]interface{}{{
+			"NotificationChannelID": channel.ID,
+			"NotifyOn":              []string{godo.InsightsSeverityCritical},
+		}},
+	})
+	require.NotEmpty(t, rule.ID)
+	defer func() { deleteAlertRule(t, tc, rule.ID) }()
+
+	fetchedRule := callTool[godo.AlertRule](t, "insights-alert-rule-get", map[string]interface{}{"ID": rule.ID})
+	require.Equal(t, rule.ID, fetchedRule.ID)
+
+	rules := callTool[[]godo.AlertRule](t, "insights-alert-rule-list", map[string]interface{}{"Page": 1, "PerPage": 50})
+	requireFoundInList(t, rules, func(r godo.AlertRule) bool { return r.ID == rule.ID }, "alert rule")
+
+	updated := callTool[godo.AlertRule](t, "insights-alert-rule-update", map[string]interface{}{
+		"ID":       rule.ID,
+		"Name":     ruleName + "-updated",
+		"Metric":   "do.droplets.cpu_utilization",
+		"Operator": godo.InsightsThresholdOperatorGreaterThan,
+		"Critical": 90,
+		"Window":   godo.InsightsEvaluationWindow10m,
+		"Tags":     []string{"mcp-e2e"},
+	})
+	require.Equal(t, ruleName+"-updated", updated.Spec.Name)
+
+	_ = callTool[[]godo.AlertInstance](t, "insights-alert-instance-list", map[string]interface{}{
+		"RuleID":  rule.ID,
+		"Page":    1,
+		"PerPage": 20,
+	})
+}

@@ -48,6 +48,27 @@ var expectedAnnotations = map[string]struct {
 	"alert-policy-create": {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
 	"alert-policy-update": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
 	"alert-policy-delete": {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
+
+	"insights-alert-rule-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-alert-rule-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-alert-rule-create": {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
+	"insights-alert-rule-update": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"insights-alert-rule-delete": {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
+
+	"insights-notification-channel-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-notification-channel-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-notification-channel-create": {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
+	"insights-notification-channel-update": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"insights-notification-channel-delete": {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
+
+	"insights-alert-instance-get":  {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-alert-instance-list": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+
+	"insights-query":              {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-range":        {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-series":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-labels":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-label-values": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
@@ -56,6 +77,10 @@ func TestToolAnnotations(t *testing.T) {
 	}
 
 	var all []server.ServerTool
+	all = append(all, NewAlertRuleTool(clientFn).Tools()...)
+	all = append(all, NewNotificationChannelTool(clientFn).Tools()...)
+	all = append(all, NewAlertInstanceTool(clientFn).Tools()...)
+	all = append(all, NewQueryTool(clientFn).Tools()...)
 	all = append(all, NewUptimeTool(clientFn).Tools()...)
 	all = append(all, NewUptimeCheckAlertTool(clientFn).Tools()...)
 	all = append(all, NewAlertPolicyTool(clientFn).Tools()...)
