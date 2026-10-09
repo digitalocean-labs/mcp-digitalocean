@@ -1,6 +1,6 @@
 ## Signals MCP Tools
 
-Tools for managing Signals consent, listing sessions and dialogues, and exporting Signals data. All operations use argument-based input—no resource URIs. Pagination and filtering are supported where applicable.
+Tools for managing Signals consent, listing sessions and dialogues, and exporting Signals data. All operations use argument-based input, no resource URIs. Pagination and filtering are supported where applicable.
 
 Enable these tools with service name **`signals`**. Hosted URL: `https://signals.mcp.digitalocean.com/mcp`.
 
