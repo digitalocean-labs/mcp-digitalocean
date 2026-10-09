@@ -1,6 +1,12 @@
 package insights
 
-import "github.com/digitalocean/godo"
+import (
+	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/digitalocean/godo"
+)
 
 func stringArg(args map[string]any, key string) string {
 	s, _ := args[key].(string)
@@ -143,6 +149,56 @@ func notificationChannelRequestFromArgs(args map[string]any) *godo.NotificationC
 			wh.Signature = &godo.WebhookSignatureConfig{Secret: secret}
 		}
 		req.Webhook = wh
+	}
+	return req
+}
+
+func logsTimeInstant(s string) godo.LogsTimeInstant {
+	if s == "" {
+		return godo.LogsTimeInstant{}
+	}
+	if isAllDigits(s) {
+		return godo.LogsTimeInstant{UnixNano: s}
+	}
+	if strings.Contains(s, "T") || strings.HasSuffix(s, "Z") {
+		return godo.LogsTimeInstant{Absolute: s}
+	}
+	return godo.LogsTimeInstant{Relative: s}
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	_, err := strconv.ParseInt(s, 10, 64)
+	return err == nil
+}
+
+func logsSearchRequestFromArgs(args map[string]any) *godo.LogsSearchRequest {
+	req := &godo.LogsSearchRequest{
+		TimeRange: godo.LogsTimeRange{
+			From: logsTimeInstant(stringArg(args, "From")),
+			To:   logsTimeInstant(stringArg(args, "To")),
+		},
+	}
+	if q := stringArg(args, "Query"); q != "" {
+		req.Filter = &godo.LogsFilterExpression{TextSearch: &godo.LogsTextSearch{Query: q}}
+	}
+	if field := stringArg(args, "OrderByField"); field != "" {
+		req.OrderBy = []godo.LogsOrderBy{{
+			Field:     godo.LogsFieldRef{Name: field, Scope: stringArg(args, "OrderByScope")},
+			Direction: stringArg(args, "OrderByDirection"),
+		}}
+	}
+	limit := intArg(args, "Limit", 0)
+	cursor := stringArg(args, "Cursor")
+	if limit > 0 || cursor != "" {
+		req.Pagination = &godo.LogsPaginationRequest{Limit: limit, Cursor: cursor}
 	}
 	return req
 }

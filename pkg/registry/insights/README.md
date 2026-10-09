@@ -12,6 +12,7 @@ Uses `client.Insights` (`/v2/insights/...`).
 - **insights-notification-channel-*** — get/list/create/update/delete
 - **insights-alert-instance-*** — get/list
 - **insights-query**, **insights-query-range**, **insights-query-series**, **insights-query-labels**, **insights-query-label-values**
+- **insights-logs-search** — search logs in a region (`From`/`To` required, max 7 days)
 
 ## Deprecated v1
 
