@@ -182,6 +182,7 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 | databases                | https://databases.mcp.digitalocean.com/mcp                  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
 | doks                     | https://doks.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Kubernetes clusters and node pools. |
 | droplets                 | https://droplets.mcp.digitalocean.com/mcp                   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
+| microvms                 | https://microvms.mcp.digitalocean.com/mcp                   | Create, list, get, pause, resume, checkpoint, and delete DigitalOcean MicroVMs. |
 | docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
 | signals                  | https://signals.mcp.digitalocean.com/mcp                    | Investigate Gradient agent sessions, segments, and consent for DigitalOcean Signals. |
@@ -670,6 +671,7 @@ Each service provides a detailed README describing all available tools, resource
 - [GenAI Batch Inference Service](pkg/registry/genai-batchinference/README.md)
 - [Signals Service](pkg/registry/signals/README.md)
 - [Harness Runtime Service](pkg/registry/harness-runtime/README.md)
+- [MicroVM Service](pkg/registry/microdroplet/README.md)
 - [GenAI Custom Models Service](pkg/registry/genai-custom-models/README.md)
 - [GenAI Inference Router](pkg/registry/genai-inferencerouter/README.md)
 - [NFS Service](pkg/registry/nfs/README.md)
