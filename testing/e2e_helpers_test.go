@@ -812,7 +812,7 @@ func CreateTestVolume(t *testing.T, namePrefix string) godo.Volume {
 func CreateTestNfsShare(t *testing.T, namePrefix string) godo.Nfs {
 	t.Helper()
 
-	shareName := fmt.Sprintf("%s-%d", namePrefix, time.Now().Unix())
+	shareName := fmt.Sprintf("%s-%d", namePrefix, time.Now().UnixNano())
 	region := "nyc2"
 
 	t.Logf("Creating NFS share: %s (Region: %s, Size: %d GiB)...", shareName, region, defaultNfsShareMinSizeGib)
