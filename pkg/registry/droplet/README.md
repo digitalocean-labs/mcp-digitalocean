@@ -14,7 +14,7 @@ This directory contains tools for managing DigitalOcean Droplets, Images, and Si
   - `Name` (string, required): Name of the Droplet  
   - `Size` (string, required): Slug of the Droplet size (e.g., `s-1vcpu-1gb`)  
   - `ImageID` (number, optional): Numeric ID of the image to use. Mutually exclusive with `ImageSlug`.  
-  - `ImageSlug` (string, optional): Slug of the image to use (e.g., `ubuntu-22-04-x64`, `wordpress-20-04`). Use this for 1-click marketplace app images; slugs can be discovered via the `1-click-list` tool. Mutually exclusive with `ImageID`.  
+  - `ImageSlug` (string, optional): Slug of the image to use (e.g., `ubuntu-22-04-x64`, `wordpress-20-04`). Use this for 1-click marketplace app images; slugs can be discovered via the `marketplace-1-click-list` tool. Mutually exclusive with `ImageID`.  
   - `Region` (string, required): Slug of the region (e.g., `nyc3`)  
   - `Backup` (boolean, optional, default: false): Enable backups  
   - `Monitoring` (boolean, optional, default: false): Enable monitoring  
