@@ -10,7 +10,26 @@ const (
 	descAlertPolicyCreateV1 = "DEPRECATED — Create a legacy Monitoring alert policy (Type like v1/insights/droplet/cpu). Use insights-alert-rule-create."
 	descAlertPolicyUpdateV1 = "DEPRECATED — Update a legacy Monitoring alert policy. Use insights-alert-rule-update."
 	descAlertPolicyDeleteV1 = "DEPRECATED — Delete a legacy Monitoring alert policy. Use insights-alert-rule-delete."
+
+	titleAlertPolicyGetV1    = "Deprecated — Get alert policy (v1)"
+	titleAlertPolicyListV1   = "Deprecated — List alert policies (v1)"
+	titleAlertPolicyCreateV1 = "Deprecated — Create alert policy (v1)"
+	titleAlertPolicyUpdateV1 = "Deprecated — Update alert policy (v1)"
+	titleAlertPolicyDeleteV1 = "Deprecated — Delete alert policy (v1)"
+
+	titleAlertRuleGetV2    = "Insights v2 — Get alert rule"
+	titleAlertRuleListV2   = "Insights v2 — List alert rules"
+	titleAlertRuleCreateV2 = "Insights v2 — Create alert rule"
+	titleAlertRuleUpdateV2 = "Insights v2 — Update alert rule"
+	titleAlertRuleDeleteV2 = "Insights v2 — Delete alert rule"
 )
+
+func withDisplayTitle(title string) mcp.ToolOption {
+	return func(t *mcp.Tool) {
+		mcp.WithToolTitle(title)(t)
+		mcp.WithTitleAnnotation(title)(t)
+	}
+}
 
 // withAlertPolicyDeprecation keeps Content[0] as the JSON payload so existing
 // e2e unmarshallers keep working, and adds a second text block models will see.

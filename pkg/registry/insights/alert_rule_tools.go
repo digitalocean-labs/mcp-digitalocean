@@ -141,12 +141,14 @@ func (t *AlertRuleTool) Tools() []server.ServerTool {
 		common.WithHints(common.HintsCreate),
 		common.WithRisk(common.RiskLow),
 		alertRuleOut.Schema(),
+		withDisplayTitle(titleAlertRuleCreateV2),
 		mcp.WithDescription("PREFERRED — Create an Insights v2 alert rule (POST /v2/insights/alert-rules). Do not use alert-policy-create."),
 	}, alertRuleSpecArgs()...)
 	updateOpts := append([]mcp.ToolOption{
 		common.WithHints(common.HintsToggle),
 		common.WithRisk(common.RiskLow),
 		alertRuleOut.Schema(),
+		withDisplayTitle(titleAlertRuleUpdateV2),
 		mcp.WithDescription("PREFERRED — Update an Insights v2 alert rule (PUT /v2/insights/alert-rules/{id}). Do not use alert-policy-update."),
 		mcp.WithString("ID", mcp.Required(), mcp.Description("Alert rule ID")),
 	}, alertRuleSpecArgs()...)
@@ -154,11 +156,13 @@ func (t *AlertRuleTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{Handler: t.get, Tool: mcp.NewTool("insights-alert-rule-get",
 			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), alertRuleOut.Schema(),
+			withDisplayTitle(titleAlertRuleGetV2),
 			mcp.WithDescription("PREFERRED — Get an Insights v2 alert rule. Do not use alert-policy-get."),
 			mcp.WithString("ID", mcp.Required(), mcp.Description("Alert rule ID")),
 		)},
 		{Handler: t.list, Tool: mcp.NewTool("insights-alert-rule-list",
 			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), alertRulesOut.Schema(),
+			withDisplayTitle(titleAlertRuleListV2),
 			mcp.WithDescription("PREFERRED — List Insights v2 alert rules. Do not use alert-policy-list."),
 			mcp.WithNumber("Page", mcp.DefaultNumber(defaultAlertPoliciesPage), mcp.Description("Page number")),
 			mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultAlertPoliciesPageSize), mcp.Description("Items per page")),
@@ -168,6 +172,7 @@ func (t *AlertRuleTool) Tools() []server.ServerTool {
 		{Handler: t.update, Tool: mcp.NewTool("insights-alert-rule-update", updateOpts...)},
 		{Handler: t.delete, Tool: mcp.NewTool("insights-alert-rule-delete",
 			common.WithHints(common.HintsDelete), common.WithRisk(common.RiskMedium),
+			withDisplayTitle(titleAlertRuleDeleteV2),
 			mcp.WithDescription("PREFERRED — Delete an Insights v2 alert rule. Do not use alert-policy-delete."),
 			mcp.WithString("ID", mcp.Required(), mcp.Description("Alert rule ID")),
 		)},
