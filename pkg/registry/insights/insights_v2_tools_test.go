@@ -242,3 +242,18 @@ func TestAlertPolicyDeprecationNotice(t *testing.T) {
 	require.Contains(t, notice.Text, "DEPRECATED:")
 	require.Contains(t, notice.Text, "insights-alert-rule-")
 }
+
+func TestAlertPolicyAndRuleToolTitles(t *testing.T) {
+	clientFn := func(context.Context) (*godo.Client, error) {
+		return godo.NewFromToken("test-token"), nil
+	}
+	for _, st := range NewAlertPolicyTool(clientFn).Tools() {
+		require.Contains(t, st.Tool.Title, "Deprecated")
+		require.Contains(t, st.Tool.Title, "v1")
+		require.Equal(t, st.Tool.Title, st.Tool.Annotations.Title)
+	}
+	for _, st := range NewAlertRuleTool(clientFn).Tools() {
+		require.Contains(t, st.Tool.Title, "Insights v2")
+		require.Equal(t, st.Tool.Title, st.Tool.Annotations.Title)
+	}
+}
