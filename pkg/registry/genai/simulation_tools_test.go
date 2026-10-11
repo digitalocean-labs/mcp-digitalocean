@@ -44,10 +44,10 @@ func TestSimulationTool_Tools(t *testing.T) {
 		"genai-simulation-update-run":                       false,
 		"genai-simulation-cancel-run":                       false,
 		"genai-simulation-delete-run":                       false,
-		"genai-simulation-list-journeys":                    false,
-		"genai-simulation-get-journey":                      false,
-		"genai-simulation-get-journey-trajectory":           false,
-		"genai-simulation-get-journey-trajectory-url":       false,
+		"genai-simulation-list-episodes":                    false,
+		"genai-simulation-get-episode":                      false,
+		"genai-simulation-get-episode-trajectory":           false,
+		"genai-simulation-get-episode-trajectory-url":       false,
 	}
 
 	for _, st := range tools {
@@ -157,10 +157,10 @@ func TestSimulationTool_cancelRun_consent(t *testing.T) {
 	require.True(t, resp.IsError)
 }
 
-func TestSimulationTool_getJourney_missingArgs(t *testing.T) {
+func TestSimulationTool_getEpisode_missingArgs(t *testing.T) {
 	tool := setupSimulationToolWithFailingClient()
 	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"run_uuid": "run-1"}}}
-	resp, err := tool.getJourney(context.Background(), req)
+	resp, err := tool.getEpisode(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, resp.IsError)
 }
