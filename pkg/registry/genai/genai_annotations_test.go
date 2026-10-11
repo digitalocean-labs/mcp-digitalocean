@@ -75,10 +75,10 @@ var expectedAnnotations = map[string]struct {
 	"genai-simulation-update-run":                       {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
 	"genai-simulation-cancel-run":                       {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"genai-simulation-delete-run":                       {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
-	"genai-simulation-list-journeys":                    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"genai-simulation-get-journey":                      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"genai-simulation-get-journey-trajectory":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"genai-simulation-get-journey-trajectory-url":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-list-episodes":                    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode":                      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode-trajectory":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode-trajectory-url":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {

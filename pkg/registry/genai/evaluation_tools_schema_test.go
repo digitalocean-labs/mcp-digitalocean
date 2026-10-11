@@ -119,7 +119,7 @@ func TestSimulationToolListParamSchemas(t *testing.T) {
 	cases := map[string][]string{
 		"genai-simulation-list-scenario-sets": {"statuses"},
 		"genai-simulation-list-runs":          {"statuses"},
-		"genai-simulation-list-journeys":      {"statuses", "verdicts"},
+		"genai-simulation-list-episodes":      {"statuses", "verdicts"},
 		"genai-simulation-create-run":         {"metric_uuids"},
 	}
 

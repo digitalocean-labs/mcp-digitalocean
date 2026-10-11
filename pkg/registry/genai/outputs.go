@@ -161,7 +161,7 @@ type modelEvalWorkflowResult struct {
 // --- simulation (simulation_tools.go) ---------------------------------------
 
 // scenarioSetList, scenarioList, scenarioLibraryList, simulationRunList and
-// simulationJourneyList are the {items, count} shapes the simulation list
+// simulationEpisodeList are the {items, count} shapes the simulation list
 // tools have always returned. Each was an anonymous struct declared inside its
 // handler. scenarioList is shared by genai-simulation-list-scenarios and
 // genai-simulation-list-scenario-library-scenarios, which return the same
@@ -186,8 +186,8 @@ type simulationRunList struct {
 	Count          int                   `json:"count"`
 }
 
-type simulationJourneyList struct {
-	Journeys []*godo.SimulationJourney `json:"journeys"`
+type simulationEpisodeList struct {
+	Episodes []*godo.SimulationEpisode `json:"episodes"`
 	Count    int                       `json:"count"`
 }
 
@@ -200,7 +200,7 @@ type simulationJourneyList struct {
 // wrapper it has always had instead of the wrapper moving into
 // structuredContent alone. Payloads that are a bare resource take an envelope
 // under the key the API itself uses for that resource: "preset", "run",
-// "metric", "scenario_set", "simulation_run", "journey", "trajectory".
+// "metric", "scenario_set", "simulation_run", "episode", "trajectory".
 //
 // Shared vars mark tools that answer with the same shape: modelEvalCustomMetricOut
 // by custom-metric create and update, scenarioSetOut by scenario-set get,
@@ -260,8 +260,8 @@ var (
 	simulationRunListOut       = common.NewObjectOutput[simulationRunList]()
 	simulationRunGetOut        = common.NewObjectOutput[*godo.SimulationRunGetResponse]()
 	simulationRunDeletedOut    = common.NewObjectOutput[*godo.SimulationRunDeleteResponse]()
-	simulationJourneyListOut   = common.NewObjectOutput[simulationJourneyList]()
-	simulationJourneyOut       = common.NewOutput[*godo.SimulationJourney]("journey")
+	simulationEpisodeListOut   = common.NewObjectOutput[simulationEpisodeList]()
+	simulationEpisodeOut       = common.NewOutput[*godo.SimulationEpisode]("episode")
 	simulationTrajectoryOut    = common.NewOutput[*godo.SimulationTrajectory]("trajectory")
-	simulationTrajectoryURLOut = common.NewObjectOutput[*godo.SimulationJourneyTrajectoryURLResponse]()
+	simulationTrajectoryURLOut = common.NewObjectOutput[*godo.SimulationEpisodeTrajectoryURLResponse]()
 )

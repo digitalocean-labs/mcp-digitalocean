@@ -588,8 +588,8 @@ func (st *SimulationTool) deleteRun(ctx context.Context, req mcp.CallToolRequest
 	return simulationRunDeletedOut.Result(output)
 }
 
-// listJourneys lists journeys for a simulation run.
-func (st *SimulationTool) listJourneys(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// listEpisodes lists episodes for a simulation run.
+func (st *SimulationTool) listEpisodes(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
 	runUUID, _ := args["run_uuid"].(string)
@@ -603,7 +603,7 @@ func (st *SimulationTool) listJourneys(ctx context.Context, req mcp.CallToolRequ
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	opt := &godo.SimulationJourneyListOptions{ListOptions: listOptionsFromArgs(args)}
+	opt := &godo.SimulationEpisodeListOptions{ListOptions: listOptionsFromArgs(args)}
 	if scenarioUUID, ok := args["scenario_uuid"].(string); ok {
 		opt.ScenarioUUID = strings.TrimSpace(scenarioUUID)
 	}
@@ -611,34 +611,34 @@ func (st *SimulationTool) listJourneys(ctx context.Context, req mcp.CallToolRequ
 		opt.Search = strings.TrimSpace(search)
 	}
 	for _, status := range parseStringSlice(args["statuses"]) {
-		opt.Statuses = append(opt.Statuses, godo.SimulationJourneyStatus(status))
+		opt.Statuses = append(opt.Statuses, godo.SimulationEpisodeStatus(status))
 	}
 	for _, verdict := range parseStringSlice(args["verdicts"]) {
-		opt.Verdicts = append(opt.Verdicts, godo.SimulationJourneyVerdict(verdict))
+		opt.Verdicts = append(opt.Verdicts, godo.SimulationEpisodeVerdict(verdict))
 	}
 
-	output, _, err := client.AgentPlatform.ListSimulationJourneys(ctx, runUUID, opt)
+	output, _, err := client.AgentPlatform.ListSimulationEpisodes(ctx, runUUID, opt)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to list simulation journeys", err), nil
+		return mcp.NewToolResultErrorFromErr("failed to list simulation episodes", err), nil
 	}
 
-	journeys := []*godo.SimulationJourney{}
+	episodes := []*godo.SimulationEpisode{}
 	if output != nil {
-		journeys = output.Journeys
+		episodes = output.Episodes
 	}
-	return simulationJourneyListOut.Result(simulationJourneyList{Journeys: journeys, Count: len(journeys)})
+	return simulationEpisodeListOut.Result(simulationEpisodeList{Episodes: episodes, Count: len(episodes)})
 }
 
-// getJourney retrieves a single journey within a simulation run.
-func (st *SimulationTool) getJourney(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// getEpisode retrieves a single episode within a simulation run.
+func (st *SimulationTool) getEpisode(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
 	runUUID, _ := args["run_uuid"].(string)
 	runUUID = strings.TrimSpace(runUUID)
-	journeyUUID, _ := args["journey_uuid"].(string)
-	journeyUUID = strings.TrimSpace(journeyUUID)
-	if runUUID == "" || journeyUUID == "" {
-		return mcp.NewToolResultError("run_uuid and journey_uuid are required"), nil
+	episodeUUID, _ := args["episode_uuid"].(string)
+	episodeUUID = strings.TrimSpace(episodeUUID)
+	if runUUID == "" || episodeUUID == "" {
+		return mcp.NewToolResultError("run_uuid and episode_uuid are required"), nil
 	}
 
 	client, err := st.getClient(ctx)
@@ -646,23 +646,23 @@ func (st *SimulationTool) getJourney(ctx context.Context, req mcp.CallToolReques
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.AgentPlatform.GetSimulationJourney(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationEpisode(ctx, runUUID, episodeUUID)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to get simulation journey", err), nil
+		return mcp.NewToolResultErrorFromErr("failed to get simulation episode", err), nil
 	}
-	return simulationJourneyOut.Result(output)
+	return simulationEpisodeOut.Result(output)
 }
 
-// getJourneyTrajectory retrieves the parsed trajectory JSON for a journey.
-func (st *SimulationTool) getJourneyTrajectory(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// getEpisodeTrajectory retrieves the parsed trajectory JSON for an episode.
+func (st *SimulationTool) getEpisodeTrajectory(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
 	runUUID, _ := args["run_uuid"].(string)
 	runUUID = strings.TrimSpace(runUUID)
-	journeyUUID, _ := args["journey_uuid"].(string)
-	journeyUUID = strings.TrimSpace(journeyUUID)
-	if runUUID == "" || journeyUUID == "" {
-		return mcp.NewToolResultError("run_uuid and journey_uuid are required"), nil
+	episodeUUID, _ := args["episode_uuid"].(string)
+	episodeUUID = strings.TrimSpace(episodeUUID)
+	if runUUID == "" || episodeUUID == "" {
+		return mcp.NewToolResultError("run_uuid and episode_uuid are required"), nil
 	}
 
 	client, err := st.getClient(ctx)
@@ -670,23 +670,23 @@ func (st *SimulationTool) getJourneyTrajectory(ctx context.Context, req mcp.Call
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.AgentPlatform.GetSimulationJourneyTrajectory(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationEpisodeTrajectory(ctx, runUUID, episodeUUID)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory", err), nil
+		return mcp.NewToolResultErrorFromErr("failed to get simulation episode trajectory", err), nil
 	}
 	return simulationTrajectoryOut.Result(output)
 }
 
-// getJourneyTrajectoryURL returns a presigned download URL for a journey's trajectory JSON.
-func (st *SimulationTool) getJourneyTrajectoryURL(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// getEpisodeTrajectoryURL returns a presigned download URL for an episode's trajectory JSON.
+func (st *SimulationTool) getEpisodeTrajectoryURL(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
 	runUUID, _ := args["run_uuid"].(string)
 	runUUID = strings.TrimSpace(runUUID)
-	journeyUUID, _ := args["journey_uuid"].(string)
-	journeyUUID = strings.TrimSpace(journeyUUID)
-	if runUUID == "" || journeyUUID == "" {
-		return mcp.NewToolResultError("run_uuid and journey_uuid are required"), nil
+	episodeUUID, _ := args["episode_uuid"].(string)
+	episodeUUID = strings.TrimSpace(episodeUUID)
+	if runUUID == "" || episodeUUID == "" {
+		return mcp.NewToolResultError("run_uuid and episode_uuid are required"), nil
 	}
 
 	client, err := st.getClient(ctx)
@@ -694,9 +694,9 @@ func (st *SimulationTool) getJourneyTrajectoryURL(ctx context.Context, req mcp.C
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.AgentPlatform.GetSimulationJourneyTrajectoryURL(ctx, runUUID, journeyUUID)
+	output, _, err := client.AgentPlatform.GetSimulationEpisodeTrajectoryURL(ctx, runUUID, episodeUUID)
 	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to get simulation journey trajectory URL", err), nil
+		return mcp.NewToolResultErrorFromErr("failed to get simulation episode trajectory URL", err), nil
 	}
 	return simulationTrajectoryURLOut.Result(output)
 }
@@ -864,8 +864,8 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				mcp.WithString("user_simulator_model_uuid", mcp.Description("Optional UUID of the user-simulator model")),
 				mcp.WithString("judge_model_uuid", mcp.Description("Optional UUID of the judge model")),
 				mcp.WithObject("user_simulator_config", mcp.Description("Optional user-simulator configuration object")),
-				mcp.WithNumber("exploration_budget", mcp.Description("Optional exploration budget for journeys")),
-				mcp.WithNumber("max_turns", mcp.Description("Optional max turns per journey")),
+				mcp.WithNumber("exploration_budget", mcp.Description("Optional exploration budget for episodes")),
+				mcp.WithNumber("max_turns", mcp.Description("Optional max turns per episode")),
 				mcp.WithArray("metric_uuids", mcp.Description("Optional evaluation metric UUIDs to attach"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithObject("star_metric", mcp.Description("Optional primary success metric: metric_uuid and optional success_threshold")),
 			),
@@ -937,56 +937,56 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 			),
 		},
 		{
-			Handler: st.listJourneys,
+			Handler: st.listEpisodes,
 			Tool: mcp.NewTool(
-				"genai-simulation-list-journeys",
+				"genai-simulation-list-episodes",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				simulationJourneyListOut.Schema(),
-				mcp.WithDescription("List journeys (individual scenario executions) for a simulation run. Filter by scenario, status, or verdict."),
+				simulationEpisodeListOut.Schema(),
+				mcp.WithDescription("List episodes (individual scenario executions) for a simulation run. Filter by scenario, status, or verdict."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
 				mcp.WithString("scenario_uuid", mcp.Description("Optional filter by scenario UUID")),
-				mcp.WithArray("statuses", mcp.Description("Optional journey status filters"), mcp.Items(map[string]any{"type": "string"})),
-				mcp.WithArray("verdicts", mcp.Description("Optional verdict filters, e.g. SIMULATION_JOURNEY_VERDICT_SUCCESS"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("statuses", mcp.Description("Optional episode status filters"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithArray("verdicts", mcp.Description("Optional verdict filters, e.g. SIMULATION_EPISODE_VERDICT_SUCCESS"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
 				mcp.WithNumber("per_page", mcp.Description("Results per page (default: 20)")),
 			),
 		},
 		{
-			Handler: st.getJourney,
+			Handler: st.getEpisode,
 			Tool: mcp.NewTool(
-				"genai-simulation-get-journey",
+				"genai-simulation-get-episode",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				simulationJourneyOut.Schema(),
-				mcp.WithDescription("Get a single simulation journey by run UUID and journey UUID."),
+				simulationEpisodeOut.Schema(),
+				mcp.WithDescription("Get a single simulation episode by run UUID and episode UUID."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
-				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),
+				mcp.WithString("episode_uuid", mcp.Required(), mcp.Description("UUID of the episode")),
 			),
 		},
 		{
-			Handler: st.getJourneyTrajectory,
+			Handler: st.getEpisodeTrajectory,
 			Tool: mcp.NewTool(
-				"genai-simulation-get-journey-trajectory",
+				"genai-simulation-get-episode-trajectory",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				simulationTrajectoryOut.Schema(),
-				mcp.WithDescription("Get the parsed trajectory JSON for a journey, including messages, tool calls, judge result, and evaluation metrics."),
+				mcp.WithDescription("Get the parsed trajectory JSON for an episode, including messages, tool calls, judge result, and evaluation metrics."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
-				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),
+				mcp.WithString("episode_uuid", mcp.Required(), mcp.Description("UUID of the episode")),
 			),
 		},
 		{
-			Handler: st.getJourneyTrajectoryURL,
+			Handler: st.getEpisodeTrajectoryURL,
 			Tool: mcp.NewTool(
-				"genai-simulation-get-journey-trajectory-url",
+				"genai-simulation-get-episode-trajectory-url",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				simulationTrajectoryURLOut.Schema(),
-				mcp.WithDescription("Get a short-lived presigned download URL for a journey's trajectory JSON file."),
+				mcp.WithDescription("Get a short-lived presigned download URL for an episode's trajectory JSON file."),
 				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
-				mcp.WithString("journey_uuid", mcp.Required(), mcp.Description("UUID of the journey")),
+				mcp.WithString("episode_uuid", mcp.Required(), mcp.Description("UUID of the episode")),
 			),
 		},
 	}

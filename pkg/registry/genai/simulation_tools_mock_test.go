@@ -175,35 +175,35 @@ func TestSimulationTool_deleteRun_success(t *testing.T) {
 	require.Contains(t, resultText(t, resp), "run-1")
 }
 
-func TestSimulationTool_listJourneys_success(t *testing.T) {
+func TestSimulationTool_listEpisodes_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	m := NewMockAgentPlatformService(ctrl)
-	m.EXPECT().ListSimulationJourneys(gomock.Any(), "run-1", gomock.Any()).Return(&godo.SimulationJourneyListResponse{
-		Journeys: []*godo.SimulationJourney{
-			{JourneyUUID: "j-1", Verdict: godo.SimulationJourneyVerdictSuccess},
+	m.EXPECT().ListSimulationEpisodes(gomock.Any(), "run-1", gomock.Any()).Return(&godo.SimulationEpisodeListResponse{
+		Episodes: []*godo.SimulationEpisode{
+			{EpisodeUUID: "j-1", Verdict: godo.SimulationEpisodeVerdictSuccess},
 		},
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listJourneys, map[string]any{"run_uuid": "run-1"})
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).listEpisodes, map[string]any{"run_uuid": "run-1"})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), "j-1")
 }
 
-func TestSimulationTool_getJourneyTrajectory_success(t *testing.T) {
+func TestSimulationTool_getEpisodeTrajectory_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	m := NewMockAgentPlatformService(ctrl)
-	m.EXPECT().GetSimulationJourneyTrajectory(gomock.Any(), "run-1", "j-1").Return(&godo.SimulationTrajectory{
-		JourneyUUID: "j-1",
+	m.EXPECT().GetSimulationEpisodeTrajectory(gomock.Any(), "run-1", "j-1").Return(&godo.SimulationTrajectory{
+		EpisodeUUID: "j-1",
 		TurnCount:   3,
 	}, okResponse(http.StatusOK), nil)
 
-	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).getJourneyTrajectory, map[string]any{
+	resp := callTool(t, setupSimulationToolWithAgentPlatformMock(m).getEpisodeTrajectory, map[string]any{
 		"run_uuid":     "run-1",
-		"journey_uuid": "j-1",
+		"episode_uuid": "j-1",
 	})
 	require.False(t, resp.IsError)
 	require.Contains(t, resultText(t, resp), `"turn_count": 3`)

@@ -20,11 +20,11 @@ The package contains three sets of tools under `genai-evaluation`:
 - Download evaluation results
 - Monitor model evaluation run status
 
-**Simulation** — multi-turn agent simulations with scenario sets and journeys:
+**Simulation** — multi-turn agent simulations with scenario sets and episodes:
 - Manage team-owned scenario sets (create, generate, upload JSONL, update, delete)
 - Browse the platform scenario library and materialize entries into team sets
 - Create and monitor simulation runs against candidate agents
-- Inspect journeys and trajectory transcripts
+- Inspect episodes and trajectory transcripts
 
 ## Tools
 
@@ -715,7 +715,7 @@ Terminal statuses: `SUCCESSFUL`, `FAILED`, `CANCELLED`, `PARTIALLY_SUCCESSFUL`
 
 # Simulation Tools
 
-These tools run multi-turn agent simulations. A **scenario set** defines what to test; a **simulation run** executes that set against a candidate agent; each execution produces a **journey** with a transcript (**trajectory**) and judge verdict.
+These tools run multi-turn agent simulations. A **scenario set** defines what to test; a **simulation run** executes that set against a candidate agent; each execution produces a **episode** with a transcript (**trajectory**) and judge verdict.
 
 ## Scenario Set Tools
 
@@ -778,18 +778,18 @@ Cancel an in-progress run. Requires `confirm_cancel: true` after explicit user c
 #### `genai-simulation-delete-run`
 Delete a run. Requires `confirm_deletion: true` after explicit user consent.
 
-## Journey Tools
+## Episode Tools
 
-#### `genai-simulation-list-journeys`
-List journeys for a run (`run_uuid` required). Optional filters: `scenario_uuid`, `statuses`, `verdicts`, `search`, pagination.
+#### `genai-simulation-list-episodes`
+List episodes for a run (`run_uuid` required). Optional filters: `scenario_uuid`, `statuses`, `verdicts`, `search`, pagination.
 
-#### `genai-simulation-get-journey`
-Get one journey (`run_uuid`, `journey_uuid`).
+#### `genai-simulation-get-episode`
+Get one episode (`run_uuid`, `episode_uuid`).
 
-#### `genai-simulation-get-journey-trajectory`
+#### `genai-simulation-get-episode-trajectory`
 Get parsed trajectory JSON (messages, tool calls, judge result, metrics).
 
-#### `genai-simulation-get-journey-trajectory-url`
+#### `genai-simulation-get-episode-trajectory-url`
 Get a short-lived presigned download URL for the trajectory file.
 
 ## Simulation Workflow Example
@@ -810,13 +810,13 @@ genai-simulation-create-run
 genai-simulation-get-run
   run_uuid: "<from step 2>"
 
-# 4. Inspect journeys and trajectories
-genai-simulation-list-journeys
+# 4. Inspect episodes and trajectories
+genai-simulation-list-episodes
   run_uuid: "<from step 2>"
 
-genai-simulation-get-journey-trajectory
+genai-simulation-get-episode-trajectory
   run_uuid: "<from step 2>"
-  journey_uuid: "<from list>"
+  episode_uuid: "<from list>"
 ```
 
 ## Scenario Set Status Values
@@ -836,9 +836,9 @@ genai-simulation-get-journey-trajectory
 - `SIMULATION_RUN_STATUS_FAILED`
 - `SIMULATION_RUN_STATUS_CANCELLED`
 
-## Journey Verdict Values
+## Episode Verdict Values
 
-- `SIMULATION_JOURNEY_VERDICT_SUCCESS`
-- `SIMULATION_JOURNEY_VERDICT_FAILURE`
-- `SIMULATION_JOURNEY_VERDICT_INCONCLUSIVE`
+- `SIMULATION_EPISODE_VERDICT_SUCCESS`
+- `SIMULATION_EPISODE_VERDICT_FAILURE`
+- `SIMULATION_EPISODE_VERDICT_INCONCLUSIVE`
 
