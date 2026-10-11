@@ -109,7 +109,7 @@ func TestGetAgentConsent(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mock.EXPECT().GetAgentConsent(gomock.Any(), "agent-1").Return(&godo.SignalsAgentConsent{
-			TeamID: 123, AgentID: "agent-1", Enabled: true, Allowed: true,
+			TeamID: 123, AgentID: "agent-1", Enabled: true,
 		}, &godo.Response{}, nil)
 		res, err := tool.getAgentConsent(context.Background(), mcp.CallToolRequest{
 			Params: mcp.CallToolParams{Arguments: map[string]any{"AgentID": "agent-1"}},
