@@ -13,6 +13,9 @@ Uses `client.Insights` (`/v2/insights/...`).
 - **insights-alert-instance-*** — get/list
 - **insights-query**, **insights-query-range**, **insights-query-series**, **insights-query-labels**, **insights-query-label-values**
 - **insights-logs-search** — search logs in a region (`From`/`To` required, max 7 days)
+- **insights-spans-search** — search spans in a region (`From`/`To` required, max 7 days)
+- **insights-traces-search** — search traces in a region (`From`/`To` required, max 7 days)
+- **insights-trace-get** — get one trace and its spans (`Region` + `TraceID`)
 
 ## Deprecated v1
 

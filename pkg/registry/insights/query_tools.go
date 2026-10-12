@@ -157,6 +157,61 @@ func (t *QueryTool) searchLogs(ctx context.Context, req mcp.CallToolRequest) (*m
 	return logsSearchOut.Result(out)
 }
 
+func (t *QueryTool) searchSpans(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	region := stringArg(args, "Region")
+	if region == "" || stringArg(args, "From") == "" || stringArg(args, "To") == "" {
+		return mcp.NewToolResultError("Region, From, and To are required"), nil
+	}
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Insights.SearchSpans(ctx, region, spansSearchRequestFromArgs(args))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return spansSearchOut.Result(out)
+}
+
+func (t *QueryTool) searchTraces(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	region := stringArg(args, "Region")
+	if region == "" || stringArg(args, "From") == "" || stringArg(args, "To") == "" {
+		return mcp.NewToolResultError("Region, From, and To are required"), nil
+	}
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Insights.SearchTraces(ctx, region, tracesSearchRequestFromArgs(args))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return tracesSearchOut.Result(out)
+}
+
+func (t *QueryTool) getTrace(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	region := stringArg(args, "Region")
+	traceID := stringArg(args, "TraceID")
+	if region == "" || traceID == "" {
+		return mcp.NewToolResultError("Region and TraceID are required"), nil
+	}
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Insights.GetTrace(ctx, region, traceID, &godo.TraceGetOptions{
+		From: stringArg(args, "From"),
+		To:   stringArg(args, "To"),
+	})
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("api error", err), nil
+	}
+	return traceOut.Result(out)
+}
+
 func (t *QueryTool) Tools() []server.ServerTool {
 	return []server.ServerTool{
 		{Handler: t.query, Tool: mcp.NewTool("insights-query",
@@ -218,6 +273,38 @@ func (t *QueryTool) Tools() []server.ServerTool {
 			mcp.WithString("OrderByField", mcp.Description("Sort field name, e.g. timestamp")),
 			mcp.WithString("OrderByDirection", mcp.Description("SORT_DIRECTION_ASC or SORT_DIRECTION_DESC")),
 			mcp.WithString("OrderByScope", mcp.Description("FIELD_SCOPE_RESOURCE or FIELD_SCOPE_ATTRIBUTES")),
+		)},
+		{Handler: t.searchSpans, Tool: mcp.NewTool("insights-spans-search",
+			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), spansSearchOut.Schema(),
+			mcp.WithDescription("PREFERRED — Search Insights spans (POST /v2/insights/query/{region}/spans/search). Time range max 7 days."),
+			mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug, e.g. nyc3")),
+			mcp.WithString("From", mcp.Required(), mcp.Description("Window start: relative (now-1h), RFC3339, or unix seconds")),
+			mcp.WithString("To", mcp.Required(), mcp.Description("Window end: relative (now), RFC3339, or unix seconds")),
+			mcp.WithString("Query", mcp.Description("Substring search across span name, service name, and attributes")),
+			mcp.WithNumber("Limit", mcp.Description("Page size (default 100, max 1000)")),
+			mcp.WithString("OrderByField", mcp.Description("Sort field name, e.g. startTime")),
+			mcp.WithString("OrderByDirection", mcp.Description("asc or desc")),
+			mcp.WithString("OrderByScope", mcp.Description("resource or attributes")),
+		)},
+		{Handler: t.searchTraces, Tool: mcp.NewTool("insights-traces-search",
+			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), tracesSearchOut.Schema(),
+			mcp.WithDescription("PREFERRED — Search Insights traces (POST /v2/insights/query/{region}/traces/search). Time range max 7 days."),
+			mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug, e.g. nyc3")),
+			mcp.WithString("From", mcp.Required(), mcp.Description("Window start: relative (now-1h), RFC3339, or unix seconds")),
+			mcp.WithString("To", mcp.Required(), mcp.Description("Window end: relative (now), RFC3339, or unix seconds")),
+			mcp.WithString("Query", mcp.Description("Substring search; a trace matches if any span matches")),
+			mcp.WithNumber("Limit", mcp.Description("Page size (default 100, max 1000)")),
+			mcp.WithString("OrderByField", mcp.Description("Trace-level sort field, e.g. started")),
+			mcp.WithString("OrderByDirection", mcp.Description("asc or desc")),
+			mcp.WithString("OrderByScope", mcp.Description("Ignored for traces order-by")),
+		)},
+		{Handler: t.getTrace, Tool: mcp.NewTool("insights-trace-get",
+			common.WithHints(common.HintsRead), common.WithRisk(common.RiskLow), traceOut.Schema(),
+			mcp.WithDescription("PREFERRED — Get one Insights trace and its spans (GET /v2/insights/query/{region}/traces/{traceID}). Window defaults to last 7 days."),
+			mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug, e.g. nyc3")),
+			mcp.WithString("TraceID", mcp.Required(), mcp.Description("Trace ID")),
+			mcp.WithString("From", mcp.Description("Optional window start: relative (now-1h), RFC3339, or unix seconds")),
+			mcp.WithString("To", mcp.Description("Optional window end: relative (now), RFC3339, or unix seconds")),
 		)},
 	}
 }

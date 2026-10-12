@@ -179,6 +179,64 @@ func isAllDigits(s string) bool {
 	return err == nil
 }
 
+func telemetryTimeBound(s string) (relative, absolute string) {
+	if s == "" {
+		return "", ""
+	}
+	if isAllDigits(s) || strings.Contains(s, "T") || strings.HasSuffix(s, "Z") {
+		return "", s
+	}
+	return s, ""
+}
+
+func spansSearchRequestFromArgs(args map[string]any) *godo.SpansSearchRequest {
+	relFrom, absFrom := telemetryTimeBound(stringArg(args, "From"))
+	relTo, absTo := telemetryTimeBound(stringArg(args, "To"))
+	req := &godo.SpansSearchRequest{
+		TimeRange: godo.SpansTimeRange{
+			From: godo.SpansTimeBound{Relative: relFrom, Absolute: absFrom},
+			To:   godo.SpansTimeBound{Relative: relTo, Absolute: absTo},
+		},
+	}
+	if q := stringArg(args, "Query"); q != "" {
+		req.Filter = &godo.SpansFilterExpression{Type: godo.InsightsSpansFilterTypeTextSearch, Query: q}
+	}
+	if field := stringArg(args, "OrderByField"); field != "" {
+		req.OrderBy = []godo.SpansOrderBy{{
+			Field:     godo.SpansFilterField{Name: field, Scope: stringArg(args, "OrderByScope")},
+			Direction: stringArg(args, "OrderByDirection"),
+		}}
+	}
+	if limit := intArg(args, "Limit", 0); limit > 0 {
+		req.Pagination = &godo.SpansPaginationRequest{Limit: limit}
+	}
+	return req
+}
+
+func tracesSearchRequestFromArgs(args map[string]any) *godo.TracesSearchRequest {
+	relFrom, absFrom := telemetryTimeBound(stringArg(args, "From"))
+	relTo, absTo := telemetryTimeBound(stringArg(args, "To"))
+	req := &godo.TracesSearchRequest{
+		TimeRange: godo.TracesTimeRange{
+			From: godo.TracesTimeBound{Relative: relFrom, Absolute: absFrom},
+			To:   godo.TracesTimeBound{Relative: relTo, Absolute: absTo},
+		},
+	}
+	if q := stringArg(args, "Query"); q != "" {
+		req.Filter = &godo.TracesFilterExpression{Type: godo.InsightsTracesFilterTypeTextSearch, Query: q}
+	}
+	if field := stringArg(args, "OrderByField"); field != "" {
+		req.OrderBy = []godo.TracesOrderBy{{
+			Field:     godo.TracesFilterField{Name: field, Scope: stringArg(args, "OrderByScope")},
+			Direction: stringArg(args, "OrderByDirection"),
+		}}
+	}
+	if limit := intArg(args, "Limit", 0); limit > 0 {
+		req.Pagination = &godo.TracesPaginationRequest{Limit: limit}
+	}
+	return req
+}
+
 func logsSearchRequestFromArgs(args map[string]any) *godo.LogsSearchRequest {
 	req := &godo.LogsSearchRequest{
 		TimeRange: godo.LogsTimeRange{

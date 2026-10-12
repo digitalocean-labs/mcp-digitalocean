@@ -227,6 +227,86 @@ func TestQueryTool_searchLogs(t *testing.T) {
 	require.False(t, resp.IsError)
 }
 
+func TestQueryTool_searchSpans(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	_, _, _, tool := setupInsightsTools(mock)
+
+	resp, err := tool.searchSpans(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().SearchSpans(gomock.Any(), "nyc3", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, req *godo.SpansSearchRequest) (*godo.SpansSearchResponse, *godo.Response, error) {
+			require.Equal(t, "now-1h", req.TimeRange.From.Relative)
+			require.Equal(t, "now", req.TimeRange.To.Relative)
+			require.NotNil(t, req.Filter)
+			require.Equal(t, godo.InsightsSpansFilterTypeTextSearch, req.Filter.Type)
+			require.Equal(t, "checkout", req.Filter.Query)
+			require.NotNil(t, req.Pagination)
+			require.Equal(t, 50, req.Pagination.Limit)
+			return &godo.SpansSearchResponse{Data: []godo.SpanRecord{{SpanID: "s1"}}}, nil, nil
+		},
+	)
+	resp, err = tool.searchSpans(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"Region": "nyc3", "From": "now-1h", "To": "now", "Query": "checkout", "Limit": float64(50),
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
+func TestQueryTool_searchTraces(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	_, _, _, tool := setupInsightsTools(mock)
+
+	resp, err := tool.searchTraces(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().SearchTraces(gomock.Any(), "nyc3", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, req *godo.TracesSearchRequest) (*godo.TracesSearchResponse, *godo.Response, error) {
+			require.Equal(t, "now-1h", req.TimeRange.From.Relative)
+			require.Equal(t, "now", req.TimeRange.To.Relative)
+			require.NotNil(t, req.Filter)
+			require.Equal(t, godo.InsightsTracesFilterTypeTextSearch, req.Filter.Type)
+			require.Equal(t, "checkout", req.Filter.Query)
+			return &godo.TracesSearchResponse{Data: []godo.TraceSummary{{TraceID: "t1"}}}, nil, nil
+		},
+	)
+	resp, err = tool.searchTraces(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"Region": "nyc3", "From": "now-1h", "To": "now", "Query": "checkout",
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
+func TestQueryTool_getTrace(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	_, _, _, tool := setupInsightsTools(mock)
+
+	resp, err := tool.getTrace(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().GetTrace(gomock.Any(), "nyc3", "t1", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _, _ string, opt *godo.TraceGetOptions) (*godo.Trace, *godo.Response, error) {
+			require.Equal(t, "now-1h", opt.From)
+			require.Equal(t, "now", opt.To)
+			return &godo.Trace{TraceID: "t1"}, nil, nil
+		},
+	)
+	resp, err = tool.getTrace(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"Region": "nyc3", "TraceID": "t1", "From": "now-1h", "To": "now",
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
 func TestAlertPolicyDeprecationNotice(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
