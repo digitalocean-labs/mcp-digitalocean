@@ -29,6 +29,15 @@ type (
 		Links       *godo.Links              `json:"links,omitempty"`
 		Meta        *godo.Meta               `json:"meta,omitempty"`
 	}
+
+	// execResponse matches POST /v2/microvms/{id}/exec (flat body, not wrapped).
+	execResponse struct {
+		Stdout         string `json:"stdout"`
+		Stderr         string `json:"stderr"`
+		OutputEncoding string `json:"output_encoding,omitempty"`
+		ExitCode       int32  `json:"exit_code"`
+		Truncated      bool   `json:"truncated,omitempty"`
+	}
 )
 
 // Output contracts for this package's tools; see the marketplace package for
@@ -42,4 +51,5 @@ var (
 	microVMsListOut    = common.NewObjectOutput[microVMsListResponse]()
 	checkpointOut      = common.NewObjectOutput[checkpointResponse]()
 	checkpointsListOut = common.NewObjectOutput[checkpointsListResponse]()
+	execOut            = common.NewObjectOutput[execResponse]()
 )

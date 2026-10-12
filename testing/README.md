@@ -1,11 +1,11 @@
 # E2E Tests
 
-This directory contains end-to-end (E2E) tests for the project. These tests are designed to validate the complete functionality of the system by simulating real-world scenarios without having 
-requiring setting up cursor or claude. 
+This directory contains end-to-end (E2E) tests for the project. These tests are designed to validate the complete functionality of the system by simulating real-world scenarios without having
+requiring setting up cursor or claude.
 
 The tests will perform the following actions:
 
-- Set up MCP Server with HTTP transport in a container. 
+- Set up MCP Server with HTTP transport in a container.
 - Run the integration tests using the provided DigitalOcean API token and URL.
 
 Usage:
@@ -21,5 +21,4 @@ Optional environment variables:
 
 GenAI custom models Hugging Face commit resolution and import behavior are covered in [e2e_custom_models_test.go](e2e_custom_models_test.go) and [e2e_custom_models_huggingface_test.go](e2e_custom_models_huggingface_test.go).
 
-MicroDroplet / MicroVM tools (`--services microvms`, REST `/v2/microvms`) are covered in [e2e_microdroplet_test.go](e2e_microdroplet_test.go). List/get/checkpoint-list run by default (skip when the token lacks access). Optional create→delete: set `MICROVM_E2E_OCI_REF` (and optionally `MICROVM_E2E_REGION`, default `nyc1`).
-
+MicroDroplet / MicroVM tools (`--services microvms`, REST `/v2/microvms`) are covered in [e2e_microdroplet_test.go](e2e_microdroplet_test.go). List/get/checkpoint-list run by default (skip when the token lacks access). Optional create→delete: set `MICROVM_E2E_OCI_REF` (and optionally `MICROVM_E2E_REGION`, default `nyc1`). Optional one-shot exec: set `MICROVM_E2E_EXEC=1` (requires `exec_pty` and at least one MicroVM).
