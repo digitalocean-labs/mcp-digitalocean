@@ -42,4 +42,7 @@ var (
 	promSeriesOut           = common.NewOutput[*godo.PromSeriesResponse]("series")
 	promLabelsOut           = common.NewOutput[*godo.PromLabelsResponse]("labels")
 	logsSearchOut           = common.NewOutput[*godo.LogsSearchResponse]("logs")
+	spansSearchOut          = common.NewOutput[*godo.SpansSearchResponse]("spans")
+	tracesSearchOut         = common.NewOutput[*godo.TracesSearchResponse]("traces")
+	traceOut                = common.NewOutput[*godo.Trace]("trace")
 )

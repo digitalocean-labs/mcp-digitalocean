@@ -1236,6 +1236,22 @@ func (mr *MockInsightsServiceMockRecorder) GetNotificationChannel(arg0, arg1 any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotificationChannel", reflect.TypeOf((*MockInsightsService)(nil).GetNotificationChannel), arg0, arg1)
 }
 
+// GetTrace mocks base method.
+func (m *MockInsightsService) GetTrace(arg0 context.Context, arg1, arg2 string, arg3 *godo.TraceGetOptions) (*godo.Trace, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrace", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*godo.Trace)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetTrace indicates an expected call of GetTrace.
+func (mr *MockInsightsServiceMockRecorder) GetTrace(arg0, arg1, arg2, arg3 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrace", reflect.TypeOf((*MockInsightsService)(nil).GetTrace), arg0, arg1, arg2, arg3)
+}
+
 // LabelValues mocks base method.
 func (m *MockInsightsService) LabelValues(arg0 context.Context, arg1, arg2 string, arg3 *godo.PromSelectorOptions) (*godo.PromLabelsResponse, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1426,6 +1442,38 @@ func (m *MockInsightsService) SearchLogs(arg0 context.Context, arg1 string, arg2
 func (mr *MockInsightsServiceMockRecorder) SearchLogs(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchLogs", reflect.TypeOf((*MockInsightsService)(nil).SearchLogs), arg0, arg1, arg2)
+}
+
+// SearchSpans mocks base method.
+func (m *MockInsightsService) SearchSpans(arg0 context.Context, arg1 string, arg2 *godo.SpansSearchRequest) (*godo.SpansSearchResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchSpans", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.SpansSearchResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchSpans indicates an expected call of SearchSpans.
+func (mr *MockInsightsServiceMockRecorder) SearchSpans(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchSpans", reflect.TypeOf((*MockInsightsService)(nil).SearchSpans), arg0, arg1, arg2)
+}
+
+// SearchTraces mocks base method.
+func (m *MockInsightsService) SearchTraces(arg0 context.Context, arg1 string, arg2 *godo.TracesSearchRequest) (*godo.TracesSearchResponse, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchTraces", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.TracesSearchResponse)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchTraces indicates an expected call of SearchTraces.
+func (mr *MockInsightsServiceMockRecorder) SearchTraces(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchTraces", reflect.TypeOf((*MockInsightsService)(nil).SearchTraces), arg0, arg1, arg2)
 }
 
 // Series mocks base method.
