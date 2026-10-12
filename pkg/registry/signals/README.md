@@ -15,22 +15,31 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
   **Arguments:** None
 
 - **signals-get-agent-consent**  
-  Get Signals consent for one environment.  
+  Get Signals consent for one environment. For serverless inference, use `signals-get-inference-consent`.  
   **Arguments:**
     - `AgentID` (string, required): Environment ID
 
 - **signals-set-agent-consent**  
-  Enable or disable Signals for one environment.  
+  Enable or disable Signals for one environment. For serverless inference, use `signals-set-inference-consent`.  
   **Arguments:**
     - `AgentID` (string, required): Environment ID
+    - `Enabled` (boolean, required): `true` to enable, `false` to disable
+
+- **signals-get-inference-consent**  
+  Get the team's Signals consent for serverless inference traffic. Returns `enabled: false` when the team has never set it.  
+  **Arguments:** None
+
+- **signals-set-inference-consent**  
+  Enable or disable Signals for all serverless inference traffic of the team.  
+  **Arguments:**
     - `Enabled` (boolean, required): `true` to enable, `false` to disable
 
 ### Sessions and dialogues
 
 - **signals-list-agent-sessions**  
-  List sessions for an environment.  
+  List sessions for an environment, or for serverless inference.  
   **Arguments:**
-    - `AgentID` (string, required): Environment ID
+    - `AgentID` (string, required): Environment ID. Use `00000000-0000-0000-0000-000000000000` for serverless inference.
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
@@ -56,9 +65,9 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
   **Arguments:** None
 
 - **signals-create-export**  
-  Create an export for an environment.  
+  Create an export for an environment, or for serverless inference.  
   **Arguments:**
-    - `AgentID` (string, required): Environment ID
+    - `AgentID` (string, required): Environment ID. Use `00000000-0000-0000-0000-000000000000` for serverless inference.
     - `SignalType` (array of strings, optional): Filter by signal type
     - `StartTime` (number, optional): Lower bound (Unix epoch seconds)
     - `EndTime` (number, optional): Upper bound (Unix epoch seconds)
@@ -66,7 +75,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - **signals-list-exports**  
   List exports for the team.  
   **Arguments:**
-    - `AgentID` (string, optional): Environment ID
+    - `AgentID` (string, optional): Environment ID. Use `00000000-0000-0000-0000-000000000000` for serverless inference.
     - `Limit` (number, default: 20, max: 100): Page size
     - `After` (string, optional): Cursor from `page_info.end_cursor`
 
@@ -99,10 +108,25 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
     - `Enabled`: `true`
 
+- **Get serverless inference consent:**  
+  Tool: `signals-get-inference-consent`  
+  Arguments: `{}`
+
+- **Enable Signals for serverless inference:**  
+  Tool: `signals-set-inference-consent`  
+  Arguments:
+    - `Enabled`: `true`
+
 - **List sessions for an environment:**  
   Tool: `signals-list-agent-sessions`  
   Arguments:
     - `AgentID`: `"019fb39c-14d9-7080-933e-b9b90e25acda"`
+    - `Limit`: `20`
+
+- **List serverless inference sessions:**  
+  Tool: `signals-list-agent-sessions`  
+  Arguments:
+    - `AgentID`: `"00000000-0000-0000-0000-000000000000"`
     - `Limit`: `20`
 
 - **List dialogues for a session:**  
@@ -133,6 +157,7 @@ Enable these tools with service name **`signals`**. Hosted URL: `https://signals
 - All tools use argument-based input; do not use resource URIs.
 - Pagination uses `Limit` and `After`. Pass `page_info.end_cursor` as `After`.
 - The `AgentID` argument is the Environment ID (Environment Config ID). Run `doctl harness-runtime config list` to find it.
+- Serverless inference sessions and exports use the `AgentID` `00000000-0000-0000-0000-000000000000`. Inference consent is a single team-level setting; manage it with `signals-get-inference-consent` and `signals-set-inference-consent`, not the agent consent tools.
 - After you change consent, ingest can take up to 15 minutes to apply it.
 - Export download URLs expire after about 15 minutes.
 - Responses are JSON.
