@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -30,6 +31,8 @@ func TestToolsRegistered(t *testing.T) {
 		"signals-list-consents",
 		"signals-get-agent-consent",
 		"signals-set-agent-consent",
+		"signals-get-inference-consent",
+		"signals-set-inference-consent",
 		"signals-list-agent-sessions",
 		"signals-list-session-dialogues",
 		"signals-create-export",
@@ -146,6 +149,68 @@ func TestSetAgentConsent(t *testing.T) {
 	})
 }
 
+func TestGetInferenceConsent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockSignalsService(ctrl)
+	tool := setupToolWithMock(mock)
+
+	t.Run("success", func(t *testing.T) {
+		mock.EXPECT().GetInferenceConsent(gomock.Any()).Return(&godo.SignalsConsentRecord{
+			ID: 7, TeamID: 123, Source: godo.SignalsConsentSourceInference, Enabled: true,
+		}, &godo.Response{}, nil)
+		res, err := tool.getInferenceConsent(context.Background(), mcp.CallToolRequest{})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		got := decodeConsentRecord(t, res)
+		require.Equal(t, godo.SignalsConsentSourceInference, got.Source)
+		require.True(t, got.Enabled)
+	})
+
+	t.Run("API error", func(t *testing.T) {
+		mock.EXPECT().GetInferenceConsent(gomock.Any()).Return(nil, nil, errors.New("403"))
+		res, err := tool.getInferenceConsent(context.Background(), mcp.CallToolRequest{})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+	})
+}
+
+func TestSetInferenceConsent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockSignalsService(ctrl)
+	tool := setupToolWithMock(mock)
+
+	t.Run("missing Enabled", func(t *testing.T) {
+		res, err := tool.setInferenceConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{}},
+		})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+	})
+
+	for _, enabled := range []bool{true, false} {
+		mock.EXPECT().SetInferenceConsent(gomock.Any(), enabled).Return(&godo.SignalsConsentRecord{
+			ID: 7, TeamID: 123, Source: godo.SignalsConsentSourceInference, Enabled: enabled,
+		}, &godo.Response{}, nil)
+		res, err := tool.setInferenceConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{"Enabled": enabled}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		got := decodeConsentRecord(t, res)
+		require.Equal(t, godo.SignalsConsentSourceInference, got.Source)
+		require.Equal(t, enabled, got.Enabled)
+	}
+
+	t.Run("API error", func(t *testing.T) {
+		mock.EXPECT().SetInferenceConsent(gomock.Any(), true).Return(nil, nil, errors.New("403"))
+		res, err := tool.setInferenceConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{"Enabled": true}},
+		})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+	})
+}
+
 func TestListAgentSessions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mock := NewMockSignalsService(ctrl)
@@ -211,6 +276,13 @@ func callText(res *mcp.CallToolResult) string {
 	return ""
 }
 
+func decodeConsentRecord(t *testing.T, res *mcp.CallToolResult) godo.SignalsConsentRecord {
+	t.Helper()
+	var got godo.SignalsConsentRecord
+	require.NoError(t, json.Unmarshal([]byte(callText(res)), &got))
+	return got
+}
+
 var expectedAnnotations = map[string]struct {
 	readOnly, destructive, idempotent, openWorld bool
 	operation                                    common.Operation
@@ -220,6 +292,8 @@ var expectedAnnotations = map[string]struct {
 	"signals-list-consents":          {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-get-agent-consent":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-set-agent-consent":      {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"signals-get-inference-consent":  {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"signals-set-inference-consent":  {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"signals-list-agent-sessions":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-list-session-dialogues": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"signals-create-export":          {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},

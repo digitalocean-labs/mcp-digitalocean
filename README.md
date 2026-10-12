@@ -185,7 +185,7 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 | microvms                 | https://microvms.mcp.digitalocean.com/mcp                   | Create, list, get, pause, resume, checkpoint, and delete DigitalOcean MicroVMs. |
 | docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
 | genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
-| signals                  | https://signals.mcp.digitalocean.com/mcp                    | Investigate Gradient agent sessions, segments, and consent for DigitalOcean Signals. |
+| signals                  | https://signals.mcp.digitalocean.com/mcp                    | Investigate Gradient agent and serverless inference sessions, segments, and consent for DigitalOcean Signals. |
 | harness-runtime          | https://harness-runtime.mcp.digitalocean.com/mcp            | List and inspect hosted agent configs for DigitalOcean Harness Runtime. |
 | genai-custom-models      | https://genai-custom-models.mcp.digitalocean.com/mcp        | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform. |
 | genai-inferencerouter    | https://genai-inferencerouter.mcp.digitalocean.com/mcp      | Create, list, get, and delete GenAI model routers. |

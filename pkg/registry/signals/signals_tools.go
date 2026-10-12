@@ -11,6 +11,11 @@ import (
 	"mcp-digitalocean/pkg/registry/common"
 )
 
+// InferenceAgentID is the agent ID under which Signals stores serverless inference sessions and exports.
+const InferenceAgentID = "00000000-0000-0000-0000-000000000000"
+
+const agentIDWithInferenceDesc = "Environment ID. Use " + InferenceAgentID + " for serverless inference."
+
 // Tool provides Signals investigation GETs, consent list/get/set, and export create/list/get.
 type Tool struct {
 	client func(ctx context.Context) (*godo.Client, error)
@@ -138,6 +143,34 @@ func (t *Tool) setAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*m
 		return mcp.NewToolResultErrorFromErr("Failed to set agent consent", err), nil
 	}
 	return consentSetOut.Result(out)
+}
+
+func (t *Tool) getInferenceConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.doClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	out, _, err := client.Signals.GetInferenceConsent(ctx)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to get inference consent", err), nil
+	}
+	return inferenceConsentOut.Result(out)
+}
+
+func (t *Tool) setInferenceConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.doClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	enabled, ok := argBool(req.GetArguments(), "Enabled")
+	if !ok {
+		return mcp.NewToolResultError("Enabled is required"), nil
+	}
+	out, _, err := client.Signals.SetInferenceConsent(ctx, enabled)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to set inference consent", err), nil
+	}
+	return inferenceConsentOut.Result(out)
 }
 
 func (t *Tool) listAgentSessions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -312,7 +345,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				consentOut.Schema(),
-				mcp.WithDescription("Get Signals consent for one environment."),
+				mcp.WithDescription("Get Signals consent for one environment. For serverless inference, use signals-get-inference-consent."),
 				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
 			),
 		},
@@ -322,8 +355,27 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
 				consentSetOut.Schema(),
-				mcp.WithDescription("Enable or disable Signals for one environment."),
+				mcp.WithDescription("Enable or disable Signals for one environment. For serverless inference, use signals-set-inference-consent."),
 				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
+				mcp.WithBoolean("Enabled", mcp.Required(), mcp.Description("true to enable, false to disable")),
+			),
+		},
+		{
+			Handler: t.getInferenceConsent,
+			Tool: mcp.NewTool("signals-get-inference-consent",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
+				inferenceConsentOut.Schema(),
+				mcp.WithDescription("Get the team's Signals consent for serverless inference traffic. Returns enabled=false when the team has never set it."),
+			),
+		},
+		{
+			Handler: t.setInferenceConsent,
+			Tool: mcp.NewTool("signals-set-inference-consent",
+				common.WithHints(common.HintsToggle),
+				common.WithRisk(common.RiskMedium),
+				inferenceConsentOut.Schema(),
+				mcp.WithDescription("Enable or disable Signals for all serverless inference traffic of the team."),
 				mcp.WithBoolean("Enabled", mcp.Required(), mcp.Description("true to enable, false to disable")),
 			),
 		},
@@ -334,8 +386,8 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithHints(common.HintsRead),
 					common.WithRisk(common.RiskLow),
 					sessionsOut.Schema(),
-					mcp.WithDescription("List sessions for an environment."),
-					mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
+					mcp.WithDescription("List sessions for an environment, or for serverless inference."),
+					mcp.WithString("AgentID", mcp.Required(), mcp.Description(agentIDWithInferenceDesc)),
 					mcp.WithNumber("StartTime", mcp.Description("Lower bound (Unix epoch seconds)")),
 					mcp.WithNumber("EndTime", mcp.Description("Upper bound (Unix epoch seconds)")),
 					signalTypeOpt(),
@@ -365,8 +417,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				exportJobOut.Schema(),
-				mcp.WithDescription("Create an export for an environment."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
+				mcp.WithDescription("Create an export for an environment, or for serverless inference."),
+				mcp.WithString("AgentID", mcp.Required(), mcp.Description(agentIDWithInferenceDesc)),
 				signalTypeOpt(),
 				mcp.WithNumber("StartTime", mcp.Description("Lower bound (Unix epoch seconds)")),
 				mcp.WithNumber("EndTime", mcp.Description("Upper bound (Unix epoch seconds)")),
@@ -380,7 +432,7 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithRisk(common.RiskLow),
 					exportsOut.Schema(),
 					mcp.WithDescription("List exports for the team."),
-					mcp.WithString("AgentID", mcp.Description("Environment ID")),
+					mcp.WithString("AgentID", mcp.Description(agentIDWithInferenceDesc)),
 				)...,
 			),
 		},
