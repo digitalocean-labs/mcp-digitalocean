@@ -285,66 +285,107 @@ func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 		return nil
 	}
 
-	type scored struct {
-		entry DocsEntry
-		score int
-	}
-
 	wordRegexes := make([]*regexp.Regexp, len(terms))
 	for i, term := range terms {
 		wordRegexes[i] = regexp.MustCompile(`\b` + regexp.QuoteMeta(term) + `\b`)
 	}
 
-	var results []scored
+	var results []scoredEntry
 
 	for _, entry := range index.Entries {
+		score, allTermsMatched := scoreEntryTerms(entry, terms, searchWeights)
+
+		// Exact word boundary matches in title
 		titleLower := strings.ToLower(entry.Title)
-		descLower := strings.ToLower(entry.Description)
-		sectionLower := strings.ToLower(entry.Section)
-		urlLower := strings.ToLower(entry.URL)
-		score := 0
-		matchedTerms := 0
-
-		for i, term := range terms {
-			termMatched := false
-
-			if strings.Contains(titleLower, term) {
-				score += 10
-				termMatched = true
-			}
-			// Exact word boundary match in title
+		for i := range terms {
 			if wordRegexes[i].MatchString(titleLower) {
 				score += 5
-			}
-			if strings.Contains(descLower, term) {
-				score += 3
-				termMatched = true
-			}
-			if strings.Contains(sectionLower, term) {
-				score += 2
-				termMatched = true
-			}
-			// Match against URL path segments (e.g., "manage-domains" matches "domain")
-			if strings.Contains(urlLower, term) {
-				score += 4
-				termMatched = true
-			}
-
-			if termMatched {
-				matchedTerms++
 			}
 		}
 
 		// Boost entries that match all query terms
-		if len(terms) > 1 && matchedTerms == len(terms) {
-			score += 15
+		if len(terms) > 1 && allTermsMatched {
+			score += allTermsMatchBoost
 		}
 
 		if score > 0 {
-			results = append(results, scored{entry: entry, score: score})
+			results = append(results, scoredEntry{entry: entry, score: score})
 		}
 	}
 
+	return rankEntries(results)
+}
+
+// fieldWeights defines the per-term score contribution of each DocsEntry
+// field during scoring. A zero weight excludes the field from matching.
+type fieldWeights struct {
+	title, description, section, url int
+}
+
+// allTermsMatchBoost is added to an entry's score when every query term
+// matched at least one field, ranking complete matches above partial ones
+// for multi-term queries.
+const allTermsMatchBoost = 15
+
+var (
+	// searchWeights is the profile used by SearchIndex.
+	searchWeights = fieldWeights{title: 10, description: 3, section: 2, url: 4}
+
+	// troubleshootWeights is the profile used by FindTroubleshootPage. It
+	// ignores the section field; support sections are handled by a separate
+	// boost instead.
+	troubleshootWeights = fieldWeights{title: 10, description: 3, url: 2}
+)
+
+// scoreEntryTerms scores entry against the query terms using the given field
+// weights. It returns the accumulated score and whether every term matched at
+// least one weighted field. Callers layer their own boosts on top.
+func scoreEntryTerms(entry DocsEntry, terms []string, weights fieldWeights) (int, bool) {
+	titleLower := strings.ToLower(entry.Title)
+	descLower := strings.ToLower(entry.Description)
+	sectionLower := strings.ToLower(entry.Section)
+	urlLower := strings.ToLower(entry.URL)
+
+	score := 0
+	matchedTerms := 0
+
+	for _, term := range terms {
+		termMatched := false
+
+		if weights.title > 0 && strings.Contains(titleLower, term) {
+			score += weights.title
+			termMatched = true
+		}
+		if weights.description > 0 && strings.Contains(descLower, term) {
+			score += weights.description
+			termMatched = true
+		}
+		if weights.section > 0 && strings.Contains(sectionLower, term) {
+			score += weights.section
+			termMatched = true
+		}
+		// Match against URL path segments (e.g., "manage-domains" matches "domain")
+		if weights.url > 0 && strings.Contains(urlLower, term) {
+			score += weights.url
+			termMatched = true
+		}
+
+		if termMatched {
+			matchedTerms++
+		}
+	}
+
+	return score, matchedTerms == len(terms)
+}
+
+// scoredEntry pairs a DocsEntry with its relevance score for ranking.
+type scoredEntry struct {
+	entry DocsEntry
+	score int
+}
+
+// rankEntries sorts results by descending score and returns the bare entries.
+func rankEntries(results []scoredEntry) []DocsEntry {
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].score > results[j].score
 	})
@@ -404,43 +445,17 @@ func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
 		return nil, fmt.Errorf("symptom query must not be empty")
 	}
 
-	type scored struct {
-		entry DocsEntry
-		score int
-	}
-
-	var results []scored
+	var results []scoredEntry
 
 	for _, entry := range index.Entries {
-		titleLower := strings.ToLower(entry.Title)
-		descLower := strings.ToLower(entry.Description)
-		urlLower := strings.ToLower(entry.URL)
-		sectionLower := strings.ToLower(entry.Section)
-		score := 0
-		matchedTerms := 0
-
-		for _, term := range terms {
-			termMatched := false
-			if strings.Contains(titleLower, term) {
-				score += 10
-				termMatched = true
-			}
-			if strings.Contains(descLower, term) {
-				score += 3
-				termMatched = true
-			}
-			if strings.Contains(urlLower, term) {
-				score += 2
-				termMatched = true
-			}
-			if termMatched {
-				matchedTerms++
-			}
-		}
-
+		score, allTermsMatched := scoreEntryTerms(entry, terms, troubleshootWeights)
 		if score == 0 {
 			continue
 		}
+
+		titleLower := strings.ToLower(entry.Title)
+		sectionLower := strings.ToLower(entry.Section)
+		urlLower := strings.ToLower(entry.URL)
 
 		// Boost support/troubleshooting pages
 		if strings.Contains(sectionLower, "support") || strings.Contains(urlLower, "/support/") {
@@ -456,22 +471,14 @@ func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
 		}
 
 		// Boost entries matching all terms
-		if len(terms) > 1 && matchedTerms == len(terms) {
-			score += 15
+		if len(terms) > 1 && allTermsMatched {
+			score += allTermsMatchBoost
 		}
 
-		results = append(results, scored{entry: entry, score: score})
+		results = append(results, scoredEntry{entry: entry, score: score})
 	}
 
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].score > results[j].score
-	})
-
-	entries := make([]DocsEntry, len(results))
-	for i, r := range results {
-		entries[i] = r.entry
-	}
-	return entries, nil
+	return rankEntries(results), nil
 }
 
 var troubleshootPrefixes = []string{
