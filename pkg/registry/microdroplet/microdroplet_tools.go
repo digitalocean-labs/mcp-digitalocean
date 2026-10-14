@@ -155,6 +155,46 @@ func (t *MicroDropletTool) resume(ctx context.Context, req mcp.CallToolRequest) 
 	return toolResultJSON(microVMOut, out)
 }
 
+func (t *MicroDropletTool) exec(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	id, errMsg := requiredUUID(args, "id")
+	if errMsg != "" {
+		return mcp.NewToolResultError(errMsg), nil
+	}
+
+	argv := stringSliceArg(args["argv"])
+	if len(argv) == 0 {
+		return mcp.NewToolResultError("argv is required and must be a non-empty array of strings"), nil
+	}
+	if strings.TrimSpace(argv[0]) == "" {
+		return mcp.NewToolResultError("argv[0] (the command) must be non-empty"), nil
+	}
+
+	body := map[string]any{"argv": argv}
+	if cwd, ok := args["cwd"].(string); ok && strings.TrimSpace(cwd) != "" {
+		body["cwd"] = cwd
+	}
+	if enc, ok := args["output_encoding"].(string); ok && strings.TrimSpace(enc) != "" {
+		switch enc {
+		case "utf-8", "base64":
+			body["output_encoding"] = enc
+		default:
+			return mcp.NewToolResultError("output_encoding must be utf-8 or base64"), nil
+		}
+	}
+
+	api, err := t.api(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := api.do(ctx, http.MethodPost, "/"+id+"/exec", nil, body)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("microvm exec", err), nil
+	}
+	return toolResultJSON(execOut, out)
+}
+
 func (t *MicroDropletTool) checkpointCreate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 	id, errMsg := requiredUUID(args, "id")
@@ -532,6 +572,19 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 				microVMOut.Schema(),
 				mcp.WithDescription("Resume a paused MicroVM (synchronous, idempotent)."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
+			),
+		},
+		{
+			Handler: t.exec,
+			Tool: mcp.NewTool("microvm-exec",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskHigh),
+				execOut.Schema(),
+				mcp.WithDescription("Run a one-shot non-PTY command in a MicroVM (POST /v2/microvms/{id}/exec). Requires the exec_pty feature gate. Returns stdout, stderr, and exit_code; non-zero exit is success for the tool. Commands over ~50s may time out. Interactive console WebSocket is not exposed as an MCP tool."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
+				mcp.WithArray("argv", mcp.Required(), mcp.Description("Command and arguments (e.g. [\"echo\", \"hi\"]). Must be non-empty."), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithString("cwd", mcp.Description("Optional working directory.")),
+				mcp.WithString("output_encoding", mcp.Enum("utf-8", "base64"), mcp.Description("How stdout/stderr are encoded (default utf-8). Use base64 for binary output.")),
 			),
 		},
 		{

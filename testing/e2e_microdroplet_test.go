@@ -78,6 +78,60 @@ func TestMicroDropletList(t *testing.T) {
 	require.Contains(t, callToolResultText(getResp), id)
 }
 
+// TestMicroDropletExec runs echo on the first listed MicroVM when
+// MICROVM_E2E_EXEC=1 (requires exec_pty). Skipped by default.
+func TestMicroDropletExec(t *testing.T) {
+	if os.Getenv("MICROVM_E2E_EXEC") == "" {
+		t.Skip("MICROVM_E2E_EXEC not set")
+	}
+
+	ctx, c := getTestClient(t)
+	listResp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "microvm-list",
+			Arguments: map[string]any{
+				"page":     float64(1),
+				"per_page": float64(10),
+			},
+		},
+	})
+	require.NoError(t, err)
+	skipIfMicroDropletUnavailable(t, listResp)
+	require.False(t, listResp.IsError, callToolResultText(listResp))
+
+	var listed struct {
+		MicroVMs []struct {
+			ID string `json:"id"`
+		} `json:"microvms"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(callToolResultText(listResp)), &listed))
+	if len(listed.MicroVMs) == 0 {
+		t.Skip("no microvms available for exec e2e")
+	}
+	id := listed.MicroVMs[0].ID
+
+	execResp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "microvm-exec",
+			Arguments: map[string]any{
+				"id":   id,
+				"argv": []any{"echo", "mcp-e2e"},
+			},
+		},
+	})
+	require.NoError(t, err)
+	skipIfMicroDropletUnavailable(t, execResp)
+	require.False(t, execResp.IsError, callToolResultText(execResp))
+
+	var result struct {
+		Stdout   string `json:"stdout"`
+		ExitCode int32  `json:"exit_code"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(callToolResultText(execResp)), &result))
+	require.Equal(t, int32(0), result.ExitCode)
+	require.Contains(t, result.Stdout, "mcp-e2e")
+}
+
 func TestMicroDropletCheckpointList(t *testing.T) {
 	ctx, c := getTestClient(t)
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{

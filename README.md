@@ -32,13 +32,16 @@ The safe approach is to store your token in an **environment variable** on your 
 1. Open a terminal.
 
 2. Determine which shell you are using:
+
    ```bash
    echo $SHELL
    ```
+
    - If it outputs `/bin/zsh` → edit `~/.zshrc`
    - If it outputs `/bin/bash` → edit `~/.bashrc` or `~/.bash_profile`
 
 3. Open the file in a text editor:
+
    ```bash
    # For zsh (default on macOS Monterey and later)
    nano ~/.zshrc
@@ -48,15 +51,19 @@ The safe approach is to store your token in an **environment variable** on your 
    ```
 
 4. Add the following line at the bottom of the file:
+
    ```bash
    export DIGITALOCEAN_API_TOKEN="your_actual_token_here"
    ```
+
    Replace `your_actual_token_here` with your real token from the [DigitalOcean API Tokens page](https://cloud.digitalocean.com/account/api/tokens).
 
 5. Save and exit:
+
    - In `nano`: press `Ctrl + O`, then `Enter` to save, then `Ctrl + X` to exit.
 
 6. Reload your shell to apply the change:
+
    ```bash
    source ~/.zshrc    # or source ~/.bashrc
    ```
@@ -70,21 +77,25 @@ The safe approach is to store your token in an **environment variable** on your 
 #### Option B: Use a `.env` file (for project-level isolation)
 
 1. In your project root folder, create a `.env` file:
+
    ```bash
    touch .env
    ```
 
 2. Open it and add:
+
    ```
    DIGITALOCEAN_API_TOKEN=your_actual_token_here
    ```
 
 3. **Immediately** add `.env` to your `.gitignore` so it is never committed:
+
    ```bash
    echo ".env" >> .gitignore
    ```
 
 4. To load the `.env` file into your current terminal session:
+
    ```bash
    export $(grep -v '^#' .env | xargs)
    ```
@@ -129,16 +140,19 @@ $env:DIGITALOCEAN_API_TOKEN = "your_actual_token_here"
 #### Option C: Use a `.env` file on Windows
 
 1. In your project folder, create a file named `.env` (no extension) with this content:
+
    ```
    DIGITALOCEAN_API_TOKEN=your_actual_token_here
    ```
 
 2. Add `.env` to your `.gitignore`:
+
    ```
    .env
    ```
 
 3. To load it in PowerShell:
+
    ```powershell
    Get-Content .env | ForEach-Object {
      if ($_ -match "^\s*([^#][^=]*)=(.*)$") {
@@ -175,32 +189,32 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 
 #### Available Services
 
-| Service                  | Remote MCP URL                                              | Description                                                                             |
-|--------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| apps                     | https://apps.mcp.digitalocean.com/mcp                       | Manage DigitalOcean App Platform applications, including deployments and configurations. |
-| accounts                 | https://accounts.mcp.digitalocean.com/mcp                   | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys. |
-| databases                | https://databases.mcp.digitalocean.com/mcp                  | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.). |
-| doks                     | https://doks.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Kubernetes clusters and node pools. |
-| droplets                 | https://droplets.mcp.digitalocean.com/mcp                   | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean. |
-| microvms                 | https://microvms.mcp.digitalocean.com/mcp                   | Create, list, get, pause, resume, checkpoint, and delete DigitalOcean MicroVMs. |
-| docr                     | https://docr.mcp.digitalocean.com/mcp                       | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection. |
-| genai-batchinference     | https://genai-batchinference.mcp.digitalocean.com/mcp       | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing. |
-| signals                  | https://signals.mcp.digitalocean.com/mcp                    | Investigate Gradient agent and serverless inference sessions, segments, and consent for DigitalOcean Signals. |
-| harness-runtime          | https://harness-runtime.mcp.digitalocean.com/mcp            | List and inspect hosted agent configs for DigitalOcean Harness Runtime. |
-| genai-custom-models      | https://genai-custom-models.mcp.digitalocean.com/mcp        | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform. |
-| genai-inferencerouter    | https://genai-inferencerouter.mcp.digitalocean.com/mcp      | Create, list, get, and delete GenAI model routers. |
-| dedicated-inference      | https://dedicated-inference.mcp.digitalocean.com/mcp        | Manage Dedicated Inference instances for GPU-accelerated model serving. |
-| inference-modelcatalog   | https://inference-modelcatalog.mcp.digitalocean.com/mcp     | Browse the DigitalOcean Inference model catalog, search for models, and get model cards. |
-| insights                 | https://insights.mcp.digitalocean.com/mcp                   | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring. |
-| marketplace              | https://marketplace.mcp.digitalocean.com/mcp                | Discover and manage DigitalOcean Marketplace applications. |
-| networking               | https://networking.mcp.digitalocean.com/mcp                 | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
-| functions                | https://functions.mcp.digitalocean.com/mcp                  | Manage serverless function namespaces, actions, packages, triggers, and activations.  |
-| spaces                   | https://spaces.mcp.digitalocean.com/mcp                     | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage. |
-| docs                     | https://docs.mcp.digitalocean.com/mcp                       | Search and retrieve DigitalOcean public documentation. No API token required. |
-| genai-evaluation         | https://genai-evaluation.mcp.digitalocean.com/mcp           | Manage and run evaluation workflows in DigitalOcean's GenAI platform. |
-| nfs                      | https://nfs.mcp.digitalocean.com/mcp                        | Manage DigitalOcean NFS file shares and file share snapshots. |
-| volumes                  | https://volumes.mcp.digitalocean.com/mcp                    | Manage DigitalOcean block storage volumes and volume snapshots. |
-| vector-databases         | https://vector-databases.mcp.digitalocean.com/mcp           | Create, list, resize, delete, and inspect managed Weaviate vector database clusters. |
+| Service                | Remote MCP URL                                          | Description                                                                                                         |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| apps                   | https://apps.mcp.digitalocean.com/mcp                   | Manage DigitalOcean App Platform applications, including deployments and configurations.                            |
+| accounts               | https://accounts.mcp.digitalocean.com/mcp               | Get information about your DigitalOcean account, billing, balance, invoices, and SSH keys.                          |
+| databases              | https://databases.mcp.digitalocean.com/mcp              | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.).                            |
+| doks                   | https://doks.mcp.digitalocean.com/mcp                   | Manage DigitalOcean Kubernetes clusters and node pools.                                                             |
+| droplets               | https://droplets.mcp.digitalocean.com/mcp               | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean.                          |
+| microvms               | https://microvms.mcp.digitalocean.com/mcp               | Create, list, get, pause, resume, checkpoint, and delete DigitalOcean MicroVMs.                                     |
+| docr                   | https://docr.mcp.digitalocean.com/mcp                   | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection.                       |
+| genai-batchinference   | https://genai-batchinference.mcp.digitalocean.com/mcp   | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing.                               |
+| signals                | https://signals.mcp.digitalocean.com/mcp                | Investigate Gradient agent and serverless inference sessions, segments, and consent for DigitalOcean Signals.       |
+| harness-runtime        | https://harness-runtime.mcp.digitalocean.com/mcp        | List and inspect hosted agent configs for DigitalOcean Harness Runtime.                                             |
+| genai-custom-models    | https://genai-custom-models.mcp.digitalocean.com/mcp    | Import, list, update, and delete custom (bring-your-own) models on DigitalOcean's GenAI platform.                   |
+| genai-inferencerouter  | https://genai-inferencerouter.mcp.digitalocean.com/mcp  | Create, list, get, and delete GenAI model routers.                                                                  |
+| dedicated-inference    | https://dedicated-inference.mcp.digitalocean.com/mcp    | Manage Dedicated Inference instances for GPU-accelerated model serving.                                             |
+| inference-modelcatalog | https://inference-modelcatalog.mcp.digitalocean.com/mcp | Browse the DigitalOcean Inference model catalog, search for models, and get model cards.                            |
+| insights               | https://insights.mcp.digitalocean.com/mcp               | Monitors your resources, endpoints and alert you when they're slow, unavailable, or SSL certificates are expiring.  |
+| marketplace            | https://marketplace.mcp.digitalocean.com/mcp            | Discover and manage DigitalOcean Marketplace applications.                                                          |
+| networking             | https://networking.mcp.digitalocean.com/mcp             | Manage domains, DNS records, certificates, firewalls, load balancers, reserved IPs, BYOIP Prefixes, VPCs, and CDNs. |
+| functions              | https://functions.mcp.digitalocean.com/mcp              | Manage serverless function namespaces, actions, packages, triggers, and activations.                                |
+| spaces                 | https://spaces.mcp.digitalocean.com/mcp                 | DigitalOcean Spaces object storage and Spaces access keys for S3-compatible storage.                                |
+| docs                   | https://docs.mcp.digitalocean.com/mcp                   | Search and retrieve DigitalOcean public documentation. No API token required.                                       |
+| genai-evaluation       | https://genai-evaluation.mcp.digitalocean.com/mcp       | Manage and run evaluation workflows in DigitalOcean's GenAI platform.                                               |
+| nfs                    | https://nfs.mcp.digitalocean.com/mcp                    | Manage DigitalOcean NFS file shares and file share snapshots.                                                       |
+| volumes                | https://volumes.mcp.digitalocean.com/mcp                | Manage DigitalOcean block storage volumes and volume snapshots.                                                     |
+| vector-databases       | https://vector-databases.mcp.digitalocean.com/mcp       | Create, list, resize, delete, and inspect managed Weaviate vector database clusters.                                |
 
 ---
 
@@ -244,6 +258,7 @@ claude mcp add digitalocean-mcp \
 ```
 
 This will:
+
 - Add the MCP server under the default (local) scope — meaning it's only available inside the current folder.
 - Register it with the name `digitalocean-mcp`.
 - Enable the `apps` and `databases` services.
@@ -251,19 +266,25 @@ This will:
 - Store the configuration in your global Claude config at `~/.claude.json`, scoped to the current folder.
 
 #### Verify Installation
+
 To confirm it's been added:
+
 ```bash
 claude mcp list
 ```
 
 #### Inspect Details
+
 To inspect details:
+
 ```bash
 claude mcp get digitalocean-mcp
 ```
 
 #### Remove Server
+
 To remove it:
+
 ```bash
 claude mcp remove digitalocean-mcp
 ```
@@ -281,11 +302,13 @@ claude mcp add -s user digitalocean-mcp-user-scope \
 ```
 
 This will:
+
 - Make the server available in all folders, not just the one you're in
 - Scope it to your user account
 - Store it in your global Claude config at `~/.claude.json`
 
 To remove it:
+
 ```bash
 claude mcp remove -s user digitalocean-mcp-user-scope
 ```
@@ -299,6 +322,7 @@ claude mcp remove -s user digitalocean-mcp-user-scope
 **Before editing the config file**, ensure `DIGITALOCEAN_API_TOKEN` is set in your shell profile (see Step 1 — Option A). Claude Desktop reads environment variables from your shell profile at launch.
 
 The config file is located at:
+
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux:** `~/.config/Claude/claude_desktop_config.json`
@@ -372,6 +396,7 @@ After saving the file, **restart Claude Desktop** for the changes to take effect
 **Before editing the config file**, ensure `DIGITALOCEAN_API_TOKEN` is set in your shell profile (see Step 1 — Option A).
 
 The Cursor config file is located at:
+
 - **macOS / Linux:** `~/.cursor/config.json`
 - **Windows:** `%USERPROFILE%\.cursor\config.json`
 
@@ -444,6 +469,7 @@ Add the following to your Cursor settings file located at `~/.cursor/config.json
 ##### Debugging
 
 To check MCP server logs and debug issues:
+
 1. Open the Command Palette (`⌘+Shift+P` on Mac or `Ctrl+Shift+P` on Windows/Linux)
 2. Type "Developer: Toggle Developer Tools" and press Enter
 3. Navigate to the Console tab to view MCP server logs
@@ -541,11 +567,7 @@ Add the following to your `.vscode/mcp.json` file. Use VS Code's `inputs` featur
   "servers": {
     "mcpDigitalOcean": {
       "command": "npx",
-      "args": [
-        "@digitalocean/mcp",
-        "--services",
-        "apps"
-      ],
+      "args": ["@digitalocean/mcp", "--services", "apps"],
       "env": {
         "DIGITALOCEAN_API_TOKEN": "${input:digitalocean-token}"
       }
@@ -562,11 +584,7 @@ Or, to use a system environment variable directly:
   "servers": {
     "mcpDigitalOcean": {
       "command": "npx",
-      "args": [
-        "@digitalocean/mcp",
-        "--services",
-        "apps"
-      ],
+      "args": ["@digitalocean/mcp", "--services", "apps"],
       "env": {
         "DIGITALOCEAN_API_TOKEN": "${env:DIGITALOCEAN_API_TOKEN}"
       }
@@ -585,6 +603,7 @@ Or, to use a system environment variable directly:
 ##### Viewing Available Tools
 
 To see what tools are available from the MCP server:
+
 1. Open the Command Palette (`⌘+Shift+P` on Mac or `Ctrl+Shift+P` on Windows/Linux)
 2. Select "Agent" mode in the chatbox
 3. Click "Configure tools" on the right, and check for DigitalOcean related tools under `MCP Server: mcpDigitalocean`. You should be able to list available tools like `app-create`, `app-list`, `app-delete`, etc.
@@ -592,6 +611,7 @@ To see what tools are available from the MCP server:
 ##### Debugging
 
 To troubleshoot MCP connections:
+
 1. Open the Command Palette (`⌘+Shift+P` on Mac or `Ctrl+Shift+P` on Windows/Linux)
 2. Type "Developer: Toggle Developer Tools" and press Enter
 3. Navigate to the Console tab to view MCP server logs
@@ -625,6 +645,7 @@ If you're using the local installation method (not Remote MCP), you'll need:
 You can find installation guides at [https://nodejs.org/en/download](https://nodejs.org/en/download)
 
 Verify your installation:
+
 ```bash
 node --version
 npm --version
@@ -633,6 +654,7 @@ npm --version
 ### Quick Test
 
 To verify the local MCP server works correctly, you can test it directly from the command line (make sure `DIGITALOCEAN_API_TOKEN` is set in your environment first):
+
 ```bash
 npx @digitalocean/mcp --services apps
 ```
@@ -684,6 +706,7 @@ Each service provides a detailed README describing all available tools, resource
 - Open full metadata for one catalog model: `inference-model-catalog-get-card`
 - Deploy an app from a GitHub repo: `create-app-from-spec`
 - Resize a droplet: `droplet-resize`
+- Run a command in a MicroVM: `microvm-exec`
 - Add a new SSH key: `key-create`
 - Create a new domain: `domain-create`
 - Enable backups on a droplet: `droplet-enable-backups`

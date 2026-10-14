@@ -285,3 +285,58 @@ func TestMicroDropletTool_checkpointList_filter(t *testing.T) {
 	require.False(t, resp.IsError)
 	require.Contains(t, gotQuery, "microvm_id="+mdID)
 }
+
+func TestMicroDropletTool_exec(t *testing.T) {
+	var gotMethod, gotPath string
+	var gotBody map[string]any
+	srv := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"stdout":"hi\n","stderr":"","exit_code":0,"output_encoding":"utf-8"}`))
+	})
+
+	tool := testTool(t, testGodoClient(t, srv))
+	mdID := "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f"
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"id":              mdID,
+		"argv":            []any{"echo", "hi"},
+		"cwd":             "/app",
+		"output_encoding": "utf-8",
+	}}}
+
+	resp, err := tool.exec(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, "/v2/microvms/"+mdID+"/exec", gotPath)
+	require.Equal(t, []any{"echo", "hi"}, gotBody["argv"])
+	require.Equal(t, "/app", gotBody["cwd"])
+	require.Equal(t, "utf-8", gotBody["output_encoding"])
+	require.Contains(t, resp.Content[0].(mcp.TextContent).Text, `"exit_code": 0`)
+}
+
+func TestMicroDropletTool_exec_validation(t *testing.T) {
+	tool := testTool(t, testGodoClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("server should not be called")
+	})))
+
+	for _, tc := range []struct {
+		name string
+		args map[string]any
+		want string
+	}{
+		{name: "missing id", args: map[string]any{"argv": []any{"echo"}}, want: "id is required"},
+		{name: "missing argv", args: map[string]any{"id": "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f"}, want: "argv is required"},
+		{name: "empty command", args: map[string]any{"id": "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f", "argv": []any{"", "x"}}, want: "argv[0]"},
+		{name: "bad encoding", args: map[string]any{"id": "9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f", "argv": []any{"echo"}, "output_encoding": "latin1"}, want: "output_encoding"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := tool.exec(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}})
+			require.NoError(t, err)
+			require.True(t, resp.IsError)
+			require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.want)
+		})
+	}
+}
