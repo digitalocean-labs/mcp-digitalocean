@@ -12,12 +12,16 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func setupDropletToolWithMocks(droplets *MockDropletsService, actions *MockDropletActionsService) *DropletTool {
+func setupDropletToolWithMocks(droplets *MockDropletsService, actions *MockDropletActionsService, projects ...*MockProjectsService) *DropletTool {
 	client := func(ctx context.Context) (*godo.Client, error) {
-		return &godo.Client{
+		c := &godo.Client{
 			Droplets:       droplets,
 			DropletActions: actions,
-		}, nil
+		}
+		if len(projects) > 0 && projects[0] != nil {
+			c.Projects = projects[0]
+		}
+		return c, nil
 	}
 	return NewDropletTool(client)
 }
@@ -33,8 +37,9 @@ func TestDropletTool_createDroplet(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        map[string]any
-		mockSetup   func(*MockDropletsService)
+		mockSetup   func(*MockDropletsService, *MockProjectsService)
 		expectError bool
+		expectText  string
 	}{
 		{
 			name: "Successful create",
@@ -46,7 +51,7 @@ func TestDropletTool_createDroplet(t *testing.T) {
 				"Backup":     true,
 				"Monitoring": false,
 			},
-			mockSetup: func(m *MockDropletsService) {
+			mockSetup: func(m *MockDropletsService, _ *MockProjectsService) {
 				m.EXPECT().
 					Create(gomock.Any(), &godo.DropletCreateRequest{
 						Name:       "test-droplet",
@@ -70,7 +75,7 @@ func TestDropletTool_createDroplet(t *testing.T) {
 				"Backup":     false,
 				"Monitoring": true,
 			},
-			mockSetup: func(m *MockDropletsService) {
+			mockSetup: func(m *MockDropletsService, _ *MockProjectsService) {
 				m.EXPECT().
 					Create(gomock.Any(), &godo.DropletCreateRequest{
 						Name:       "fail-droplet",
@@ -95,7 +100,7 @@ func TestDropletTool_createDroplet(t *testing.T) {
 				"Backup":     false,
 				"Monitoring": false,
 			},
-			mockSetup: func(m *MockDropletsService) {
+			mockSetup: func(m *MockDropletsService, _ *MockProjectsService) {
 				m.EXPECT().
 					Create(gomock.Any(), &godo.DropletCreateRequest{
 						Name:       "marketplace-droplet",
@@ -110,13 +115,135 @@ func TestDropletTool_createDroplet(t *testing.T) {
 			},
 		},
 		{
+			name: "Successful create with ProjectID assignment",
+			args: map[string]any{
+				"Name":      "project-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"Region":    "nyc1",
+				"ProjectID": "proj-uuid",
+			},
+			mockSetup: func(m *MockDropletsService, p *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:   "project-droplet",
+						Region: "nyc1",
+						Size:   "s-1vcpu-1gb",
+						Image:  godo.DropletCreateImage{ID: 456},
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+				p.EXPECT().
+					AssignResources(gomock.Any(), "proj-uuid", testDroplet).
+					Return(nil, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "Successful create with ProjectID default alias",
+			args: map[string]any{
+				"Name":      "default-project-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"Region":    "nyc1",
+				"ProjectID": "default",
+			},
+			mockSetup: func(m *MockDropletsService, p *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:   "default-project-droplet",
+						Region: "nyc1",
+						Size:   "s-1vcpu-1gb",
+						Image:  godo.DropletCreateImage{ID: 456},
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+				p.EXPECT().
+					AssignResources(gomock.Any(), "default", testDroplet).
+					Return(nil, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "ProjectID is trimmed before assignment",
+			args: map[string]any{
+				"Name":      "trimmed-project-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"Region":    "nyc1",
+				"ProjectID": "  proj-uuid  ",
+			},
+			mockSetup: func(m *MockDropletsService, p *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:   "trimmed-project-droplet",
+						Region: "nyc1",
+						Size:   "s-1vcpu-1gb",
+						Image:  godo.DropletCreateImage{ID: 456},
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+				p.EXPECT().
+					AssignResources(gomock.Any(), "proj-uuid", testDroplet).
+					Return(nil, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "Blank ProjectID skips assignment",
+			args: map[string]any{
+				"Name":      "blank-project-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"Region":    "nyc1",
+				"ProjectID": "   ",
+			},
+			mockSetup: func(m *MockDropletsService, _ *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:   "blank-project-droplet",
+						Region: "nyc1",
+						Size:   "s-1vcpu-1gb",
+						Image:  godo.DropletCreateImage{ID: 456},
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+			},
+		},
+		{
+			name: "Create succeeds but project assignment fails",
+			args: map[string]any{
+				"Name":      "assign-fail-droplet",
+				"Size":      "s-1vcpu-1gb",
+				"ImageID":   float64(456),
+				"Region":    "nyc1",
+				"ProjectID": "bad-proj",
+			},
+			mockSetup: func(m *MockDropletsService, p *MockProjectsService) {
+				m.EXPECT().
+					Create(gomock.Any(), &godo.DropletCreateRequest{
+						Name:   "assign-fail-droplet",
+						Region: "nyc1",
+						Size:   "s-1vcpu-1gb",
+						Image:  godo.DropletCreateImage{ID: 456},
+					}).
+					Return(testDroplet, nil, nil).
+					Times(1)
+				p.EXPECT().
+					AssignResources(gomock.Any(), "bad-proj", testDroplet).
+					Return(nil, nil, errors.New("assign failed")).
+					Times(1)
+			},
+			expectText: "Droplet 123 was created but could not be assigned to project \"bad-proj\": assign failed. Do not retry droplet-create",
+		},
+		{
 			name: "Error when neither ImageID nor ImageSlug provided",
 			args: map[string]any{
 				"Name":   "no-image-droplet",
 				"Size":   "s-1vcpu-1gb",
 				"Region": "nyc1",
 			},
-			mockSetup:   func(m *MockDropletsService) {},
+			mockSetup:   func(m *MockDropletsService, _ *MockProjectsService) {},
 			expectError: true,
 		},
 		{
@@ -128,7 +255,7 @@ func TestDropletTool_createDroplet(t *testing.T) {
 				"ImageSlug": "wordpress-20-04",
 				"Region":    "nyc1",
 			},
-			mockSetup:   func(m *MockDropletsService) {},
+			mockSetup:   func(m *MockDropletsService, _ *MockProjectsService) {},
 			expectError: true,
 		},
 	}
@@ -137,10 +264,11 @@ func TestDropletTool_createDroplet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDroplets := NewMockDropletsService(ctrl)
 			mockActions := NewMockDropletActionsService(ctrl)
+			mockProjects := NewMockProjectsService(ctrl)
 			if tc.mockSetup != nil {
-				tc.mockSetup(mockDroplets)
+				tc.mockSetup(mockDroplets, mockProjects)
 			}
-			tool := setupDropletToolWithMocks(mockDroplets, mockActions)
+			tool := setupDropletToolWithMocks(mockDroplets, mockActions, mockProjects)
 			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tc.args}}
 			resp, err := tool.createDroplet(context.Background(), req)
 			if tc.expectError {
@@ -151,6 +279,12 @@ func TestDropletTool_createDroplet(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.False(t, resp.IsError)
+			if tc.expectText != "" {
+				require.Contains(t, resp.Content[0].(mcp.TextContent).Text, tc.expectText)
+				structured, ok := resp.StructuredContent.(map[string]json.RawMessage)
+				require.True(t, ok)
+				require.Contains(t, string(structured["droplet"]), `"id":123`)
+			}
 		})
 	}
 }

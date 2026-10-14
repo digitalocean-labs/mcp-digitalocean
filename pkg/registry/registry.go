@@ -27,6 +27,7 @@ import (
 	"mcp-digitalocean/pkg/registry/microdroplet"
 	"mcp-digitalocean/pkg/registry/networking"
 	"mcp-digitalocean/pkg/registry/nfs"
+	"mcp-digitalocean/pkg/registry/projects"
 	"mcp-digitalocean/pkg/registry/signals"
 	"mcp-digitalocean/pkg/registry/spaces"
 	"mcp-digitalocean/pkg/registry/vectordb"
@@ -268,6 +269,11 @@ func registerMicroDropletTools(s *server.MCPServer, getClient getClientFn) error
 	return nil
 }
 
+func registerProjectTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(projects.NewProjectTool(getClient).Tools()...)
+	return nil
+}
+
 // Register registers the set of tools for the specified services with the MCP server.
 // We either register a subset of tools of the services are specified, or we register all tools if no services are specified.
 func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, servicesToActivate ...string) error {
@@ -278,6 +284,7 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		}
 	}
 
+	registerProjects := false
 	for _, svc := range servicesToActivate {
 		logger.Debug(fmt.Sprintf("Registering tool and resources for service: %s", svc))
 		switch svc {
@@ -290,10 +297,12 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 				return fmt.Errorf("failed to register networking tools: %w", err)
 			}
 		case "droplets":
+			registerProjects = true
 			if err := registerDropletTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register droplets tool: %w", err)
 			}
 		case "accounts":
+			registerProjects = true
 			if err := registerAccountTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register account tools: %w", err)
 			}
@@ -379,6 +388,16 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))
+		}
+	}
+
+	// Projects organize resources across services. Expose them once when either
+	// droplets or accounts is enabled so --services accounts,droplets does not
+	// register the same tools twice.
+	if registerProjects {
+		logger.Debug("Registering tool and resources for service: projects")
+		if err := registerProjectTools(s, getClient); err != nil {
+			return fmt.Errorf("failed to register project tools: %w", err)
 		}
 	}
 
