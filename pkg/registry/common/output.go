@@ -238,6 +238,7 @@ func buildSchema[T any](field string) (json.RawMessage, error) {
 	// MCP requires an object root, which relaxedTree would otherwise widen to
 	// admit null as well.
 	root["type"] = "object"
+	objectProperties(root)
 
 	if len(defs) > 0 {
 		defsTree, err := relaxedTree(defs)
@@ -352,5 +353,22 @@ func allowNull(node any) any {
 		return v
 	default:
 		return node
+	}
+}
+
+// objectProperties rewrites a boolean `true` property schema to `{}`. An untyped
+// payload or field (Go `any`) reflects to `true`, which JSON Schema accepts but
+// MCP's Tool.outputSchema does not: it types every root property as an object,
+// and strict clients (Cloudflare's MCP portal, for one) reject the whole
+// tools/list over it. `{}` accepts exactly the same documents.
+func objectProperties(root map[string]any) {
+	props, ok := root["properties"].(map[string]any)
+	if !ok {
+		return
+	}
+	for name, schema := range props {
+		if accept, ok := schema.(bool); ok && accept {
+			props[name] = map[string]any{}
+		}
 	}
 }
