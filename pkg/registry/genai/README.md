@@ -448,7 +448,7 @@ Create a model evaluation run.
 - `judge_model_uuid` (string, optional): Exact full judge UUID
 - `metric_uuids` (array of strings, optional): Metric UUIDs to evaluate
 - `star_metric` (object, optional): Primary success metric
-- `candidate_inference_config` (object, optional): Inference params (max_tokens, temperature, top_p)
+- `candidate_inference_config` (object, optional): Inference params (temperature, stop_token, system_prompt, reasoning_effort)
 - `user_message` (string, optional): End user's verbatim chat reply after preview (second call; typically `yes`)
 
 **Returns:** JSON object with the evaluation run UUID

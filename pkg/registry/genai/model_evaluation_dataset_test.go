@@ -78,13 +78,11 @@ func TestCreateEvaluationDatasetInput_modelType(t *testing.T) {
 func TestGodoInferenceConfigFromArgs_reasoningEffort(t *testing.T) {
 	cfg := godoInferenceConfigFromArgs(map[string]interface{}{
 		"candidate_inference_config": map[string]interface{}{
-			"max_tokens":       float64(128),
 			"temperature":      float64(0.2),
 			"reasoning_effort": "low",
 		},
 	})
 	require.NotNil(t, cfg)
-	require.Equal(t, int64(128), cfg.MaxTokens)
 	require.Equal(t, float32(0.2), cfg.Temperature)
 	require.Equal(t, "low", cfg.ReasoningEffort)
 }
