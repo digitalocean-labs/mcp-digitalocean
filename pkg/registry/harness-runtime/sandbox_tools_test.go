@@ -23,7 +23,7 @@ func TestListSandboxSizes(t *testing.T) {
 	res, err := tool.listSandboxSizes(context.Background(), request(nil))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sandbox-sizes", gotPath)
+	require.Equal(t, "/v2/agents/sessions/sandbox/sizes", gotPath)
 	require.Equal(t, http.MethodGet, gotMethod)
 
 	text := callText(t, res)

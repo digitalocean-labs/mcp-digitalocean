@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	sandboxSizesPath = "v2/agents/sandbox-sizes"
+	sandboxSizesPath = "v2/agents/sessions/sandbox/sizes"
 )
 
 // SandboxSize describes the compute resources available for a sandbox.
