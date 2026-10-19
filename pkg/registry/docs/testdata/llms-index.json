@@ -1,0 +1,1871 @@
+[
+ {
+  "description": "A custom keyword you can associate with DigitalOcean resources.",
+  "lastmod": "2024-12-18T19:36:57+00:00",
+  "markdown_url": "https://docs.digitalocean.com/glossary/tag/index.html.md",
+  "product": "Glossary",
+  "section": "tag",
+  "title": "Tag",
+  "url": "https://docs.digitalocean.com/glossary/tag/"
+ },
+ {
+  "description": "Increase team security by requiring all team members to sign in with Google, GitHub, or a DigitalOcean account with 2FA.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/how-to/require-secure-sign-in/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "How to Require Secure Sign In for Teams",
+  "url": "https://docs.digitalocean.com/platform/teams/how-to/require-secure-sign-in/"
+ },
+ {
+  "description": "Delete marketplace addon resources",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/addon/delete/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "addon:delete",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/addon/delete/"
+ },
+ {
+  "description": "Create Block Storage volumes",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/block_storage/create/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "block_storage:create",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/block_storage/create/"
+ },
+ {
+  "description": "Create Droplets",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/droplet/create/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "droplet:create",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/droplet/create/"
+ },
+ {
+  "description": "",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/spaces_key/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "Spaces Access Keys",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/spaces_key/"
+ },
+ {
+  "description": "Create Spaces access keys",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/spaces_key/create/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "spaces_keys:create",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/spaces_key/create/"
+ },
+ {
+  "description": "Modify VPCs",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc/update/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "vpc:update",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc/update/"
+ },
+ {
+  "description": "",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "VPC Peering",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/"
+ },
+ {
+  "description": "Create VPC Peering",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/create/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "vpc_peering:create",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/create/"
+ },
+ {
+  "description": "Delete VPC Peering",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/delete/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "vpc_peering:delete",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/delete/"
+ },
+ {
+  "description": "View VPC Peering",
+  "lastmod": "2026-08-07T14:19:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/read/index.html.md",
+  "product": "Platform",
+  "section": "teams",
+  "title": "vpc_peering:read",
+  "url": "https://docs.digitalocean.com/platform/teams/roles/permissions/vpc_peering/read/"
+ },
+ {
+  "description": "App Platform is a fully managed Platform-as-a-Service (PaaS) that deploys applications from Git repositories or container images. It automatically builds, deploys, and scales components while handling all underlying infrastructure.",
+  "lastmod": "2022-06-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/index.html.md",
+  "product": "App Platform",
+  "title": "App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/"
+ },
+ {
+  "description": "Explanations and definitions of core concepts in App Platform.",
+  "lastmod": "2022-06-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/concepts/index.html.md",
+  "product": "App Platform",
+  "section": "concepts",
+  "title": "App Platform Concepts",
+  "url": "https://docs.digitalocean.com/products/app-platform/concepts/"
+ },
+ {
+  "description": "App Platform's policies for rollout of new stacks, deprecation of old stacks, and timing.",
+  "lastmod": "2022-06-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/concepts/platform-upgrade-policy/index.html.md",
+  "product": "App Platform",
+  "section": "concepts",
+  "title": "App Platform Build System Update Policy",
+  "url": "https://docs.digitalocean.com/products/app-platform/concepts/platform-upgrade-policy/"
+ },
+ {
+  "description": "Regional datacenter availability for App Platform.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/details/availability/index.html.md",
+  "product": "App Platform",
+  "section": "details",
+  "title": "App Platform Availability",
+  "url": "https://docs.digitalocean.com/products/app-platform/details/availability/"
+ },
+ {
+  "description": "App Platform is a Platform-as-a-Service (PaaS) offering that allows developers to publish code directly to DigitalOcean servers without worrying about the underlying infrastructure.\n",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/details/features/index.html.md",
+  "product": "App Platform",
+  "section": "details",
+  "title": "App Platform Features",
+  "url": "https://docs.digitalocean.com/products/app-platform/details/features/"
+ },
+ {
+  "description": "An FAQ for App Platform",
+  "lastmod": "2022-06-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/details/intro-faq/index.html.md",
+  "product": "App Platform",
+  "section": "details",
+  "title": "An Introduction to App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/details/intro-faq/"
+ },
+ {
+  "description": "Enable cross-origin resource sharing in App Platform.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/how-to/configure-cors-policies/index.html.md",
+  "product": "App Platform",
+  "section": "how-to",
+  "title": "How to Configure CORS Policies in App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/how-to/configure-cors-policies/"
+ },
+ {
+  "description": "Connect your app to PostgreSQL database with connection pools using App Platform.",
+  "lastmod": "2023-01-06T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/how-to/connect-pg-pools/index.html.md",
+  "product": "App Platform",
+  "section": "how-to",
+  "title": "How to Connect PostgreSQL to Connection Pools in App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/how-to/connect-pg-pools/"
+ },
+ {
+  "description": "Add a custom domain to use for your app, in addition to its included ondigitalocean.com subdomain.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/how-to/manage-domains/index.html.md",
+  "product": "App Platform",
+  "section": "how-to",
+  "title": "How to Manage Domains in App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/how-to/manage-domains/"
+ },
+ {
+  "description": "Details on using the Ruby buildpack in App Platform, including files for buildpack detection, choosing versions, and limits.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/app-platform/reference/buildpacks/ruby/index.html.md",
+  "product": "App Platform",
+  "section": "reference",
+  "title": "Ruby Buildpack on App Platform",
+  "url": "https://docs.digitalocean.com/products/app-platform/reference/buildpacks/ruby/"
+ },
+ {
+  "description": "Backup costs depend on the type of chosen plan. Basic plans add a flat percentage of the Droplet&rsquo;s cost to the monthly bill, while usage-based plans add a flat rate per GiB of a backup&rsquo;s …",
+  "lastmod": "2026-03-09T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/backups/details/pricing/index.html.md",
+  "product": "Backups",
+  "section": "details",
+  "title": "Backups Pricing",
+  "url": "https://docs.digitalocean.com/products/backups/details/pricing/"
+ },
+ {
+  "description": "API and CLI reference documentation for the Container Registry service, including example requests and available parameters.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/container-registry/reference/index.html.md",
+  "product": "Container Registry",
+  "section": "reference",
+  "title": "Container Registry Reference",
+  "url": "https://docs.digitalocean.com/products/container-registry/reference/"
+ },
+ {
+  "description": "Use Security Advisor to summarize findings and accelerate remediation.",
+  "lastmod": "2026-08-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/cspm/how-to/use-security-advisor/index.html.md",
+  "product": "CSPM",
+  "section": "how-to",
+  "title": "How to Use Security Advisor",
+  "url": "https://docs.digitalocean.com/products/cspm/how-to/use-security-advisor/"
+ },
+ {
+  "description": "Create Droplets based on custom images you've uploaded to your account.",
+  "lastmod": "2026-10-06T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/custom-images/how-to/create-droplets/index.html.md",
+  "product": "Custom Images",
+  "section": "how-to",
+  "title": "How to Create Droplets from Custom Images",
+  "url": "https://docs.digitalocean.com/products/custom-images/how-to/create-droplets/"
+ },
+ {
+  "description": "Add Managed MongoDB clusters to PMM using the Marketplace 1-Click PMM Integration helper.",
+  "lastmod": "2026-09-17T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/monitor-with-pmm/index.html.md",
+  "product": "Managed Databases",
+  "section": "mongodb",
+  "title": "How to Monitor Managed MongoDB with PMM 1-Click App",
+  "url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/monitor-with-pmm/"
+ },
+ {
+  "description": "Edit your database engine's configuration and parameters via the API.",
+  "lastmod": "2026-07-31T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/databases/opensearch/how-to/reconfigure/index.html.md",
+  "product": "Managed Databases",
+  "section": "opensearch",
+  "title": "How to Reconfigure OpenSearch Database Clusters",
+  "url": "https://docs.digitalocean.com/products/databases/opensearch/how-to/reconfigure/"
+ },
+ {
+  "description": "Use connection pools to improve PostgreSQL database performance.",
+  "lastmod": "2026-08-20T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-connection-pools/index.html.md",
+  "product": "Managed Databases",
+  "section": "postgresql",
+  "title": "How to Manage Connection Pools for PostgreSQL Database Clusters",
+  "url": "https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-connection-pools/"
+ },
+ {
+  "description": "Explanations and definitions of core concepts in Droplets.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/concepts/index.html.md",
+  "product": "Droplets",
+  "section": "concepts",
+  "title": "Droplet Concepts",
+  "url": "https://docs.digitalocean.com/products/droplets/concepts/"
+ },
+ {
+  "description": "An in-depth comparison of v5 Droplet configurations and bundled CPU Droplet plans, including hardware, shared and dedicated CPUs, and guidance for choosing the right configuration.",
+  "lastmod": "2026-10-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/index.html.md",
+  "product": "Droplets",
+  "section": "concepts",
+  "title": "Choosing the Right CPU Droplet Plan",
+  "url": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/"
+ },
+ {
+  "description": "Recommendations for downsizing Droplets, including making backups, manging DNS records and IP addresses, and migrating files.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/concepts/downsizing-considerations/index.html.md",
+  "product": "Droplets",
+  "section": "concepts",
+  "title": "Considerations when Downsizing to a Smaller Droplet",
+  "url": "https://docs.digitalocean.com/products/droplets/concepts/downsizing-considerations/"
+ },
+ {
+  "description": "Differences between spot and on-demand GPU Droplet capacity tiers, including pricing, availability, and reclamation, to help you choose the tier that suits your workload.",
+  "lastmod": "2026-08-11T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/concepts/spot-vs-on-demand/index.html.md",
+  "product": "Droplets",
+  "section": "concepts",
+  "title": "Spot GPU Droplets vs On-Demand GPU Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/concepts/spot-vs-on-demand/"
+ },
+ {
+  "description": "Features, plans and pricing, availability, limits, known issues, and more.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/details/index.html.md",
+  "product": "Droplets",
+  "section": "details",
+  "title": "Droplet Details",
+  "url": "https://docs.digitalocean.com/products/droplets/details/"
+ },
+ {
+  "description": "Reference tables for available Linux images for Droplets, including the image IDs and API/CLI slugs.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/details/images/index.html.md",
+  "product": "Droplets",
+  "section": "details",
+  "title": "Linux Images for Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/details/images/"
+ },
+ {
+  "description": "Billing and pricing information for CPU and GPU Droplets, including bandwidth charges.",
+  "lastmod": "2026-08-25T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/details/pricing/index.html.md",
+  "product": "Droplets",
+  "section": "details",
+  "title": "Droplet Pricing",
+  "url": "https://docs.digitalocean.com/products/droplets/details/pricing/"
+ },
+ {
+  "description": "Use the Droplet metadata service to programmatically query a Droplet for information about itself.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/access-metadata/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Access Information about a Droplet using the Metadata API",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/access-metadata/"
+ },
+ {
+  "description": "Create a Droplet with VPC-only networking and no public IP addresses using the Control Panel, API, doctl, or Terraform.",
+  "lastmod": "2026-07-22T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/create-private-droplet/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Create Private Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/create-private-droplet/"
+ },
+ {
+  "description": "Create Droplets and customize the image, plan, authentication method, and quantity of Droplets you want.",
+  "lastmod": "2026-10-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/create/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Create a Droplet",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/create/"
+ },
+ {
+  "description": "Create and configure GPU Droplets, which are powered by AMD or NVIDIA GPUs.",
+  "lastmod": "2026-08-11T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Create and Configure GPU Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/"
+ },
+ {
+  "description": "Configure multi-node GPU Droplets, including some manual configuration for NIC addressing.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/configure-multi-node/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Configure Multi-Node GPU Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/configure-multi-node/"
+ },
+ {
+  "description": "Create GPU Droplets and choose the image, plan, datacenter, authentication method, and additional options.",
+  "lastmod": "2026-08-11T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/create/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Create GPU Droplets",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/gpu/create/"
+ },
+ {
+  "description": "Install the Droplet agent on older Droplets to enable features like the Droplet Console, or uninstall the agent to remove access.",
+  "lastmod": "2021-06-11T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/manage-agent/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Install or Uninstall the DigitalOcean Droplet Agent",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/manage-agent/"
+ },
+ {
+  "description": "Droplets come with several recovery features, including the Recovery Console for out-of-band connectivity independent of network settings and the recovery ISO for regaining access to the Droplet's filesystem.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Recover Access or Data with the Droplet Recovery ISO and Recovery Console",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/"
+ },
+ {
+  "description": "Use the Recovery Console to recover access to a Droplet. It provides out-of-band access regardless of your network settings. It emulates the access you would have if you were sitting down with a keyboard and monitor attached to the actual server.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-console/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Recover Access to Droplets using the Recovery Console",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-console/"
+ },
+ {
+  "description": "Use DigitalOcean’s recovery ISO with the Recovery Console to regain access to and perform data recovery operations on your Droplet, like getting access to an interactive shell, running fsck, or chrooting into the system.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-iso/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Recover Data from Droplets with the Recovery ISO",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-iso/"
+ },
+ {
+  "description": "Resize a Droplet to change the amount of CPU and RAM a Droplet has, optionally add additional disk space, or change to a different type of Droplet plan or CPU.",
+  "lastmod": "2026-08-25T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/how-to/resize/index.html.md",
+  "product": "Droplets",
+  "section": "how-to",
+  "title": "How to Resize Droplets for Vertical Scaling",
+  "url": "https://docs.digitalocean.com/products/droplets/how-to/resize/"
+ },
+ {
+  "description": "The Droplets API endpoints are organized into the following groups:\nDroplets (19 endpoints): A Droplet is a DigitalOcean virtual machine. By sending requests to the Droplet endpoint, you can list, …",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/reference/api/index.html.md",
+  "product": "Droplets",
+  "section": "reference",
+  "title": "Droplets API Reference",
+  "url": "https://docs.digitalocean.com/products/droplets/reference/api/"
+ },
+ {
+  "description": "Get help with technical support and answers to frequently asked questions.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/droplets/support/index.html.md",
+  "product": "Droplets",
+  "section": "support",
+  "title": "Droplets Support",
+  "url": "https://docs.digitalocean.com/products/droplets/support/"
+ },
+ {
+  "description": "Create, format, upload, preview, download, and delete single-turn and multi-turn evaluation datasets.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/evaluations/how-to/manage-evaluation-datasets/index.html.md",
+  "product": "Evaluations",
+  "section": "how-to",
+  "title": "How to Create, Upload, and Manage an Evaluation Dataset",
+  "url": "https://docs.digitalocean.com/products/evaluations/how-to/manage-evaluation-datasets/"
+ },
+ {
+  "description": "DigitalOcean Functions is a function as a service (FaaS) offering that lets you run your local serverless code in the cloud using Node.js, Python, Go, or PHP without managing any backend infrastructure.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/index.html.md",
+  "product": "Functions",
+  "title": "Functions",
+  "url": "https://docs.digitalocean.com/products/functions/"
+ },
+ {
+  "description": "Explanations and definitions of core concepts in Functions.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/concepts/index.html.md",
+  "product": "Functions",
+  "section": "concepts",
+  "title": "Functions Concepts",
+  "url": "https://docs.digitalocean.com/products/functions/concepts/"
+ },
+ {
+  "description": "Regional datacenter availability for DigitalOcean Functions.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/details/availability/index.html.md",
+  "product": "Functions",
+  "section": "details",
+  "title": "Functions Availability",
+  "url": "https://docs.digitalocean.com/products/functions/details/availability/"
+ },
+ {
+  "description": "Functions is a function as a service (FaaS) offering that lets you run your local serverless code in the cloud using Node.js, Python, Go, or PHP.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/details/features/index.html.md",
+  "product": "Functions",
+  "section": "details",
+  "title": "Functions Features",
+  "url": "https://docs.digitalocean.com/products/functions/details/features/"
+ },
+ {
+  "description": "Limits and known issues for DigitalOcean Functions.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/details/limits/index.html.md",
+  "product": "Functions",
+  "section": "details",
+  "title": "Functions Limits",
+  "url": "https://docs.digitalocean.com/products/functions/details/limits/"
+ },
+ {
+  "description": "Billing information for DigitalOcean Functions, including free allowance, bandwidth, and overage charges.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/details/pricing/index.html.md",
+  "product": "Functions",
+  "section": "details",
+  "title": "Functions Pricing",
+  "url": "https://docs.digitalocean.com/products/functions/details/pricing/"
+ },
+ {
+  "description": "Quickstarts and intermediate tutorials to get started.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/getting-started/index.html.md",
+  "product": "Functions",
+  "section": "getting-started",
+  "title": "Getting Started with Functions",
+  "url": "https://docs.digitalocean.com/products/functions/getting-started/"
+ },
+ {
+  "description": "The essentials to go from zero to working in a few minutes.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/getting-started/quickstart/index.html.md",
+  "product": "Functions",
+  "section": "getting-started",
+  "title": "Functions Quickstart",
+  "url": "https://docs.digitalocean.com/products/functions/getting-started/quickstart/"
+ },
+ {
+  "description": "Improve your serverless development with this guidance on invoking, iterating on, and observing DigitalOcean Functions.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/how-to/develop-functions/index.html.md",
+  "product": "Functions",
+  "section": "how-to",
+  "title": "How to Develop Functions",
+  "url": "https://docs.digitalocean.com/products/functions/how-to/develop-functions/"
+ },
+ {
+  "description": "Create and manage user-specific authentication credentials for Functions namespaces.",
+  "lastmod": "2026-03-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/how-to/manage-namespace-access/index.html.md",
+  "product": "Functions",
+  "section": "how-to",
+  "title": "How to Manage Namespace Access Keys",
+  "url": "https://docs.digitalocean.com/products/functions/how-to/manage-namespace-access/"
+ },
+ {
+  "description": "Projects contain functions that are grouped into packages and configured by a project.yml file.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/how-to/structure-projects/index.html.md",
+  "product": "Functions",
+  "section": "how-to",
+  "title": "How to Structure Projects",
+  "url": "https://docs.digitalocean.com/products/functions/how-to/structure-projects/"
+ },
+ {
+  "description": "Synchronous and asynchronous API endpoints for serverless inference.",
+  "lastmod": "2026-09-28T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/inference/how-to/si-endpoints/index.html.md",
+  "product": "Inference",
+  "section": "how-to",
+  "title": "Serverless Inference API Endpoints",
+  "url": "https://docs.digitalocean.com/products/inference/how-to/si-endpoints/"
+ },
+ {
+  "description": "DigitalOcean Kubernetes (DOKS) is a managed Kubernetes service that lets you deploy Kubernetes clusters without the complexities of handling the control plane and containerized infrastructure. Clusters are compatible with standard Kubernetes toolchains and integrate natively with DigitalOcean Load Balancers and volumes.",
+  "lastmod": "2018-10-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/index.html.md",
+  "product": "Kubernetes",
+  "title": "DigitalOcean Kubernetes",
+  "url": "https://docs.digitalocean.com/products/kubernetes/"
+ },
+ {
+  "description": "Explanations and definitions of core concepts in Kubernetes.",
+  "lastmod": "2018-10-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/concepts/index.html.md",
+  "product": "Kubernetes",
+  "section": "concepts",
+  "title": "Kubernetes Concepts",
+  "url": "https://docs.digitalocean.com/products/kubernetes/concepts/"
+ },
+ {
+  "description": "Recommended practices to implement when setting up and running your Kubernetes clusters.",
+  "lastmod": "2026-07-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/concepts/best-practices/index.html.md",
+  "product": "Kubernetes",
+  "section": "concepts",
+  "title": "Kubernetes Best Practices",
+  "url": "https://docs.digitalocean.com/products/kubernetes/concepts/best-practices/"
+ },
+ {
+  "description": "In-depth comparisons of available Kubernetes plans, including hardware and how to make a data-driven decision on which plan is best for your use case.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/concepts/choosing-a-plan/index.html.md",
+  "product": "Kubernetes",
+  "section": "concepts",
+  "title": "Choosing the Right Kubernetes Plan",
+  "url": "https://docs.digitalocean.com/products/kubernetes/concepts/choosing-a-plan/"
+ },
+ {
+  "description": "Regional datacenter availability for Kubernetes.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/details/availability/index.html.md",
+  "product": "Kubernetes",
+  "section": "details",
+  "title": "Kubernetes Availability",
+  "url": "https://docs.digitalocean.com/products/kubernetes/details/availability/"
+ },
+ {
+  "description": "Notable changes for each available version of DigitalOcean Kubernetes and archives of changes for unavailable versions.",
+  "lastmod": "2026-10-14T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/details/changelog/index.xmlindex.html.md",
+  "product": "Kubernetes",
+  "section": "details",
+  "title": "DigitalOcean Kubernetes Changelog",
+  "url": "https://docs.digitalocean.com/products/kubernetes/details/changelog/index.xml"
+ },
+ {
+  "description": "Quickstarts and intermediate tutorials to get started.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/getting-started/index.html.md",
+  "product": "Kubernetes",
+  "section": "getting-started",
+  "title": "Getting Started with DigitalOcean Kubernetes",
+  "url": "https://docs.digitalocean.com/products/kubernetes/getting-started/"
+ },
+ {
+  "description": "The essentials to go from zero to working in a few minutes.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/getting-started/quickstart/index.html.md",
+  "product": "Kubernetes",
+  "section": "getting-started",
+  "title": "Kubernetes Quickstart",
+  "url": "https://docs.digitalocean.com/products/kubernetes/getting-started/quickstart/"
+ },
+ {
+  "description": "How to accomplish specific tasks in detail, like creation/deletion, configuration, and management.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/how-to/index.html.md",
+  "product": "Kubernetes",
+  "section": "how-to",
+  "title": "Kubernetes How-Tos",
+  "url": "https://docs.digitalocean.com/products/kubernetes/how-to/"
+ },
+ {
+  "description": "Use container registries and file, block, and object storage with DigitalOcean Kubernetes clusters.",
+  "lastmod": "2026-08-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/how-to/data-storage/index.html.md",
+  "product": "Kubernetes",
+  "section": "how-to",
+  "title": "Manage Data Storage in DigitalOcean Kubernetes",
+  "url": "https://docs.digitalocean.com/products/kubernetes/how-to/data-storage/"
+ },
+ {
+  "description": "Use NFS shared storage with DigitalOcean Kubernetes clusters.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/kubernetes/how-to/use-nfs-storage/index.html.md",
+  "product": "Kubernetes",
+  "section": "how-to",
+  "title": "How to Use NFS Storage with Kubernetes Clusters",
+  "url": "https://docs.digitalocean.com/products/kubernetes/how-to/use-nfs-storage/"
+ },
+ {
+  "description": "Billing components for Harness Runtime compute, storage, tools, and inference, and the Agent Droplets plans that discount them.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/pricing/index.html.md",
+  "product": "Managed Agents",
+  "section": "agent-harness-runtime",
+  "title": "DigitalOcean Harness Runtime Pricing",
+  "url": "https://docs.digitalocean.com/products/managed-agents/agent-harness-runtime/details/pricing/"
+ },
+ {
+  "description": "A secure, modern hosting platform + control panel capable of self-healing that hosts your beloved WordPress, Node, PHP, Python, and Ruby websites.",
+  "lastmod": "2022-06-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/marketplace/catalog/apiscp/index.html.md",
+  "product": "Marketplace",
+  "section": "catalog",
+  "title": "ApisCP",
+  "url": "https://docs.digitalocean.com/products/marketplace/catalog/apiscp/"
+ },
+ {
+  "description": "Manually pause a running MicroVM or resume a paused one using the Control Panel, doctl, or the API.",
+  "lastmod": "2026-10-09T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/microvms/how-to/pause-resume/index.html.md",
+  "product": "MicroVMs",
+  "section": "how-to",
+  "title": "How to Pause and Resume a MicroVM",
+  "url": "https://docs.digitalocean.com/products/microvms/how-to/pause-resume/"
+ },
+ {
+  "description": "Quickstarts and intermediate tutorials to get started.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/firewalls/getting-started/index.html.md",
+  "product": "Networking",
+  "section": "firewalls",
+  "title": "Getting Started with Cloud Firewalls",
+  "url": "https://docs.digitalocean.com/products/networking/firewalls/getting-started/"
+ },
+ {
+  "description": "Create, modify, or delete firewall rules to restrict Droplets' inbound and outbound traffic based on ports and sources.",
+  "lastmod": "2026-08-04T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/firewalls/how-to/configure-rules/index.html.md",
+  "product": "Networking",
+  "section": "firewalls",
+  "title": "How to Configure Firewall Rules",
+  "url": "https://docs.digitalocean.com/products/networking/firewalls/how-to/configure-rules/"
+ },
+ {
+  "description": "View the full set of firewall rules applied to a Droplet from all cloud firewalls.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/firewalls/how-to/view-rules-for-droplet/index.html.md",
+  "product": "Networking",
+  "section": "firewalls",
+  "title": "How to View All Firewall Rules Applied to a Droplet",
+  "url": "https://docs.digitalocean.com/products/networking/firewalls/how-to/view-rules-for-droplet/"
+ },
+ {
+  "description": "IPv6 support is available for Droplets at no additional cost.\n",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/ipv6/details/pricing/index.html.md",
+  "product": "Networking",
+  "section": "ipv6",
+  "title": "IPv6 Pricing",
+  "url": "https://docs.digitalocean.com/products/networking/ipv6/details/pricing/"
+ },
+ {
+  "description": "How to accomplish specific tasks in detail, like creation/deletion, configuration, and management.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/ipv6/how-to/index.html.md",
+  "product": "Networking",
+  "section": "ipv6",
+  "title": "IPv6 How-Tos",
+  "url": "https://docs.digitalocean.com/products/networking/ipv6/how-to/"
+ },
+ {
+  "description": "The Load Balancers API endpoints are organized into the following groups:\nLoad Balancers (10 endpoints): DigitalOcean Load Balancers provide a way to distribute traffic across multiple Droplets. By …",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/load-balancers/reference/api/index.html.md",
+  "product": "Networking",
+  "section": "load-balancers",
+  "title": "Load Balancers API Reference",
+  "url": "https://docs.digitalocean.com/products/networking/load-balancers/reference/api/"
+ },
+ {
+  "description": "All reserved IPs are free when assigned to a Droplet.\n",
+  "lastmod": "2025-06-25T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/reserved-ips/details/pricing/index.html.md",
+  "product": "Networking",
+  "section": "reserved-ips",
+  "title": "Reserved IPs Pricing",
+  "url": "https://docs.digitalocean.com/products/networking/reserved-ips/details/pricing/"
+ },
+ {
+  "description": "Create a VPC peering to connect two VPCs.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/vpc/how-to/create-peering/index.html.md",
+  "product": "Networking",
+  "section": "vpc",
+  "title": "How to Create a VPC Peering",
+  "url": "https://docs.digitalocean.com/products/networking/vpc/how-to/create-peering/"
+ },
+ {
+  "description": "Permanently destroy a VPC peering connection.",
+  "lastmod": "2024-12-11T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/vpc/how-to/destroy-peering/index.html.md",
+  "product": "Networking",
+  "section": "vpc",
+  "title": "How to Destroy a VPC Peering",
+  "url": "https://docs.digitalocean.com/products/networking/vpc/how-to/destroy-peering/"
+ },
+ {
+  "description": "Update Droplet routing tables to reach peered VPC networks and other subnets in the same VPC network.",
+  "lastmod": "2026-09-22T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/networking/vpc/how-to/update-peering-routes/index.html.md",
+  "product": "Networking",
+  "section": "vpc",
+  "title": "How to Update Droplet Routes for VPC Peering and Subnets",
+  "url": "https://docs.digitalocean.com/products/networking/vpc/how-to/update-peering-routes/"
+ },
+ {
+  "description": "SSH keys provide a secure way to remotely access your Linux-based machines.\n",
+  "lastmod": "2023-12-14T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/paperspace/accounts-and-teams/add-ssh-keys/index.html.md",
+  "product": "Paperspace",
+  "section": "accounts-and-teams",
+  "title": "How to Upload SSH Keys to Paperspace Personal Accounts",
+  "url": "https://docs.digitalocean.com/products/paperspace/accounts-and-teams/add-ssh-keys/"
+ },
+ {
+  "description": "Block definitions and examples for Workflow specs.",
+  "lastmod": "2023-12-14T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/paperspace/workflows/reference/workflow-spec/index.html.md",
+  "product": "Paperspace",
+  "section": "workflows",
+  "title": "Workflow Spec Reference",
+  "url": "https://docs.digitalocean.com/products/paperspace/workflows/reference/workflow-spec/"
+ },
+ {
+  "description": "Use SnapShooter to automatically create compressed backups for your WordPress database and website directory and transfer them automatically to S3-based storage of your choice.\n",
+  "lastmod": "2023-09-26T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/snapshooter/how-to/back-up-wordpress-servers/index.html.md",
+  "product": "SnapShooter",
+  "section": "how-to",
+  "title": "How to Back Up WordPress Servers with SnapShooter",
+  "url": "https://docs.digitalocean.com/products/snapshooter/how-to/back-up-wordpress-servers/"
+ },
+ {
+  "description": "Native and third-party tools, API documentation, and other reference information.",
+  "lastmod": "2023-09-26T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/snapshooter/reference/index.html.md",
+  "product": "SnapShooter",
+  "section": "reference",
+  "title": "SnapShooter Reference",
+  "url": "https://docs.digitalocean.com/products/snapshooter/reference/"
+ },
+ {
+  "description": "Snapshots are charged at $0.06 per GB per month for Droplets and $0.06 per GiB per month for volumes.\n",
+  "lastmod": "2022-05-17T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/snapshots/details/pricing/index.html.md",
+  "product": "Snapshots",
+  "section": "details",
+  "title": "Snapshots Pricing",
+  "url": "https://docs.digitalocean.com/products/snapshots/details/pricing/"
+ },
+ {
+  "description": "Create a new Droplet from a snapshot or restore a Droplet to an older point in time.",
+  "lastmod": "2026-10-06T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/snapshots/how-to/create-and-restore-droplets/index.html.md",
+  "product": "Snapshots",
+  "section": "how-to",
+  "title": "How to Create or Restore Droplets from Snapshots",
+  "url": "https://docs.digitalocean.com/products/snapshots/how-to/create-and-restore-droplets/"
+ },
+ {
+  "description": "Enable and manage Spaces access logs to record requests made to your bucket and CDN endpoints.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/how-to/access-logs/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "how-to",
+  "title": "How to Configure DigitalOcean Spaces Access Logs",
+  "url": "https://docs.digitalocean.com/products/spaces/how-to/access-logs/"
+ },
+ {
+  "description": "Configure Cross-Origin Resource Sharing (CORS) on a DigitalOcean Space to allow web applications from another origin to access bucket resources.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/how-to/configure-cors/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "how-to",
+  "title": "How to Configure Cross-Origin Resource Sharing",
+  "url": "https://docs.digitalocean.com/products/spaces/how-to/configure-cors/"
+ },
+ {
+  "description": "Enable and disable the Spaces CDN, configure edge cache TTL settings, set up custom subdomains with TLS, and manage CDN endpoints.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/how-to/enable-cdn/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "how-to",
+  "title": "How to Enable the DigitalOcean Spaces CDN",
+  "url": "https://docs.digitalocean.com/products/spaces/how-to/enable-cdn/"
+ },
+ {
+  "description": "Preserve, retrieve, and restore every version of every object stored in your buckets using S3 Versioning.",
+  "lastmod": "2026-09-01T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/how-to/enable-versioning/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "how-to",
+  "title": "How to Configure DigitalOcean Spaces Versioning",
+  "url": "https://docs.digitalocean.com/products/spaces/how-to/enable-versioning/"
+ },
+ {
+  "description": "Control access to Spaces buckets using access keys or DigitalOcean teams.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/how-to/manage-access/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "how-to",
+  "title": "How to Manage Access to DigitalOcean Spaces",
+  "url": "https://docs.digitalocean.com/products/spaces/how-to/manage-access/"
+ },
+ {
+  "description": "Configure AWS S3 SDKs to work with DigitalOcean Spaces and run compatible S3 API operations.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/reference/aws-sdks/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "reference",
+  "title": "Use DigitalOcean Spaces with AWS S3 SDKs",
+  "url": "https://docs.digitalocean.com/products/spaces/reference/aws-sdks/"
+ },
+ {
+  "description": "Configure Terraform to store remote state in a DigitalOcean Spaces bucket.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/spaces/reference/terraform-backend/index.html.md",
+  "product": "Spaces Object Storage",
+  "section": "reference",
+  "title": "Configure DigitalOcean Spaces as a Terraform Remote State Backend",
+  "url": "https://docs.digitalocean.com/products/spaces/reference/terraform-backend/"
+ },
+ {
+  "description": "Expand the last partition and filesystem on a resized volume.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/volumes/how-to/expand-partitions/index.html.md",
+  "product": "Volumes Block Storage",
+  "section": "how-to",
+  "title": "How to Expand Partitions After Resizing a Volume",
+  "url": "https://docs.digitalocean.com/products/volumes/how-to/expand-partitions/"
+ },
+ {
+  "description": "The Volumes Block Storage API endpoints are organized into the following groups:\nBlock Storage (9 endpoints): DigitalOcean Block Storage Volumes provide expanded storage capacity for your Droplets and …",
+  "lastmod": "2018-06-26T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/volumes/reference/api/index.html.md",
+  "product": "Volumes Block Storage",
+  "section": "reference",
+  "title": "Volumes Block Storage API Reference",
+  "url": "https://docs.digitalocean.com/products/volumes/reference/api/"
+ },
+ {
+  "description": "List database cluster firewall rules",
+  "lastmod": "2026-10-19T14:12:18+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/ansible/reference/modules/database_firewall_rules_info/index.html.md",
+  "product": "Reference",
+  "section": "ansible",
+  "title": "database_firewall_rules_info",
+  "url": "https://docs.digitalocean.com/reference/ansible/reference/modules/database_firewall_rules_info/"
+ },
+ {
+  "description": "Resize a Droplet",
+  "lastmod": "2026-10-19T14:12:18+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/ansible/reference/modules/droplet_action_resize/index.html.md",
+  "product": "Reference",
+  "section": "ansible",
+  "title": "droplet_action_resize",
+  "url": "https://docs.digitalocean.com/reference/ansible/reference/modules/droplet_action_resize/"
+ },
+ {
+  "description": "List all Spaces access keys on your account",
+  "lastmod": "2026-10-19T14:12:18+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/ansible/reference/modules/spaces_keys_info/index.html.md",
+  "product": "Reference",
+  "section": "ansible",
+  "title": "spaces_keys_info",
+  "url": "https://docs.digitalocean.com/reference/ansible/reference/modules/spaces_keys_info/"
+ },
+ {
+  "description": "Droplet actions are tasks that can be executed on a Droplet. These can be things like rebooting, resizing, snapshotting, etc.  Droplet action requests are generally targeted at one of the \"actions\" endpoints for a specific Droplet. The specific ac...",
+  "lastmod": "2026-10-19T12:13:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/api/reference/droplet-actions/index.html.md",
+  "product": "Reference",
+  "section": "api",
+  "title": "Droplet Actions",
+  "url": "https://docs.digitalocean.com/reference/api/reference/droplet-actions/"
+ },
+ {
+  "description": "A [Droplet](https://docs.digitalocean.com/products/droplets/) is a DigitalOcean virtual machine. By sending requests to the Droplet endpoint, you can list, create, or delete Droplets.  Some of the attributes will have an object value. The `region`...",
+  "lastmod": "2026-10-19T12:13:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/api/reference/droplets/index.html.md",
+  "product": "Reference",
+  "section": "api",
+  "title": "Droplets",
+  "url": "https://docs.digitalocean.com/reference/api/reference/droplets/"
+ },
+ {
+  "description": "[VPC Peerings](https://docs.digitalocean.com/products/networking/vpc/how-to/create-peering/) join two VPC networks with a secure, private connection. This allows resources in those networks to connect to each other's private IP addresses as if the...",
+  "lastmod": "2026-10-19T12:13:29+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/api/reference/vpc-peerings/index.html.md",
+  "product": "Reference",
+  "section": "api",
+  "title": "VPC Peerings",
+  "url": "https://docs.digitalocean.com/reference/api/reference/vpc-peerings/"
+ },
+ {
+  "description": "Complete reference documentation for the Spaces RESTful XML API, interoperable with Amazon S3.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/api/spaces/index.html.md",
+  "product": "Reference",
+  "section": "api",
+  "title": "Spaces API Reference Documentation",
+  "url": "https://docs.digitalocean.com/reference/api/spaces/"
+ },
+ {
+  "description": "Changes a Droplet's kernel. This is only available for externally managed kernels. All Droplets created after 17 March 2017 have internally managed kernels by default. Use the `doctl compute droplet kernels ` command to retrieve a list of kernels for the Droplet.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/change-kernel/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet-action change-kernel",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/change-kernel/"
+ },
+ {
+  "description": "Enables backups on a Droplet. This automatically creates and stores a disk image of the Droplet. By default, backups happen daily.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/enable-backups/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet-action enable-backups",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/enable-backups/"
+ },
+ {
+  "description": "Initiates a root password reset on a Droplet. We provide a new password for the Droplet via the accounts email address. The password must be changed after first use. \n\nThis also powercycles the Droplet.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/password-reset/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet-action password-reset",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/password-reset/"
+ },
+ {
+  "description": "Resizes a Droplet to a different plan.\n\nBy default, this command only increases or decreases the CPU and RAM of the Droplet, not its disk size. Unlike increasing disk size, you can reverse this action.\n\nTo also increase the Droplet's disk size, choose a size slug with the desired amount of vCPUs, RAM, and disk space and then set the `--resize-disk` flag to `true`. This is a permanent change and cannot be reversed as a Droplet's disk size cannot be decreased.\n\nFor a list of size slugs, use the `doctl compute size list` command.\n\nThis command automatically powers off the Droplet before resizing it.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/resize/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet-action resize",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-action/resize/"
+ },
+ {
+  "description": "Usage doctl compute droplet-autoscale create [flags] Flags Option Description --cooldown-minutes Cooldown durationDefault: 0 --cpu-target CPU target threshold --droplet-agent Enable droplet …",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-autoscale/create/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet-autoscale create",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet-autoscale/create/"
+ },
+ {
+  "description": "A Droplet is a DigitalOcean virtual machine. Use the subcommands of `doctl compute droplet` to create, manage, and retrieve information about Droplets.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/"
+ },
+ {
+  "description": "Retrieves a list of Droplet 1-Click application slugs.\n\nYou can use 1-click slugs to create Droplets by using them as the argument for the `--image` flag in the `doctl compute droplet create` command. For example, the following command creates a Droplet with an Openblocks installation on it: `doctl compute droplet create example-droplet --image openblocks --size s-2vcpu-2gb --region nyc1`",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/1-click/list/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet 1-click list",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/1-click/list/"
+ },
+ {
+  "description": "Retrieves a list of previous actions taken on the Droplet, such as reboots, resizes, and snapshots actions.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/actions/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet actions",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/actions/"
+ },
+ {
+  "description": "Creates a new Droplet on your account. The command requires values for the `--size`, and `--image` flags.\n\nTo retrieve a list of size slugs, use the `doctl compute size list` command. To retrieve a list of image slugs, use the `doctl compute image list-distribution` command for public distribution images, or `doctl compute image list` for images on your account. To retrieve a list of region slugs, use the `doctl compute region list` command.\n\nIf you do not specify a region, the Droplet is created in the default region for your account. If you do not specify any SSH keys, we email a temporary password to your account's email address.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/create/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute droplet create",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/create/"
+ },
+ {
+  "description": "Add inbound or outbound rules to a cloud firewall.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/firewall/add-rules/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute firewall add-rules",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/firewall/add-rules/"
+ },
+ {
+  "description": "Remove inbound or outbound rules from a cloud firewall.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/firewall/remove-rules/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute firewall remove-rules",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/firewall/remove-rules/"
+ },
+ {
+  "description": "Use this command to add forwarding rules to a load balancer, specified with the `--forwarding-rules` flag. Valid rules include:\n- `entry_protocol`: The entry protocol used for traffic to the load balancer. Possible values are: `http`, `https`, `http2`, `http3`, `tcp`, or `udp`.\n- `entry_port`: The entry port used for incoming traffic to the load balancer.\n- `target_protocol`: The target protocol used for traffic from the load balancer to the backend Droplets. Possible values are: `http`, `https`, `http2`, `http3`, `tcp`, or `udp`.\n- `target_port`: The target port used to send traffic from the load balancer to the backend Droplets.\n- `certificate_id`: The ID of the TLS certificate used for SSL termination, if enabled. Can be obtained with `doctl certificate list`\n- `tls_passthrough`: Whether SSL passthrough is enabled on the load balancer.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/load-balancer/add-forwarding-rules/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute load-balancer add-forwarding-rules",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/load-balancer/add-forwarding-rules/"
+ },
+ {
+  "description": "Use this command to create a new load balancer on your account. Valid forwarding rules are:\n- `entry_protocol`: The entry protocol used for traffic to the load balancer. Possible values are: `http`, `https`, `http2`, `http3`, `tcp`, or `udp`.\n- `entry_port`: The entry port used for incoming traffic to the load balancer.\n- `target_protocol`: The target protocol used for traffic from the load balancer to the backend Droplets. Possible values are: `http`, `https`, `http2`, `http3`, `tcp`, or `udp`.\n- `target_port`: The target port used to send traffic from the load balancer to the backend Droplets.\n- `certificate_id`: The ID of the TLS certificate used for SSL termination, if enabled. Can be obtained with `doctl certificate list`\n- `tls_passthrough`: Whether SSL passthrough is enabled on the load balancer.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/load-balancer/create/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute load-balancer create",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/load-balancer/create/"
+ },
+ {
+  "description": "Use this command to get the id, fingerprint, public_key, and name of a specific SSH key on your account.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/ssh-key/get/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute ssh-key get",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/ssh-key/get/"
+ },
+ {
+  "description": "Creates a block storage volume on your account. You can use flags to specify the volume size, region, description, filesystem type, tags, and to create a volume from an existing volume snapshot. Use the `doctl compute volume-action attach ` command to attach a new volume to a Droplet.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/compute/volume/create/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl compute volume create",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/compute/volume/create/"
+ },
+ {
+  "description": "Deletes a model evaluation preset by its UUID.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/evaluation/preset/delete/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl evaluation preset delete",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/evaluation/preset/delete/"
+ },
+ {
+  "description": "Retrieves a single episode of a simulation run, including:\n\t\t- The episode UUID\n\t\t- The UUID of the scenario the episode exercises\n\t\t- The episode index within the scenario\n\t\t- The episode status and judge verdict\n\t\t- The episode duration in seconds\n\t\t- The episode creation timestamp",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/evaluation/simulation-run/get-episode/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl evaluation simulation-run get-episode",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/evaluation/simulation-run/get-episode/"
+ },
+ {
+  "description": "Lists available container registry subscription tiers",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/registries/options/subscription-tiers/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl registries options subscription-tiers",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/registries/options/subscription-tiers/"
+ },
+ {
+  "description": "The subcommands of `doctl spaces keys` allow you to access and manage Spaces Keys.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/spaces/keys/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl spaces keys",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/spaces/keys/"
+ },
+ {
+  "description": "Get the key for a Space by Access Key ID.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/spaces/keys/get/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl spaces keys get",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/spaces/keys/get/"
+ },
+ {
+  "description": "Updates advanced configuration settings for the specified vector database.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/vector-databases/update/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl vector-databases update",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/vector-databases/update/"
+ },
+ {
+  "description": "Search, browse, and retrieve DigitalOcean documentation pages without authentication.",
+  "lastmod": "2026-04-28T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/mcp/documentation-mcp-tools/index.html.md",
+  "product": "Reference",
+  "section": "mcp",
+  "title": "Documentation",
+  "url": "https://docs.digitalocean.com/reference/mcp/documentation-mcp-tools/"
+ },
+ {
+  "description": "Interact programmatically with Paperspace using the Startup script CLI.",
+  "lastmod": "2023-12-14T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/paperspace/pspace/commands/startup-script/index.html.md",
+  "product": "Reference",
+  "section": "paperspace",
+  "title": "startup-script",
+  "url": "https://docs.digitalocean.com/reference/paperspace/pspace/commands/startup-script/"
+ },
+ {
+  "description": "Interact programmatically with Paperspace using the Upgrade CLI.",
+  "lastmod": "2023-12-14T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/paperspace/pspace/commands/upgrade/index.html.md",
+  "product": "Reference",
+  "section": "paperspace",
+  "title": "upgrade",
+  "url": "https://docs.digitalocean.com/reference/paperspace/pspace/commands/upgrade/"
+ },
+ {
+  "description": "Create/Provision a New Add-on Resource",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/addons/create/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.addons.create()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/addons/create/"
+ },
+ {
+  "description": "Droplet autoscale pools manage automatic horizontal scaling for your applications based on resource usage (CPU, memory, or both) or a static configuration.\n",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/autoscalepools/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.autoscalepools",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/autoscalepools/"
+ },
+ {
+  "description": "Add a New Connection Pool (PostgreSQL)",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/add_connection_pool/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.add_connection_pool()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/add_connection_pool/"
+ },
+ {
+  "description": "Delete a Connection Pool (PostgreSQL)",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/delete_connection_pool/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.delete_connection_pool()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/delete_connection_pool/"
+ },
+ {
+  "description": "Retrieve Existing Connection Pool (PostgreSQL)",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_connection_pool/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.get_connection_pool()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_connection_pool/"
+ },
+ {
+  "description": "Retrieve the Eviction Policy for a Caching or Valkey Cluster",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_eviction_policy/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.get_eviction_policy()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_eviction_policy/"
+ },
+ {
+  "description": "Retrieve Schema Registry Configuration for a kafka Cluster",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_kafka_schema_config/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.get_kafka_schema_config()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/get_kafka_schema_config/"
+ },
+ {
+  "description": "List Connection Pools (PostgreSQL)",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/list_connection_pools/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.list_connection_pools()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/list_connection_pools/"
+ },
+ {
+  "description": "List Firewall Rules (Trusted Sources) for a Database Cluster",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/list_firewall_rules/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.list_firewall_rules()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/list_firewall_rules/"
+ },
+ {
+  "description": "Update Connection Pools (PostgreSQL)",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/update_connection_pool/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.update_connection_pool()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/update_connection_pool/"
+ },
+ {
+  "description": "Update Firewall Rules (Trusted Sources) for a Database",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/databases/update_firewall_rules/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.databases.update_firewall_rules()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/databases/update_firewall_rules/"
+ },
+ {
+  "description": "Create a New Droplet",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/droplets/create/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.droplets.create()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/droplets/create/"
+ },
+ {
+  "description": "Add Rules to a Firewall",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/firewalls/add_rules/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.firewalls.add_rules()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/firewalls/add_rules/"
+ },
+ {
+  "description": "Image actions are commands that can be given to a DigitalOcean image.\n",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/image_actions/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.image_actions",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/image_actions/"
+ },
+ {
+  "description": "Create a Notification Channel",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/insights/create_notification_channel/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.insights.create_notification_channel()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/insights/create_notification_channel/"
+ },
+ {
+  "description": "Retrieve an Existing Kubernetes Cluster",
+  "lastmod": "2026-10-16T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/pydo/reference/kubernetes/get_cluster/index.html.md",
+  "product": "Reference",
+  "section": "pydo",
+  "title": "pydo.kubernetes.get_cluster()",
+  "url": "https://docs.digitalocean.com/reference/pydo/reference/kubernetes/get_cluster/"
+ },
+ {
+  "description": "Provides information on a DigitalOcean PostgreSQL database connection pool.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/database_connection_pool/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_database_connection_pool",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/database_connection_pool/"
+ },
+ {
+  "description": "Get information on a Droplet for use in other resources. This data source provides all of the Droplet's properties as configured on your DigitalOcean account. This is useful if the Droplet in question is not managed by Terraform or you need to utilize any of the Droplet's data.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet/"
+ },
+ {
+  "description": "Get information on a Droplet Autoscale pool for use with other managed resources. This datasource provides all the Droplet Autoscale pool properties as configured on the DigitalOcean account. This is useful if the Droplet Autoscale  pool in question is not managed by Terraform, or any of the relevant data would need to referenced in other managed  resources.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet_autoscale/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet_autoscale",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet_autoscale/"
+ },
+ {
+  "description": "Droplet snapshots are saved instances of a Droplet. Use this data source to retrieve the ID of a DigitalOcean Droplet snapshot for use in other resources.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet_snapshot/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet_snapshot",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplet_snapshot/"
+ },
+ {
+  "description": "Get information on Droplets for use in other resources, with the ability to filter and sort the results. If no filters are specified, all Droplets will be returned.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplets/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplets",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/data-sources/droplets/"
+ },
+ {
+  "description": "A complete reference for every resource available to the DigitalOcean Terraform provider.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/resources/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "Resources Reference for the DigitalOcean Terraform Provider",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/resources/"
+ },
+ {
+  "description": "Provides a DigitalOcean Droplet resource. This can be used to create, modify, and delete Droplets. Droplets also support provisioning.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet/"
+ },
+ {
+  "description": "Provides a DigitalOcean Droplet Autoscale resource. This can be used to create, modify,  read and delete Droplet Autoscale pools.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet_autoscale/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet_autoscale",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet_autoscale/"
+ },
+ {
+  "description": "Provides a resource which can be used to create a snapshot from an existing DigitalOcean Droplet.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet_snapshot/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_droplet_snapshot",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet_snapshot/"
+ },
+ {
+  "description": "Provides a CORS configuration resource for Spaces, DigitalOcean's object storage product. The `digitalocean_spaces_bucket_cors_configuration` resource allows Terraform to to attach CORS configuration to Spaces.",
+  "lastmod": "2026-10-12T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/terraform/reference/resources/spaces_bucket_cors_configuration/index.html.md",
+  "product": "Reference",
+  "section": "terraform",
+  "title": "digitalocean_spaces_cors_configuration",
+  "url": "https://docs.digitalocean.com/reference/terraform/reference/resources/spaces_bucket_cors_configuration/"
+ },
+ {
+  "description": "Block storage volumes can only be attached to one Droplet at a time. You can share data using a network filesystem instead.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/can-i-attach-a-volume-to-multiple-droplets/index.html.md",
+  "product": "Support",
+  "section": "can-i-attach-a-volume-to-multiple-droplets",
+  "title": "Can I attach a volume to multiple Droplets?",
+  "url": "https://docs.digitalocean.com/support/can-i-attach-a-volume-to-multiple-droplets/"
+ },
+ {
+  "description": "You cannot import a DNS zone, but you can add the domain and manually create the DNS records.",
+  "lastmod": "2023-04-24T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/can-i-import-a-dns-zone/index.html.md",
+  "product": "Support",
+  "section": "can-i-import-a-dns-zone",
+  "title": "Can I import a DNS zone?",
+  "url": "https://docs.digitalocean.com/support/can-i-import-a-dns-zone/"
+ },
+ {
+  "description": "You cannot resize Droplets to smaller plans, but you can migrate your data to a smaller Droplet.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/can-i-make-my-droplet-smaller/index.html.md",
+  "product": "Support",
+  "section": "can-i-make-my-droplet-smaller",
+  "title": "Can I make my Droplet smaller?",
+  "url": "https://docs.digitalocean.com/support/can-i-make-my-droplet-smaller/"
+ },
+ {
+  "description": "Having trouble with GPU Droplets? View solutions for common GPU Droplet problems.\n",
+  "lastmod": "2025-04-09T17:13:19+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/gpu-droplets/index.html.md",
+  "product": "Support",
+  "section": "gpu-droplets",
+  "title": "GPU Droplets",
+  "url": "https://docs.digitalocean.com/support/gpu-droplets/"
+ },
+ {
+  "description": "Use the recovery ISO to access Droplets that fail to boot up or have system problems.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-can-i-regain-access-to-my-droplet-when-it-wont-boot/index.html.md",
+  "product": "Support",
+  "section": "how-can-i-regain-access-to-my-droplet-when-it-wont-boot",
+  "title": "How can I regain access to my Droplet when it won't boot?",
+  "url": "https://docs.digitalocean.com/support/how-can-i-regain-access-to-my-droplet-when-it-wont-boot/"
+ },
+ {
+  "description": "You can disable the address on your Droplet from the command line or through updating your Droplet's `eth1` interface configuration.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-create-a-droplet-without-a-private-ip/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-create-a-droplet-without-a-private-ip",
+  "title": "How do I create a Droplet without a private IP?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-create-a-droplet-without-a-private-ip/"
+ },
+ {
+  "description": "Delete the existing dev database and create a new one. Then make sure that the app deployment completes successfully.",
+  "lastmod": "2025-11-04T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-a-permission-denied-for-schema-public-error-in-my-dev-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-a-permission-denied-for-schema-public-error-in-my-dev-database",
+  "title": "How do I fix a \"permission denied for schema public\" error in my dev database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-a-permission-denied-for-schema-public-error-in-my-dev-database/"
+ },
+ {
+  "description": "Make sure NVIDIA Fabric Manager is running and has the same version number as the GPU drivers.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-a-system-not-initialized-error-on-multi-gpu-droplets/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-a-system-not-initialized-error-on-multi-gpu-droplets",
+  "title": "How do I fix a \"system not initialized\" error on multi-GPU Droplets?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-a-system-not-initialized-error-on-multi-gpu-droplets/"
+ },
+ {
+  "description": "This error happens when the Droplet you're trying to restore no longer exists, so try creating a new Droplet from the snapshot instead.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-a-the-resource-you-were-accessing-could-not-be-found-error-when-restoring-a-droplet-from-a-snapshot/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-a-the-resource-you-were-accessing-could-not-be-found-error-when-restoring-a-droplet-from-a-snapshot",
+  "title": "How do I fix a \"The resource you were accessing could not be found\" error when restoring a Droplet from a snapshot?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-a-the-resource-you-were-accessing-could-not-be-found-error-when-restoring-a-droplet-from-a-snapshot/"
+ },
+ {
+  "description": "You can review disk usage on your Droplet and then remove unnecessary files.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-disk-space-issues-on-my-droplet/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-disk-space-issues-on-my-droplet",
+  "title": "How do I fix disk space issues on my Droplet?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-disk-space-issues-on-my-droplet/"
+ },
+ {
+  "description": "Verify the connection string, ensure correct port usage, and add your local machine to the database cluster's trusted sources.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-connection-refused-error-when-connecting-to-my-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-connection-refused-error-when-connecting-to-my-database",
+  "title": "How do I fix the \"Connection Refused\" error when connecting to my database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-connection-refused-error-when-connecting-to-my-database/"
+ },
+ {
+  "description": "Add your machine to the database cluster's list of trusted sources in the firewall settings.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-connection-timed-out-error-when-connecting-to-my-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-connection-timed-out-error-when-connecting-to-my-database",
+  "title": "How do I fix the \"Connection Timed Out\" error when connecting to my database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-connection-timed-out-error-when-connecting-to-my-database/"
+ },
+ {
+  "description": "Verify the hostname and confirm the database exists in the specified cluster.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-database-does-not-exist-error-when-connecting-to-postgresql/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-database-does-not-exist-error-when-connecting-to-postgresql",
+  "title": "How do I fix the \"Database Does Not Exist\" error when connecting to PostgreSQL?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-database-does-not-exist-error-when-connecting-to-postgresql/"
+ },
+ {
+  "description": "Check for query timeouts and ensure your network connection is stable.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-host-is-blocked-error-when-connecting-to-mysql/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-host-is-blocked-error-when-connecting-to-mysql",
+  "title": "How do I fix the \"Host is Blocked\" error when connecting to MySQL?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-host-is-blocked-error-when-connecting-to-mysql/"
+ },
+ {
+  "description": "Verify the format and values in the connection string for typos or formatting errors.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-invalid-parameters-and-values-error-when-connecting-to-my-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-invalid-parameters-and-values-error-when-connecting-to-my-database",
+  "title": "How do I fix the \"Invalid Parameters and Values\" error when connecting to my database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-invalid-parameters-and-values-error-when-connecting-to-my-database/"
+ },
+ {
+  "description": "Check your network connection and optimize your query.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-lost-connection-error-when-issuing-a-query-on-mysql/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-lost-connection-error-when-issuing-a-query-on-mysql",
+  "title": "How do I fix the \"Lost Connection\" error when issuing a query on MySQL?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-lost-connection-error-when-issuing-a-query-on-mysql/"
+ },
+ {
+  "description": "Prepend your database client command to the connection string.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-fix-the-no-such-file-or-directory-error-when-connecting-to-my-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-fix-the-no-such-file-or-directory-error-when-connecting-to-my-database",
+  "title": "How do I fix the \"No Such File or Directory\" error when connecting to my database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-fix-the-no-such-file-or-directory-error-when-connecting-to-my-database/"
+ },
+ {
+  "description": "Boot the Droplet from the recovery ISO, then connect using the Recovery Console and delete files to free some disk space.",
+  "lastmod": "2024-06-04T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-recover-access-to-a-droplet-that-is-at-100-disk-usage/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-recover-access-to-a-droplet-that-is-at-100-disk-usage",
+  "title": "How do I recover access to a Droplet that is at 100% disk usage?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-recover-access-to-a-droplet-that-is-at-100-disk-usage/"
+ },
+ {
+  "description": "You can reset your Droplet's password using the control panel or the recovery ISO.",
+  "lastmod": "2026-09-02T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-reset-my-droplets-root-password/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-reset-my-droplets-root-password",
+  "title": "How do I reset my Droplet's root password?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-reset-my-droplets-root-password/"
+ },
+ {
+  "description": "Increase your cluster's disk space or delete data to unblock your MongoDB database.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-do-i-unblock-my-mongodb-database/index.html.md",
+  "product": "Support",
+  "section": "how-do-i-unblock-my-mongodb-database",
+  "title": "How do I unblock my MongoDB database?",
+  "url": "https://docs.digitalocean.com/support/how-do-i-unblock-my-mongodb-database/"
+ },
+ {
+  "description": "Review some common troubleshooting techniques for App Platform.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-to-troubleshoot-apps-in-app-platform/index.html.md",
+  "product": "Support",
+  "section": "how-to-troubleshoot-apps-in-app-platform",
+  "title": "How to Troubleshoot Apps in App Platform",
+  "url": "https://docs.digitalocean.com/support/how-to-troubleshoot-apps-in-app-platform/"
+ },
+ {
+  "description": "Health checks often fail due to firewalls or misconfigured backend server software.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/how-to-troubleshoot-load-balancer-health-check-issues/index.html.md",
+  "product": "Support",
+  "section": "how-to-troubleshoot-load-balancer-health-check-issues",
+  "title": "How to Troubleshoot Load Balancer Health Check Issues",
+  "url": "https://docs.digitalocean.com/support/how-to-troubleshoot-load-balancer-health-check-issues/"
+ },
+ {
+  "description": "Your load balancer may be down or not directing traffic to the target Droplet.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/i-cant-reach-a-droplet-through-my-digitalocean-load-balancer/index.html.md",
+  "product": "Support",
+  "section": "i-cant-reach-a-droplet-through-my-digitalocean-load-balancer",
+  "title": "I can't reach a Droplet through my DigitalOcean Load Balancer",
+  "url": "https://docs.digitalocean.com/support/i-cant-reach-a-droplet-through-my-digitalocean-load-balancer/"
+ },
+ {
+  "description": "We do not email a Droplet's root password. You can reset your root password if you don't remember it.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/i-did-not-get-an-email-of-my-droplets-root-password/index.html.md",
+  "product": "Support",
+  "section": "i-did-not-get-an-email-of-my-droplets-root-password",
+  "title": "I did not get an email of my Droplet's root password",
+  "url": "https://docs.digitalocean.com/support/i-did-not-get-an-email-of-my-droplets-root-password/"
+ },
+ {
+  "description": "Your app is likely unavailable on the port App Platform uses to perform health checks. Customize the health check or update the ports in your app.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/my-app-deployment-failed-because-of-a-health-check/index.html.md",
+  "product": "Support",
+  "section": "my-app-deployment-failed-because-of-a-health-check",
+  "title": "My app deployment failed because of a health check",
+  "url": "https://docs.digitalocean.com/support/my-app-deployment-failed-because-of-a-health-check/"
+ },
+ {
+  "description": "Review your app's build logs to diagnose which process failed during building.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/my-app-failed-to-build-and-i-received-an-exit-code/index.html.md",
+  "product": "Support",
+  "section": "my-app-failed-to-build-and-i-received-an-exit-code",
+  "title": "My app failed to build and I received an exit code",
+  "url": "https://docs.digitalocean.com/support/my-app-failed-to-build-and-i-received-an-exit-code/"
+ },
+ {
+  "description": "Troubleshoot by making sure the Dockerfile and its commands build on Linux AMD64 and other steps.",
+  "lastmod": "2025-05-22T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/my-container-based-app-fails-to-deploy-without-logs-or-error-codes./index.html.md",
+  "product": "Support",
+  "section": "my-container-based-app-fails-to-deploy-without-logs-or-error-codes.",
+  "title": "My container-based app fails to deploy without logs or error codes.",
+  "url": "https://docs.digitalocean.com/support/my-container-based-app-fails-to-deploy-without-logs-or-error-codes./"
+ },
+ {
+  "description": "There may be an issue with the autoscale pool or Droplet configuration, the VPC network's size, or resource limits on the team or datacenter.",
+  "lastmod": "2024-12-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-am-i-getting-a-droplet-autoscale-pool-error/index.html.md",
+  "product": "Support",
+  "section": "why-am-i-getting-a-droplet-autoscale-pool-error",
+  "title": "Why am I getting a Droplet autoscale pool error?",
+  "url": "https://docs.digitalocean.com/support/why-am-i-getting-a-droplet-autoscale-pool-error/"
+ },
+ {
+  "description": "Your app may have crashed while trying to receive an upload or return a response larger than it has been configured to manage.",
+  "lastmod": "2025-03-20T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-am-i-receiving-520-status-codes-from-my-app/index.html.md",
+  "product": "Support",
+  "section": "why-am-i-receiving-520-status-codes-from-my-app",
+  "title": "Why am I receiving 520 status codes from my app?",
+  "url": "https://docs.digitalocean.com/support/why-am-i-receiving-520-status-codes-from-my-app/"
+ },
+ {
+  "description": "Your team balance may be past due. Pay your balance to lift restrictions on actions you can take on the platform.",
+  "lastmod": "2025-03-10T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-am-i-receiving-a-forbidden-error-when-making-changes-to-my-app-platform-app/index.html.md",
+  "product": "Support",
+  "section": "why-am-i-receiving-a-forbidden-error-when-making-changes-to-my-app-platform-app",
+  "title": "Why am I receiving a forbidden error when making changes to my App Platform app?",
+  "url": "https://docs.digitalocean.com/support/why-am-i-receiving-a-forbidden-error-when-making-changes-to-my-app-platform-app/"
+ },
+ {
+  "description": "Ensure your Dockerfile's path is correctly defined using the `dockerfile_path` parameter in your app spec file.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-am-i-receiving-an-invalid-dockerfile_path-error-when-building-my-docker-app-on-app-platform/index.html.md",
+  "product": "Support",
+  "section": "why-am-i-receiving-an-invalid-dockerfile_path-error-when-building-my-docker-app-on-app-platform",
+  "title": "Why am I receiving an \"invalid dockerfile_path\" error when building my Docker app on App Platform?",
+  "url": "https://docs.digitalocean.com/support/why-am-i-receiving-an-invalid-dockerfile_path-error-when-building-my-docker-app-on-app-platform/"
+ },
+ {
+  "description": "Your upload may be exceeding your app's allotted file storage space or it could be timing out.",
+  "lastmod": "2023-10-09T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-are-large-files-failing-to-upload-to-my-app-on-app-platform/index.html.md",
+  "product": "Support",
+  "section": "why-are-large-files-failing-to-upload-to-my-app-on-app-platform",
+  "title": "Why are large files failing to upload to my app on App Platform?",
+  "url": "https://docs.digitalocean.com/support/why-are-large-files-failing-to-upload-to-my-app-on-app-platform/"
+ },
+ {
+  "description": "Multiple 408 errors are often caused by your app sending health checks with very short timeouts to App Platform. They typically don&rsquo;t affect the functionality of the app.\n",
+  "lastmod": "2024-06-24T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-are-there-multiple-408-errors-in-app-platforms-runtime-logs/index.html.md",
+  "product": "Support",
+  "section": "why-are-there-multiple-408-errors-in-app-platforms-runtime-logs",
+  "title": "Why are there multiple 408 errors in App Platform's runtime logs?",
+  "url": "https://docs.digitalocean.com/support/why-are-there-multiple-408-errors-in-app-platforms-runtime-logs/"
+ },
+ {
+  "description": "Environment variables are only available as build-args for Dockerfile builds in App Platform.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-cant-i-access-my-environment-variables-at-build-time-when-building-from-a-dockerfile-on-app-platform/index.html.md",
+  "product": "Support",
+  "section": "why-cant-i-access-my-environment-variables-at-build-time-when-building-from-a-dockerfile-on-app-platform",
+  "title": "Why can't I access my environment variables at build time when building from a Dockerfile on App Platform?",
+  "url": "https://docs.digitalocean.com/support/why-cant-i-access-my-environment-variables-at-build-time-when-building-from-a-dockerfile-on-app-platform/"
+ },
+ {
+  "description": "You cannot create Droplets in certain datacenters due to limited capacity. If you have snapshots in a limited capacity datacenter, transfer them to another datacenter to create Droplets from them.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-cant-i-create-a-droplet-from-a-snapshot/index.html.md",
+  "product": "Support",
+  "section": "why-cant-i-create-a-droplet-from-a-snapshot",
+  "title": "Why can't I create a Droplet from a snapshot?",
+  "url": "https://docs.digitalocean.com/support/why-cant-i-create-a-droplet-from-a-snapshot/"
+ },
+ {
+  "description": "Enable PROXY protocol support on your Droplets.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-did-all-of-my-backend-droplets-become-unhealthy-when-i-enabled-proxy-protocol-on-my-load-balancer/index.html.md",
+  "product": "Support",
+  "section": "why-did-all-of-my-backend-droplets-become-unhealthy-when-i-enabled-proxy-protocol-on-my-load-balancer",
+  "title": "Why did all of my backend Droplets become unhealthy when I enabled PROXY protocol on my load balancer?",
+  "url": "https://docs.digitalocean.com/support/why-did-all-of-my-backend-droplets-become-unhealthy-when-i-enabled-proxy-protocol-on-my-load-balancer/"
+ },
+ {
+  "description": "If you didn't receive a login email you requested from DigitalOcean, check your spam folder, make sure you're looking at the right email address, and try refreshing for new mail.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-didnt-i-receive-a-password-reset-email-or-verification-code/index.html.md",
+  "product": "Support",
+  "section": "why-didnt-i-receive-a-password-reset-email-or-verification-code",
+  "title": "Why didn't I receive a password reset email or verification code?",
+  "url": "https://docs.digitalocean.com/support/why-didnt-i-receive-a-password-reset-email-or-verification-code/"
+ },
+ {
+  "description": "You may be required to enter a verification code each time you sign in if you use an ad blocker. You may be asked to verify your browser from a trusted location and device if you have deleted cookies for digitalocean.com or you have disabled cookies entirely.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-do-i-have-to-keep-entering-a-verification-code-when-i-log-in/index.html.md",
+  "product": "Support",
+  "section": "why-do-i-have-to-keep-entering-a-verification-code-when-i-log-in",
+  "title": "Why do I have to keep entering a verification code when I log in?",
+  "url": "https://docs.digitalocean.com/support/why-do-i-have-to-keep-entering-a-verification-code-when-i-log-in/"
+ },
+ {
+  "description": "You can configure load balancers that are provisioned by DOKS using Kubernetes service annotations.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-do-my-doks-load-balancer-settings-keep-reverting/index.html.md",
+  "product": "Support",
+  "section": "why-do-my-doks-load-balancer-settings-keep-reverting",
+  "title": "Why do my DOKS load balancer settings keep reverting?",
+  "url": "https://docs.digitalocean.com/support/why-do-my-doks-load-balancer-settings-keep-reverting/"
+ },
+ {
+  "description": "App Platform does not support connecting to DigitalOcean Managed Databases during the build process if the database has trusted sources enabled.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-does-my-app-fail-to-build-while-trying-to-connect-to-a-digitalocean-managed-database/index.html.md",
+  "product": "Support",
+  "section": "why-does-my-app-fail-to-build-while-trying-to-connect-to-a-digitalocean-managed-database",
+  "title": "Why does my app fail to build while trying to connect to a DigitalOcean Managed Database?",
+  "url": "https://docs.digitalocean.com/support/why-does-my-app-fail-to-build-while-trying-to-connect-to-a-digitalocean-managed-database/"
+ },
+ {
+  "description": "High RAM or CPU usage is normally the result of applications or kernel processes on the Droplet. You can monitor high CPU usage processes on the Droplet and stop them if necessary.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-does-my-droplet-have-high-cpu-or-ram-usage/index.html.md",
+  "product": "Support",
+  "section": "why-does-my-droplet-have-high-cpu-or-ram-usage",
+  "title": "Why does my Droplet have high CPU or RAM usage?",
+  "url": "https://docs.digitalocean.com/support/why-does-my-droplet-have-high-cpu-or-ram-usage/"
+ },
+ {
+  "description": "Attaching a volume adds separate storage and does not increase a Droplet's root disk size.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-does-my-droplet-show-almost-100-disk-usage-even-after-attaching-a-new-volume/index.html.md",
+  "product": "Support",
+  "section": "why-does-my-droplet-show-almost-100-disk-usage-even-after-attaching-a-new-volume",
+  "title": "Why does my Droplet show almost 100% disk usage even after attaching a new volume?",
+  "url": "https://docs.digitalocean.com/support/why-does-my-droplet-show-almost-100-disk-usage-even-after-attaching-a-new-volume/"
+ },
+ {
+  "description": "By default, load balancers time out after the connection has been idle for 60 seconds. You can customize the timeout duration.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-does-my-load-balancer-respond-with-a-504-gateway-timeout-error/index.html.md",
+  "product": "Support",
+  "section": "why-does-my-load-balancer-respond-with-a-504-gateway-timeout-error",
+  "title": "Why does my load balancer respond with a 504 Gateway Timeout error?",
+  "url": "https://docs.digitalocean.com/support/why-does-my-load-balancer-respond-with-a-504-gateway-timeout-error/"
+ },
+ {
+  "description": "Load balancers return 503 errors when there are either no Droplets assigned to them or all of the assigned Droplets are unhealthy.",
+  "lastmod": "2026-07-20T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-does-my-load-balancer-respond-with-an-http-503-error/index.html.md",
+  "product": "Support",
+  "section": "why-does-my-load-balancer-respond-with-an-http-503-error",
+  "title": "Why does my load balancer respond with an HTTP 503 error?",
+  "url": "https://docs.digitalocean.com/support/why-does-my-load-balancer-respond-with-an-http-503-error/"
+ },
+ {
+  "description": "Use a custom DNS resolver or contact the domain administrator, as some .gov domains block DigitalOcean IP ranges and prevent App Platform apps from resolving them.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-my-app-not-resolving-.gov-domains/index.html.md",
+  "product": "Support",
+  "section": "why-is-my-app-not-resolving-.gov-domains",
+  "title": "Why is my app not resolving .gov domains?",
+  "url": "https://docs.digitalocean.com/support/why-is-my-app-not-resolving-.gov-domains/"
+ },
+ {
+  "description": "App Platform builds have a fixed amount of memory available, so try optimizing your builds to stay within the 8 GB limit. You can increase the amount of memory in App Platform deployments by upgrading to a different plan.",
+  "lastmod": "2024-06-24T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-my-app-platform-build-or-deployment-failing-with-an-out-of-memory-error/index.html.md",
+  "product": "Support",
+  "section": "why-is-my-app-platform-build-or-deployment-failing-with-an-out-of-memory-error",
+  "title": "Why is my App Platform build or deployment failing with an out of memory error?",
+  "url": "https://docs.digitalocean.com/support/why-is-my-app-platform-build-or-deployment-failing-with-an-out-of-memory-error/"
+ },
+ {
+  "description": "Timeouts can be caused by high CPU utilization, so check your app's CPU utilization and consider scaling your app.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-my-apps-database-connection-timing-out/index.html.md",
+  "product": "Support",
+  "section": "why-is-my-apps-database-connection-timing-out",
+  "title": "Why is my app's database connection timing out?",
+  "url": "https://docs.digitalocean.com/support/why-is-my-apps-database-connection-timing-out/"
+ },
+ {
+  "description": "File system corruption can cause a Droplet to boot into read only mode.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-my-droplet-booting-in-read-only-mode/index.html.md",
+  "product": "Support",
+  "section": "why-is-my-droplet-booting-in-read-only-mode",
+  "title": "Why is my Droplet booting in Read Only mode?",
+  "url": "https://docs.digitalocean.com/support/why-is-my-droplet-booting-in-read-only-mode/"
+ },
+ {
+  "description": "Snapshots of Droplets are a best estimate based on the disk usage. Snapshots of volumes operate at the block storage level, so the snapshot size may not match what the filesystem reports.\n",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-my-snapshots-size-different-from-reported-disk-usage/index.html.md",
+  "product": "Support",
+  "section": "why-is-my-snapshots-size-different-from-reported-disk-usage",
+  "title": "Why is my snapshot's size different from reported disk usage?",
+  "url": "https://docs.digitalocean.com/support/why-is-my-snapshots-size-different-from-reported-disk-usage/"
+ },
+ {
+  "description": "SMTP is blocked on Droplets to prevent spam and abuse. Use a third-party email as a service provider instead.",
+  "lastmod": "2026-07-13T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/support/why-is-smtp-blocked/index.html.md",
+  "product": "Support",
+  "section": "why-is-smtp-blocked",
+  "title": "Why is SMTP blocked?",
+  "url": "https://docs.digitalocean.com/support/why-is-smtp-blocked/"
+ }
+]
