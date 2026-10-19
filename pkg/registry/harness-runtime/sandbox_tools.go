@@ -21,16 +21,16 @@ const (
 
 // SandboxSize describes the compute resources available for a sandbox.
 type SandboxSize struct {
-	Slug     string `json:"slug"`
-	Name     string `json:"name,omitempty"`
-	VCPUs    int    `json:"vcpus,omitempty"`
-	MemoryMB int    `json:"memory_mb,omitempty"`
-	DiskGB   int    `json:"disk_gb,omitempty"`
+	Slug             string  `json:"slug"`
+	VCPUs            int     `json:"vcpus,omitempty"`
+	MemoryMB         int     `json:"memory_mb,omitempty"`
+	PricePerHourUSD  float64 `json:"price_per_hour_usd,omitempty"`
+	PricePerMonthUSD float64 `json:"price_per_month_usd,omitempty"`
 }
 
-// ListSandboxSizesResponse is the response of GET /v2/agents/sandbox-sizes.
+// ListSandboxSizesResponse is the response of GET /v2/agents/sessions/sandbox/sizes.
 type ListSandboxSizesResponse struct {
-	SandboxSizes []SandboxSize `json:"sandbox_sizes"`
+	Sizes []SandboxSize `json:"sizes"`
 }
 
 // PolicyViolation is a single policy rule violation returned by ValidatePolicy.
@@ -61,8 +61,8 @@ func (t *Tool) listSandboxSizes(ctx context.Context, req mcp.CallToolRequest) (*
 	if _, err := client.Do(ctx, apiReq, &out); err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to list sandbox sizes", err), nil
 	}
-	if out.SandboxSizes == nil {
-		out.SandboxSizes = []SandboxSize{}
+	if out.Sizes == nil {
+		out.Sizes = []SandboxSize{}
 	}
 	return sandboxSizesOut.Result(out)
 }

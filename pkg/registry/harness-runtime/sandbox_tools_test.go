@@ -17,7 +17,7 @@ func TestListSandboxSizes(t *testing.T) {
 		gotPath = r.URL.Path
 		gotMethod = r.Method
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"sandbox_sizes":[{"slug":"sandbox-s-1vcpu-1gb","name":"Basic","vcpus":1,"memory_mb":1024,"disk_gb":10},{"slug":"sandbox-s-2vcpu-4gb","name":"Standard","vcpus":2,"memory_mb":4096,"disk_gb":20}]}`))
+		_, _ = w.Write([]byte(`{"sizes":[{"slug":"mars-1vcpu-1gb","vcpus":1,"memory_mb":1024,"price_per_hour_usd":0.0535,"price_per_month_usd":39.804},{"slug":"mars-2vcpu-4gb","vcpus":2,"memory_mb":4096,"price_per_hour_usd":0.126,"price_per_month_usd":93.744}]}`))
 	})
 
 	res, err := tool.listSandboxSizes(context.Background(), request(nil))
@@ -27,10 +27,10 @@ func TestListSandboxSizes(t *testing.T) {
 	require.Equal(t, http.MethodGet, gotMethod)
 
 	text := callText(t, res)
-	require.Contains(t, text, "sandbox-s-1vcpu-1gb")
-	require.Contains(t, text, "sandbox-s-2vcpu-4gb")
-	require.Contains(t, text, "Basic")
-	require.Contains(t, text, "Standard")
+	require.Contains(t, text, "mars-1vcpu-1gb")
+	require.Contains(t, text, "mars-2vcpu-4gb")
+	require.Contains(t, text, "0.0535")
+	require.Contains(t, text, "93.744")
 }
 
 func TestListSandboxSizesEmpty(t *testing.T) {
@@ -42,7 +42,7 @@ func TestListSandboxSizesEmpty(t *testing.T) {
 	res, err := tool.listSandboxSizes(context.Background(), request(nil))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Regexp(t, `"sandbox_sizes":\s*\[\]`, callText(t, res))
+	require.Regexp(t, `"sizes":\s*\[\]`, callText(t, res))
 }
 
 func TestListSandboxSizesAPIError(t *testing.T) {
