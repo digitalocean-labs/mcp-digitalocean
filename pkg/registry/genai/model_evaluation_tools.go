@@ -40,9 +40,6 @@ func godoInferenceConfigFromArgs(args map[string]interface{}) *godo.CandidateInf
 		return nil
 	}
 	config := &godo.CandidateInferenceConfig{}
-	if maxTokens, ok := raw["max_tokens"].(float64); ok {
-		config.MaxTokens = int64(maxTokens)
-	}
 	if temp, ok := raw["temperature"].(float64); ok {
 		config.Temperature = float32(temp)
 	}
@@ -1037,7 +1034,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithString("judge_model_uuid", mcp.Description("Exact full judge model UUID. Optional if judge_model_name is exact; partial uuids return matches only.")),
 				mcp.WithArray("metric_uuids", mcp.Description("Array of metric UUID strings to evaluate (required if not using a preset). Get UUIDs from genai-model-eval-list-metrics. Pass plain UUID strings, e.g. [\"<metric-uuid-1>\", \"<metric-uuid-2>\"], not metric objects."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithObject("star_metric", mcp.Description("Primary success metric: metric_uuid and optional success_threshold_pct")),
-				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high for reasoning-capable models)")),
+				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high for reasoning-capable models)")),
 				mcp.WithNumber("epochs", mcp.Description("Number of times to evaluate each dataset row (n-pass). Defaults to 1; capped at 3. When >1, results include avg@k/pass@k/cons@k.")),
 				mcp.WithArray("preset_save_sections", mcp.Description("Which sections of this run's config to save as a reusable preset. Values: PRESET_SAVE_SECTION_CANDIDATE, PRESET_SAVE_SECTION_METRICS, PRESET_SAVE_SECTION_JUDGE, PRESET_SAVE_SECTION_DATASET, PRESET_SAVE_SECTION_SYSTEM_PROMPT. Ignored when eval_preset_uuid is set."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("source", mcp.Description("Source identifier for this run (e.g., 'mcp')")),
@@ -1213,7 +1210,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithString("judge_model_name", mcp.Required(), mcp.Description("Exact judge model name. Partial names return nearest matches only.")),
 				mcp.WithString("judge_model_uuid", mcp.Description("Exact full judge model UUID. Optional if judge_model_name is exact.")),
 				mcp.WithArray("metric_uuids", mcp.Description("Array of metric UUID strings to evaluate (if empty, all available metrics are used). Get UUIDs from genai-model-eval-list-metrics. Pass plain UUID strings, not metric objects."), mcp.Items(map[string]any{"type": "string"})),
-				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: max_tokens (int), temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high)")),
+				mcp.WithObject("candidate_inference_config", mcp.Description("Inference parameters: temperature (float), stop_token (string), system_prompt (string), reasoning_effort (string: low|medium|high)")),
 				mcp.WithNumber("epochs", mcp.Description("Number of times to evaluate each dataset row (n-pass). Defaults to 1; capped at 3.")),
 				mcp.WithString("dataset_paradigm", mcp.Description("Optional row/content shape for the uploaded dataset. Defaults to EVALUATION_DATASET_PARADIGM_SINGLE_TURN.")),
 				mcp.WithNumber("timeout_seconds", mcp.Description("Timeout for polling evaluation results in seconds (default: 300)")),
