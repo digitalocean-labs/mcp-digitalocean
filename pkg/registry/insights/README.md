@@ -16,6 +16,7 @@ Uses `client.Insights` (`/v2/insights/...`).
 - **insights-spans-search** — search spans in a region (`From`/`To` required, max 7 days)
 - **insights-traces-search** — search traces in a region (`From`/`To` required, max 7 days)
 - **insights-trace-get** — get one trace and its spans (`Region` + `TraceID`)
+- **insights-resource-get**, **insights-resource-list**, **insights-resource-update-signals** — per-resource metrics/logs/traces enablement
 
 ## Deprecated v1
 

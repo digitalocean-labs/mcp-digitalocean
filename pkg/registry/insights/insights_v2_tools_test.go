@@ -307,6 +307,92 @@ func TestQueryTool_getTrace(t *testing.T) {
 	require.False(t, resp.IsError)
 }
 
+func TestResourceTool_get(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	tool := NewResourceTool(func(context.Context) (*godo.Client, error) {
+		return &godo.Client{Insights: mock}, nil
+	})
+
+	resp, err := tool.get(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().GetResource(gomock.Any(), "do:droplet:123").Return(&godo.InsightsResource{ResourceURN: "do:droplet:123"}, nil, nil)
+	resp, err = tool.get(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"ResourceURN": "do:droplet:123",
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
+func TestResourceTool_list(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	tool := NewResourceTool(func(context.Context) (*godo.Client, error) {
+		return &godo.Client{Insights: mock}, nil
+	})
+
+	mock.EXPECT().ListResources(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, opt *godo.InsightsResourceListOptions) (*godo.InsightsResourceList, *godo.Response, error) {
+			require.Equal(t, []string{"droplet"}, opt.ProductTypes)
+			require.Equal(t, []string{"nyc3"}, opt.Regions)
+			require.Equal(t, 2, opt.Page)
+			require.Equal(t, 50, opt.PerPage)
+			require.Equal(t, godo.InsightsResourceSortEffectiveAt, opt.Sort)
+			require.Equal(t, godo.InsightsResourceSortDescending, opt.SortDirection)
+			return &godo.InsightsResourceList{Resources: []godo.InsightsResource{{ResourceURN: "do:droplet:123"}}}, nil, nil
+		},
+	)
+	resp, err := tool.list(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"ProductTypes":  []any{"droplet"},
+		"Regions":       []any{"nyc3"},
+		"Page":          float64(2),
+		"PerPage":       float64(50),
+		"Sort":          godo.InsightsResourceSortEffectiveAt,
+		"SortDirection": godo.InsightsResourceSortDescending,
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
+func TestResourceTool_updateSignals(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockInsightsService(ctrl)
+	tool := NewResourceTool(func(context.Context) (*godo.Client, error) {
+		return &godo.Client{Insights: mock}, nil
+	})
+
+	resp, err := tool.updateSignals(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	resp, err = tool.updateSignals(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"ResourceURN": "do:droplet:123",
+	}}})
+	require.NoError(t, err)
+	require.True(t, resp.IsError)
+
+	mock.EXPECT().UpdateResourceSignals(gomock.Any(), "do:droplet:123", gomock.Any()).DoAndReturn(
+		func(_ context.Context, _ string, req *godo.InsightsResourceSignalsRequest) (*godo.InsightsResource, *godo.Response, error) {
+			require.Equal(t, "nyc3", req.Region)
+			require.NotNil(t, req.Logs)
+			require.True(t, *req.Logs)
+			require.Nil(t, req.Metrics)
+			require.Nil(t, req.Traces)
+			return &godo.InsightsResource{ResourceURN: "do:droplet:123"}, nil, nil
+		},
+	)
+	resp, err = tool.updateSignals(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
+		"ResourceURN": "do:droplet:123", "Region": "nyc3", "Logs": true,
+	}}})
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+}
+
 func TestAlertPolicyDeprecationNotice(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
