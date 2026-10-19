@@ -20,10 +20,10 @@ The package contains three sets of tools under `genai-evaluation`:
 - Download evaluation results
 - Monitor model evaluation run status
 
-**Simulation** — multi-turn agent simulations with scenario sets and episodes:
+**Simulation** — multi-turn agent simulation+evaluation with scenario sets and episodes:
 - Manage team-owned scenario sets (create, generate, upload JSONL, update, delete)
 - Browse the platform scenario library and materialize entries into team sets
-- Create and monitor simulation runs against candidate agents
+- Start sim+eval runs (metrics required) against candidate agents; lifecycle via model-eval tools
 - Inspect episodes and trajectory transcripts
 
 ## Tools
@@ -715,7 +715,7 @@ Terminal statuses: `SUCCESSFUL`, `FAILED`, `CANCELLED`, `PARTIALLY_SUCCESSFUL`
 
 # Simulation Tools
 
-These tools run multi-turn agent simulations. A **scenario set** defines what to test; a **simulation run** executes that set against a candidate agent; each execution produces a **episode** with a transcript (**trajectory**) and judge verdict.
+These tools support multi-turn agent **simulation+evaluation**. A **scenario set** defines what to test; starting a run always attaches evaluation metrics (there is no simulation-only run). Solo dataset evaluation uses the model-eval tools instead. Each scenario execution produces an **episode** with a transcript (**trajectory**) and judge/metric results. Run lifecycle (list/get/rename/cancel/delete) goes through `genai-model-eval-*` with `evaluation_run_uuid`.
 
 ## Scenario Set Tools
 
@@ -761,22 +761,9 @@ Materialize a library entry into a team-owned scenario set. Required: `library_s
 ## Simulation Run Tools
 
 #### `genai-simulation-create-run`
-Create a run. Required: `scenario_set_uuid`, `agent_uuid`. Optional: `name`, `agent_deployment_uuid`, `agent_name`, `user_simulator_model_uuid`, `judge_model_uuid`, `user_simulator_config`, `exploration_budget`, `max_turns`, `metric_uuids`, `star_metric`.
+Start a simulation+evaluation run. Required: `scenario_set_uuid`, `agent_uuid`, `metric_uuids`. Optional: `name`, `agent_deployment_uuid`, `agent_name`, `user_simulator_model_uuid`, `judge_model_uuid`, `user_simulator_config`, `exploration_budget`, `max_turns`, `star_metric`.
 
-#### `genai-simulation-list-runs`
-List runs. Optional filters: `scenario_set_uuid`, `statuses`, `search`, pagination.
-
-#### `genai-simulation-get-run`
-Get a run by `run_uuid`, including per-scenario result rollups when available.
-
-#### `genai-simulation-update-run`
-Rename a run (`run_uuid`, `name`).
-
-#### `genai-simulation-cancel-run`
-Cancel an in-progress run. Requires `confirm_cancel: true` after explicit user consent.
-
-#### `genai-simulation-delete-run`
-Delete a run. Requires `confirm_deletion: true` after explicit user consent.
+Metrics are mandatory — simulation always runs with evaluation. Use the returned `evaluation_run_uuid` with model evaluation tools (`genai-model-eval-list-runs`, `genai-model-eval-get-run`, `genai-model-eval-update-run`, `genai-model-eval-cancel-run`, `genai-model-eval-delete-run`) for run lifecycle. Solo dataset evals use `genai-model-eval-create-run` instead.
 
 ## Episode Tools
 
@@ -800,22 +787,23 @@ genai-simulation-create-scenario-set
   name: "billing-support"
   scenarios: [{"name":"cancel-subscription","user_persona":"frustrated customer","stopping_criteria":["subscription cancelled"]}]
 
-# 2. Start a run against a candidate agent
+# 2. Start a sim+eval run (metrics required)
 genai-simulation-create-run
   scenario_set_uuid: "<from step 1>"
   agent_uuid: "<agent-uuid>"
+  metric_uuids: ["<metric-uuid>"]
   name: "billing-sim-v1"
 
-# 3. Poll the run
-genai-simulation-get-run
-  run_uuid: "<from step 2>"
+# 3. Poll via model evaluation APIs
+genai-model-eval-get-run
+  eval_run_uuid: "<evaluation_run_uuid from step 2>"
 
 # 4. Inspect episodes and trajectories
 genai-simulation-list-episodes
-  run_uuid: "<from step 2>"
+  run_uuid: "<run_uuid from step 2>"
 
 genai-simulation-get-episode-trajectory
-  run_uuid: "<from step 2>"
+  run_uuid: "<run_uuid from step 2>"
   episode_uuid: "<from list>"
 ```
 
