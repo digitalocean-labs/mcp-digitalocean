@@ -1,20 +1,26 @@
 package docs
 
 import (
+	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 const (
-	docsBase   = "https://docs.digitalocean.com"
-	llmsTxtURL = docsBase + "/llms.txt"
-	userAgent  = "mcp-digitalocean-docs/1.0"
+	docsBase      = "https://docs.digitalocean.com"
+	llmsTxtPath   = "/llms.txt"
+	llmsIndexPath = "/llms-index.json"
+	userAgent     = "mcp-digitalocean-docs/1.0"
 
 	indexCacheTTL    = 1 * time.Hour
 	pageCacheTTL     = 30 * time.Minute
@@ -23,18 +29,21 @@ const (
 	maxResponseSize = 10 * 1024 * 1024 // 10 MB
 )
 
-// DocsEntry represents a single entry from the llms.txt index.
+// DocsEntry represents a single documentation page known to the index.
 type DocsEntry struct {
-	Title       string
-	URL         string
-	Description string
-	Section     string
+	Title        string
+	URL          string // canonical page URL
+	Description  string
+	Section      string // product or top-level grouping, e.g. "Droplets", "Support"
+	MarkdownURL  string // index.html.md variant when known, otherwise empty
+	LastModified string // ISO-8601 date when known, otherwise empty
 }
 
-// DocsIndex represents a parsed llms.txt file.
+// DocsIndex is the searchable candidate universe of documentation pages.
 type DocsIndex struct {
 	Entries   []DocsEntry
 	Sections  []string
+	Source    string // "llms-index.json" or "llms.txt"
 	FetchedAt time.Time
 }
 
@@ -95,6 +104,15 @@ type DocsService interface {
 type DocsClient struct {
 	httpClient *http.Client
 	cache      *cache
+
+	// indexBase is the origin the page index is loaded from. It defaults to
+	// docsBase and is only overridden by tests.
+	indexBase string
+
+	indexGroup singleflight.Group
+	// staleIndex is the last successfully loaded index. It is served when a
+	// refresh fails so transient docs-site errors do not break search.
+	staleIndex atomic.Pointer[DocsIndex]
 }
 
 // NewDocsClient creates a new DocsClient.
@@ -102,6 +120,7 @@ func NewDocsClient() *DocsClient {
 	return &DocsClient{
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		cache:      newCache(),
+		indexBase:  docsBase,
 	}
 }
 
@@ -110,6 +129,18 @@ func (d *DocsClient) fetch(url string) (string, error) {
 		return cached.(string), nil
 	}
 
+	text, err := d.fetchUncached(url)
+	if err != nil {
+		return "", err
+	}
+	d.cache.set("fetch:"+url, text, pageCacheTTL)
+	return text, nil
+}
+
+// fetchUncached performs a bounded GET without touching the response cache.
+// Index loading uses it directly because the parsed index is cached
+// separately and the raw body would only duplicate memory.
+func (d *DocsClient) fetchUncached(url string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -131,9 +162,7 @@ func (d *DocsClient) fetch(url string) (string, error) {
 		return "", fmt.Errorf("failed to read response from %s: %w", url, err)
 	}
 
-	text := string(body)
-	d.cache.set("fetch:"+url, text, pageCacheTTL)
-	return text, nil
+	return string(body), nil
 }
 
 // parseLlmsTxt parses a llms.txt markdown index into structured entries.
@@ -171,23 +200,125 @@ func parseLlmsTxt(text string) *DocsIndex {
 	return &DocsIndex{
 		Entries:   entries,
 		Sections:  sections,
+		Source:    "llms.txt",
 		FetchedAt: time.Now(),
 	}
 }
 
-// GetDocsIndex fetches and parses the main llms.txt index.
+// llmsIndexRecord mirrors one element of llms-index.json.
+type llmsIndexRecord struct {
+	Title       string `json:"title"`
+	URL         string `json:"url"`
+	MarkdownURL string `json:"markdown_url"`
+	Description string `json:"description"`
+	Product     string `json:"product"`
+	Section     string `json:"section"`
+	LastMod     string `json:"lastmod"`
+}
+
+// parseLlmsIndex parses llms-index.json, the compact per-page metadata index
+// published alongside llms.txt. Unlike llms.txt (a curated ~300-entry
+// overview), it lists every public page, including individual support
+// articles, so it is the preferred candidate universe for search.
+func parseLlmsIndex(data []byte) (*DocsIndex, error) {
+	var records []llmsIndexRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		return nil, fmt.Errorf("failed to parse llms-index.json: %w", err)
+	}
+
+	entries := make([]DocsEntry, 0, len(records))
+	sectionSet := make(map[string]struct{})
+	var sections []string
+
+	for _, r := range records {
+		if r.URL == "" || r.Title == "" {
+			continue
+		}
+		if !strings.HasPrefix(r.URL, docsBase+"/") && r.URL != docsBase+"/" {
+			continue
+		}
+		section := r.Product
+		if section == "" {
+			section = "General"
+		}
+		if _, exists := sectionSet[section]; !exists {
+			sectionSet[section] = struct{}{}
+			sections = append(sections, section)
+		}
+		entries = append(entries, DocsEntry{
+			Title:        html.UnescapeString(r.Title),
+			URL:          r.URL,
+			Description:  html.UnescapeString(r.Description),
+			Section:      section,
+			MarkdownURL:  r.MarkdownURL,
+			LastModified: strings.SplitN(r.LastMod, "T", 2)[0],
+		})
+	}
+
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("llms-index.json contained no usable entries")
+	}
+
+	sort.Strings(sections)
+	return &DocsIndex{
+		Entries:   entries,
+		Sections:  sections,
+		Source:    "llms-index.json",
+		FetchedAt: time.Now(),
+	}, nil
+}
+
+// GetDocsIndex returns the searchable page index. It prefers llms-index.json
+// (complete page universe) and falls back to llms.txt when that is
+// unavailable. Concurrent cold loads are collapsed into a single fetch, and
+// a previously loaded index is served if a refresh fails.
 func (d *DocsClient) GetDocsIndex() (*DocsIndex, error) {
 	if cached, ok := d.cache.get("docsIndex"); ok {
 		return cached.(*DocsIndex), nil
 	}
 
-	text, err := d.fetch(llmsTxtURL)
+	result, err, _ := d.indexGroup.Do("docsIndex", func() (any, error) {
+		if cached, ok := d.cache.get("docsIndex"); ok {
+			return cached, nil
+		}
+		index, err := d.loadIndex()
+		if err != nil {
+			if stale := d.staleIndex.Load(); stale != nil {
+				// Back off before retrying so an origin outage does not add
+				// a fetch timeout to every query.
+				d.cache.set("docsIndex", stale, negativeCacheTTL)
+				return stale, nil
+			}
+			return nil, err
+		}
+		d.cache.set("docsIndex", index, indexCacheTTL)
+		d.staleIndex.Store(index)
+		return index, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch docs index: %w", err)
+		return nil, err
+	}
+	return result.(*DocsIndex), nil
+}
+
+func (d *DocsClient) loadIndex() (*DocsIndex, error) {
+	data, indexErr := d.fetchUncached(d.indexBase + llmsIndexPath)
+	if indexErr == nil {
+		index, parseErr := parseLlmsIndex([]byte(data))
+		if parseErr == nil {
+			return index, nil
+		}
+		indexErr = parseErr
 	}
 
+	text, txtErr := d.fetchUncached(d.indexBase + llmsTxtPath)
+	if txtErr != nil {
+		return nil, fmt.Errorf("failed to fetch docs index: %w (llms-index.json: %v)", txtErr, indexErr)
+	}
 	index := parseLlmsTxt(text)
-	d.cache.set("docsIndex", index, indexCacheTTL)
+	if len(index.Entries) == 0 {
+		return nil, fmt.Errorf("docs index is empty (llms-index.json: %v)", indexErr)
+	}
 	return index, nil
 }
 
@@ -276,77 +407,123 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 	return cleaned, nil
 }
 
-// SearchIndex searches the docs index using text matching with ranked scoring.
-// Scoring considers title, description, section, and URL path segments.
-// Entries matching all query terms are boosted above partial matches.
-func SearchIndex(index *DocsIndex, query string) []DocsEntry {
-	terms := strings.Fields(strings.ToLower(query))
-	if len(terms) == 0 {
-		return nil
+// queryTerm is one normalized query token plus a light stem so that, for
+// example, "configuration" also matches "configure" and "codes" matches
+// "code". Matching is substring-based, consistent with the original scoring.
+type queryTerm struct {
+	text string
+	stem string
+}
+
+func (q queryTerm) matches(field string) bool {
+	if strings.Contains(field, q.text) {
+		return true
 	}
+	return q.stem != q.text && strings.Contains(field, q.stem)
+}
 
-	type scored struct {
-		entry DocsEntry
-		score int
-	}
-
-	wordRegexes := make([]*regexp.Regexp, len(terms))
-	for i, term := range terms {
-		wordRegexes[i] = regexp.MustCompile(`\b` + regexp.QuoteMeta(term) + `\b`)
-	}
-
-	var results []scored
-
-	for _, entry := range index.Entries {
-		titleLower := strings.ToLower(entry.Title)
-		descLower := strings.ToLower(entry.Description)
-		sectionLower := strings.ToLower(entry.Section)
-		urlLower := strings.ToLower(entry.URL)
-		score := 0
-		matchedTerms := 0
-
-		for i, term := range terms {
-			termMatched := false
-
-			if strings.Contains(titleLower, term) {
-				score += 10
-				termMatched = true
-			}
-			// Exact word boundary match in title
-			if wordRegexes[i].MatchString(titleLower) {
-				score += 5
-			}
-			if strings.Contains(descLower, term) {
-				score += 3
-				termMatched = true
-			}
-			if strings.Contains(sectionLower, term) {
-				score += 2
-				termMatched = true
-			}
-			// Match against URL path segments (e.g., "manage-domains" matches "domain")
-			if strings.Contains(urlLower, term) {
-				score += 4
-				termMatched = true
-			}
-
-			if termMatched {
-				matchedTerms++
-			}
+// matchesWord reports whether the term appears in field as a whole word,
+// i.e. not flanked by letters or digits.
+func (q queryTerm) matchesWord(field string) bool {
+	for start := 0; ; {
+		idx := strings.Index(field[start:], q.text)
+		if idx < 0 {
+			return false
 		}
-
-		// Boost entries that match all query terms
-		if len(terms) > 1 && matchedTerms == len(terms) {
-			score += 15
+		from := start + idx
+		to := from + len(q.text)
+		if (from == 0 || !isWordByte(field[from-1])) && (to == len(field) || !isWordByte(field[to])) {
+			return true
 		}
+		start = from + 1
+	}
+}
 
-		if score > 0 {
-			results = append(results, scored{entry: entry, score: score})
+func isWordByte(b byte) bool {
+	return b == '_' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
+}
+
+// stopWords are dropped from queries when other terms remain. They carry no
+// ranking signal and, with a 4,600-page universe, "how", "my" or "is" would
+// otherwise match hundreds of unrelated titles.
+var stopWords = map[string]struct{}{
+	"a": {}, "an": {}, "the": {}, "to": {}, "of": {}, "in": {}, "on": {}, "for": {}, "with": {},
+	"and": {}, "or": {}, "is": {}, "are": {}, "was": {}, "be": {}, "my": {}, "i": {}, "how": {},
+	"do": {}, "does": {}, "why": {}, "what": {}, "when": {}, "can": {}, "cant": {}, "not": {},
+	"from": {}, "at": {}, "as": {}, "by": {}, "it": {}, "its": {}, "this": {}, "that": {},
+}
+
+// stemSuffixes are stripped (longest first) when at least four characters
+// remain. This is deliberately conservative: it only needs to reconcile the
+// common inflections seen in titles and URL slugs, not be a real stemmer.
+var stemSuffixes = []string{"ization", "ations", "ically", "ation", "ings", "edly", "ing", "ies", "ers", "ors", "ed", "es", "ly", "al", "er", "or", "s", "e", "y"}
+
+func lightStem(token string) string {
+	if len(token) <= 4 {
+		return token
+	}
+	for _, suffix := range stemSuffixes {
+		if strings.HasSuffix(token, suffix) && len(token)-len(suffix) >= 4 {
+			return token[:len(token)-len(suffix)]
 		}
 	}
+	return token
+}
 
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].score > results[j].score
+var tokenSplitRe = regexp.MustCompile(`[^\p{L}\p{N}]+`)
+
+// maxQueryTerms bounds per-query work (each term is matched against every
+// index entry); terms beyond the cap are ignored.
+const maxQueryTerms = 16
+
+// parseQueryTerms lowercases, splits on punctuation, drops stop words and
+// single-character fragments (unless nothing else remains) and attaches stems.
+func parseQueryTerms(query string) []queryTerm {
+	raw := tokenSplitRe.Split(strings.ToLower(query), -1)
+	var tokens, kept []string
+	for _, tok := range raw {
+		if tok == "" {
+			continue
+		}
+		tokens = append(tokens, tok)
+		if _, stop := stopWords[tok]; stop || len(tok) < 2 {
+			continue
+		}
+		kept = append(kept, tok)
+	}
+	if len(kept) == 0 {
+		kept = tokens
+	}
+	if len(kept) > maxQueryTerms {
+		kept = kept[:maxQueryTerms]
+	}
+
+	terms := make([]queryTerm, len(kept))
+	for i, tok := range kept {
+		terms[i] = queryTerm{text: tok, stem: lightStem(tok)}
+	}
+	return terms
+}
+
+// urlPathLower returns the lowercased URL path for matching. The host is
+// excluded so a term like "digitalocean" does not match every entry.
+func urlPathLower(url string) string {
+	return strings.ToLower(strings.TrimPrefix(url, docsBase))
+}
+
+type scoredEntry struct {
+	entry DocsEntry
+	score int
+}
+
+// rankEntries orders by descending score, breaking ties by URL so results
+// are deterministic across runs.
+func rankEntries(results []scoredEntry) []DocsEntry {
+	sort.SliceStable(results, func(i, j int) bool {
+		if results[i].score != results[j].score {
+			return results[i].score > results[j].score
+		}
+		return results[i].entry.URL < results[j].entry.URL
 	})
 
 	entries := make([]DocsEntry, len(results))
@@ -354,6 +531,135 @@ func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 		entries[i] = r.entry
 	}
 	return entries
+}
+
+// SearchIndex ranks index entries against a query by keyword matching over
+// title, description, section, and URL path segments. Entries matching all
+// query terms are boosted above partial matches. It does not search page
+// bodies.
+func SearchIndex(index *DocsIndex, query string) []DocsEntry {
+	return searchIndex(index, query, false)
+}
+
+// searchIndex implements SearchIndex. When requireAllTerms is set, entries
+// that match only some query terms are dropped instead of ranked lower; the
+// service-name fallback uses this so a generic token like "service" in an
+// unknown name does not return unrelated pages.
+func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEntry {
+	terms := parseQueryTerms(query)
+	if len(terms) == 0 {
+		return nil
+	}
+
+	matches, weights := matchTerms(index, terms)
+	var results []scoredEntry
+
+	for i, entry := range index.Entries {
+		score := 0
+		matchedTerms := 0
+
+		for t, m := range matches[i] {
+			termScore := 0
+			if m.title {
+				termScore += 10
+			}
+			if m.titleWord {
+				termScore += 5
+			}
+			if m.description {
+				termScore += 3
+			}
+			if m.section {
+				termScore += 2
+			}
+			if m.url {
+				termScore += 4
+			}
+			score += termScore * weights[t]
+			if m.any() {
+				matchedTerms++
+			}
+		}
+
+		if requireAllTerms && matchedTerms < len(terms) {
+			continue
+		}
+
+		// Boost entries that match all query terms
+		if len(terms) > 1 && matchedTerms == len(terms) {
+			score += allTermsBoost
+		}
+
+		if score > 0 {
+			results = append(results, scoredEntry{entry: entry, score: score})
+		}
+	}
+
+	return rankEntries(results)
+}
+
+// fieldMatch records which fields of one entry a query term matched.
+type fieldMatch struct {
+	title, titleWord, description, section, url bool
+}
+
+func (m fieldMatch) any() bool {
+	return m.title || m.description || m.section || m.url
+}
+
+const (
+	// allTermsBoost ranks entries matching every query term above partial matches.
+	allTermsBoost = 15
+
+	// rareTermFraction and rareTermWeight double the contribution of terms
+	// that match at most this fraction of the index. In a query like
+	// "app platform 520", the two common words would otherwise outweigh the
+	// one term that identifies the page. A full IDF weighting was measured
+	// to hurt the regression set; this bounded form does not.
+	rareTermFraction = 0.005
+	rareTermWeight   = 2
+)
+
+// matchTerms evaluates every term against every entry once and returns the
+// per-entry matches plus a per-term weight (1, or rareTermWeight for terms
+// matching few entries). Both rankers build their scores from this.
+func matchTerms(index *DocsIndex, terms []queryTerm) ([][]fieldMatch, []int) {
+	matches := make([][]fieldMatch, len(index.Entries))
+	backing := make([]fieldMatch, len(index.Entries)*len(terms))
+	docFreq := make([]int, len(terms))
+
+	for i, entry := range index.Entries {
+		titleLower := strings.ToLower(entry.Title)
+		descLower := strings.ToLower(entry.Description)
+		sectionLower := strings.ToLower(entry.Section)
+		urlLower := urlPathLower(entry.URL)
+
+		row := backing[i*len(terms) : (i+1)*len(terms)]
+		for t, term := range terms {
+			row[t] = fieldMatch{
+				title:       term.matches(titleLower),
+				titleWord:   term.matchesWord(titleLower),
+				description: term.matches(descLower),
+				section:     term.matches(sectionLower),
+				// URL path segments, e.g. "manage-domains" matches "domain"
+				url: term.matches(urlLower),
+			}
+			if row[t].any() {
+				docFreq[t]++
+			}
+		}
+		matches[i] = row
+	}
+
+	rareLimit := int(float64(len(index.Entries)) * rareTermFraction)
+	weights := make([]int, len(terms))
+	for t, df := range docFreq {
+		weights[t] = 1
+		if df > 0 && df <= rareLimit {
+			weights[t] = rareTermWeight
+		}
+	}
+	return matches, weights
 }
 
 // FindQuickstart finds the quickstart page for a service.
@@ -399,41 +705,39 @@ func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
 		return nil, fmt.Errorf("failed to load docs index: %w", err)
 	}
 
-	terms := strings.Fields(strings.ToLower(symptom))
+	terms := parseQueryTerms(symptom)
 	if len(terms) == 0 {
-		return nil, fmt.Errorf("symptom query must not be empty")
+		return nil, fmt.Errorf("symptom %q contains no searchable terms", symptom)
 	}
 
-	type scored struct {
-		entry DocsEntry
-		score int
-	}
+	return rankTroubleshoot(index, terms), nil
+}
 
-	var results []scored
+// rankTroubleshoot scores index entries against symptom terms, boosting
+// support articles and troubleshooting-style titles.
+func rankTroubleshoot(index *DocsIndex, terms []queryTerm) []DocsEntry {
+	matches, weights := matchTerms(index, terms)
+	var results []scoredEntry
 
-	for _, entry := range index.Entries {
-		titleLower := strings.ToLower(entry.Title)
-		descLower := strings.ToLower(entry.Description)
-		urlLower := strings.ToLower(entry.URL)
-		sectionLower := strings.ToLower(entry.Section)
+	for i, entry := range index.Entries {
 		score := 0
 		matchedTerms := 0
 
-		for _, term := range terms {
-			termMatched := false
-			if strings.Contains(titleLower, term) {
-				score += 10
-				termMatched = true
+		// The section field is not scored here: support pages are handled
+		// by the explicit boost below instead.
+		for t, m := range matches[i] {
+			termScore := 0
+			if m.title {
+				termScore += 10
 			}
-			if strings.Contains(descLower, term) {
-				score += 3
-				termMatched = true
+			if m.description {
+				termScore += 3
 			}
-			if strings.Contains(urlLower, term) {
-				score += 2
-				termMatched = true
+			if m.url {
+				termScore += 2
 			}
-			if termMatched {
+			score += termScore * weights[t]
+			if m.title || m.description || m.url {
 				matchedTerms++
 			}
 		}
@@ -441,6 +745,10 @@ func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
 		if score == 0 {
 			continue
 		}
+
+		titleLower := strings.ToLower(entry.Title)
+		sectionLower := strings.ToLower(entry.Section)
+		urlLower := urlPathLower(entry.URL)
 
 		// Boost support/troubleshooting pages
 		if strings.Contains(sectionLower, "support") || strings.Contains(urlLower, "/support/") {
@@ -457,21 +765,13 @@ func (d *DocsClient) FindTroubleshootPage(symptom string) ([]DocsEntry, error) {
 
 		// Boost entries matching all terms
 		if len(terms) > 1 && matchedTerms == len(terms) {
-			score += 15
+			score += allTermsBoost
 		}
 
-		results = append(results, scored{entry: entry, score: score})
+		results = append(results, scoredEntry{entry: entry, score: score})
 	}
 
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].score > results[j].score
-	})
-
-	entries := make([]DocsEntry, len(results))
-	for i, r := range results {
-		entries[i] = r.entry
-	}
-	return entries, nil
+	return rankEntries(results)
 }
 
 var troubleshootPrefixes = []string{

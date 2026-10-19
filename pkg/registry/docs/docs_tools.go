@@ -25,7 +25,38 @@ func NewDocsTool() *DocsTool {
 	return &DocsTool{client: NewDocsClient()}
 }
 
-// searchDocs performs full-text search across all DigitalOcean documentation.
+// writeEntry renders one result with the metadata an agent needs to cite it:
+// canonical URL, product, page type, last-modified date, and the page
+// description as an excerpt.
+func writeEntry(sb *strings.Builder, position int, entry DocsEntry) {
+	fmt.Fprintf(sb, "%d. %s\n   %s\n", position, entry.Title, canonicalDocURL(entry.URL))
+
+	var meta []string
+	if entry.Section != "" {
+		meta = append(meta, entry.Section)
+	}
+	if category := categorizeDocLink(entry.URL); category != "other" {
+		meta = append(meta, category)
+	}
+	if entry.LastModified != "" {
+		meta = append(meta, "updated "+entry.LastModified)
+	}
+	if len(meta) > 0 {
+		fmt.Fprintf(sb, "   [%s]\n", strings.Join(meta, " · "))
+	}
+	if entry.Description != "" {
+		fmt.Fprintf(sb, "   %s\n", entry.Description)
+	}
+	sb.WriteByte('\n')
+}
+
+// canonicalDocURL strips the index.html.md suffix that llms.txt entries carry
+// so results always cite the canonical page URL.
+func canonicalDocURL(url string) string {
+	return strings.TrimSuffix(url, "index.html.md")
+}
+
+// searchDocs ranks documentation pages by keyword match against page metadata.
 func (d *DocsTool) searchDocs(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
@@ -55,14 +86,11 @@ func (d *DocsTool) searchDocs(_ context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Found %d result(s) for %q:\n\n", len(results), query))
+	fmt.Fprintf(&sb, "Found %d result(s) for %q (searched %d pages):\n\n", len(results), query, len(index.Entries))
 	for i, r := range results {
-		sb.WriteString(fmt.Sprintf("%d. %s\n   %s\n", i+1, r.Title, r.URL))
-		if r.Description != "" {
-			sb.WriteString(fmt.Sprintf("   %s\n", r.Description))
-		}
-		sb.WriteByte('\n')
+		writeEntry(&sb, i+1, r)
 	}
+	sb.WriteString("Use docs-get-page with a result URL to read the full page.\n")
 
 	return mcp.NewToolResultText(sb.String()), nil
 }
@@ -131,7 +159,7 @@ func (d *DocsTool) findDocsForService(_ context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("failed to load docs index", err), nil
 	}
 
-	results := SearchIndex(mainIndex, service)
+	results := searchIndex(mainIndex, service, true)
 
 	if len(results) == 0 {
 		return mcp.NewToolResultText(fmt.Sprintf("No documentation found for service %q.\n\nAvailable sections: %s",
@@ -206,23 +234,19 @@ func (d *DocsTool) troubleshoot(_ context.Context, req mcp.CallToolRequest) (*mc
 	topEntry := entries[0]
 	content, err := d.client.FetchDocPage(topEntry.URL)
 	if err == nil && len(content) > 0 {
-		sb.WriteString(fmt.Sprintf("## %s\n\nSource: %s\n\n%s\n\n---\n\n", topEntry.Title, topEntry.URL, content))
-	} else {
-		sb.WriteString(fmt.Sprintf("1. **%s**\n   %s\n", topEntry.Title, topEntry.URL))
-		if topEntry.Description != "" {
-			sb.WriteString(fmt.Sprintf("   %s\n", topEntry.Description))
+		fmt.Fprintf(&sb, "## %s\n\nSource: %s\n", topEntry.Title, canonicalDocURL(topEntry.URL))
+		if topEntry.LastModified != "" {
+			fmt.Fprintf(&sb, "Last updated: %s\n", topEntry.LastModified)
 		}
-		sb.WriteByte('\n')
+		fmt.Fprintf(&sb, "\n%s\n\n---\n\n", content)
+	} else {
+		writeEntry(&sb, 1, topEntry)
 	}
 
 	if len(entries) > 1 {
 		sb.WriteString("### Other related pages:\n\n")
 		for i, e := range entries[1:] {
-			sb.WriteString(fmt.Sprintf("%d. %s\n   %s\n", i+2, e.Title, e.URL))
-			if e.Description != "" {
-				sb.WriteString(fmt.Sprintf("   %s\n", e.Description))
-			}
-			sb.WriteByte('\n')
+			writeEntry(&sb, i+2, e)
 		}
 	}
 
@@ -280,8 +304,8 @@ func (d *DocsTool) Tools() []server.ServerTool {
 				"docs-search",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Full-text search across DigitalOcean documentation. Returns ranked results with title, URL, and content snippet."),
-				mcp.WithString("Query", mcp.Required(), mcp.Description("Search query string")),
+				mcp.WithDescription("Keyword search over the titles, descriptions, and URLs of every public DigitalOcean docs page, including individual support articles, API/CLI/SDK references, and how-to guides. Returns ranked results with canonical URL, product, page type, last-updated date, and a one-line excerpt. Does not search page bodies; use docs-get-page to read a result in full."),
+				mcp.WithString("Query", mcp.Required(), mcp.Description("Search keywords (e.g., \"why is smtp blocked\", \"spaces cors\", \"doctl compute droplet create\")")),
 				mcp.WithNumber("Limit", mcp.DefaultNumber(defaultSearchLimit), mcp.Description("Maximum number of results to return")),
 			),
 		},
@@ -321,7 +345,7 @@ func (d *DocsTool) Tools() []server.ServerTool {
 				"docs-troubleshoot",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Search for troubleshooting pages matching an error message or symptom. Returns the full content of the best matching support page, plus links to related pages. Use this when diagnosing errors or unexpected behavior with DigitalOcean services."),
+				mcp.WithDescription("Find support and troubleshooting articles matching an error message or symptom by keyword, ranking support articles and troubleshooting-style titles first. Returns the full content of the best matching page, plus links to related pages. Use this when diagnosing errors or unexpected behavior with DigitalOcean services."),
 				mcp.WithString("Symptom", mcp.Required(), mcp.Description("Error message, symptom description, or keywords describing the problem (e.g., \"SSL certificate not working\", \"520 status code\", \"deployment failed health check\")")),
 				mcp.WithNumber("Limit", mcp.DefaultNumber(5), mcp.Description("Maximum number of results to return")),
 			),
