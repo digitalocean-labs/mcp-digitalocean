@@ -7,9 +7,9 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 ## Supported Tools
 
 - **docs-search**
-  Full-text search across all DigitalOcean documentation.
+  Keyword search over the titles, descriptions, and URLs of every public docs page (~4,600 pages, including individual support articles and API/CLI/SDK reference pages). Returns ranked results with canonical URL, product, page type, last-updated date, and a one-line excerpt. It does not search page bodies.
   **Arguments:**
-    - `Query` (string, required): Search query string
+    - `Query` (string, required): Search keywords
     - `Limit` (number, default: 10): Maximum number of results to return
 
 - **docs-get-page**
@@ -28,7 +28,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
     - `Service` (string, required): DigitalOcean service name (e.g., `"droplets"`, `"kubernetes"`, `"app platform"`)
 
 - **docs-troubleshoot**
-  Search for troubleshooting pages matching an error message or symptom. Returns the full content of the best matching support page, plus links to related pages.
+  Find support and troubleshooting articles matching an error message or symptom by keyword, ranking support articles and troubleshooting-style titles first. Returns the full content of the best matching page, plus links to related pages.
   **Arguments:**
     - `Symptom` (string, required): Error message, symptom description, or keywords (e.g., `"520 status code"`, `"deployment failed health check"`)
     - `Limit` (number, default: 5): Maximum number of results to return
@@ -42,10 +42,16 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 
 ## How It Works
 
-- Indexes `docs.digitalocean.com/llms.txt` and per-service `llms.txt` files
-- Fetches raw markdown via the `index.html.md` endpoint
-- In-memory caching (30 min for pages, 1 hour for indexes)
+- `docs-search` and `docs-troubleshoot` rank pages from `docs.digitalocean.com/llms-index.json`, the published per-page metadata index (title, description, product, section, canonical URL, last-modified). It covers every public page, including support articles that the curated `llms.txt` overview omits. If `llms-index.json` is unavailable the client falls back to `llms.txt`, and if a refresh fails it keeps serving the last good index.
+- Ranking is keyword-based: query terms are lowercased, stripped of punctuation and stop words, and matched (with light stemming) against title, description, product, and URL path. Title matches outrank description and URL matches, pages matching every term are boosted, and terms that match very few pages (such as an error code) weigh double so they are not drowned out by common product words. Page bodies are not searched; see `corpus-search-followup.md` for the plan to add content-backed retrieval from `docs-corpus.jsonl`.
+- `docs-find-for-service` uses per-service `llms.txt` files
+- Fetches raw markdown via the `index.html.md` endpoint; only `docs.digitalocean.com` URLs are fetched
+- In-memory caching (30 min for pages, 1 hour for indexes); concurrent cold loads of the index share one fetch
 - Supports common service name aliases (e.g., "k8s" → "kubernetes", "gpu" → "bare-metal-gpus")
+
+### Ranking regression set
+
+`testdata/regression_queries.json` is a small judged query set (support, how-to, quickstart, and API/CLI/SDK reference queries with expected canonical URLs). `TestRegressionSet_Fixture` runs it offline against `testdata/llms-index.json`; `TestLiveRegressionSet` (build tag `integration`) runs it against the live index and logs Recall@5, MRR, and cold/warm latency. Add a row there before changing ranking.
 
 ---
 
