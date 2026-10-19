@@ -45,4 +45,6 @@ var (
 	spansSearchOut          = common.NewOutput[*godo.SpansSearchResponse]("spans")
 	tracesSearchOut         = common.NewOutput[*godo.TracesSearchResponse]("traces")
 	traceOut                = common.NewOutput[*godo.Trace]("trace")
+	resourceOut             = common.NewOutput[*godo.InsightsResource]("resource")
+	resourcesOut            = common.NewOutput[*godo.InsightsResourceList]("resources")
 )

@@ -182,6 +182,7 @@ func registerInsightsTools(s *server.MCPServer, getClient getClientFn) error {
 	s.AddTools(insights.NewAlertRuleTool(getClient).Tools()...)
 	s.AddTools(insights.NewNotificationChannelTool(getClient).Tools()...)
 	s.AddTools(insights.NewAlertInstanceTool(getClient).Tools()...)
+	s.AddTools(insights.NewResourceTool(getClient).Tools()...)
 	s.AddTools(insights.NewQueryTool(getClient).Tools()...)
 	s.AddTools(insights.NewUptimeTool(getClient).Tools()...)
 	s.AddTools(insights.NewUptimeCheckAlertTool(getClient).Tools()...)

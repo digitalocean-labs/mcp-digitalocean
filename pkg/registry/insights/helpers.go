@@ -18,6 +18,18 @@ func boolArg(args map[string]any, key string) bool {
 	return b
 }
 
+func boolPtrArg(args map[string]any, key string) *bool {
+	v, ok := args[key]
+	if !ok || v == nil {
+		return nil
+	}
+	b, ok := v.(bool)
+	if !ok {
+		return nil
+	}
+	return &b
+}
+
 func intArg(args map[string]any, key string, def int) int {
 	if v, ok := args[key].(float64); ok && int(v) > 0 {
 		return int(v)

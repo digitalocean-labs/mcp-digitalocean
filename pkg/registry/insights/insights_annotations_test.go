@@ -64,15 +64,18 @@ var expectedAnnotations = map[string]struct {
 	"insights-alert-instance-get":  {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"insights-alert-instance-list": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 
-	"insights-query":              {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-query-range":        {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-query-series":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-query-labels":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-query-label-values": {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-logs-search":        {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-spans-search":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-traces-search":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
-	"insights-trace-get":          {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query":                   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-range":             {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-series":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-labels":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-query-label-values":      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-logs-search":             {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-spans-search":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-traces-search":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-trace-get":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-resource-get":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-resource-list":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"insights-resource-update-signals": {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
@@ -84,6 +87,7 @@ func TestToolAnnotations(t *testing.T) {
 	all = append(all, NewAlertRuleTool(clientFn).Tools()...)
 	all = append(all, NewNotificationChannelTool(clientFn).Tools()...)
 	all = append(all, NewAlertInstanceTool(clientFn).Tools()...)
+	all = append(all, NewResourceTool(clientFn).Tools()...)
 	all = append(all, NewQueryTool(clientFn).Tools()...)
 	all = append(all, NewUptimeTool(clientFn).Tools()...)
 	all = append(all, NewUptimeCheckAlertTool(clientFn).Tools()...)
