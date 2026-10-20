@@ -41,7 +41,7 @@ type Session struct {
 	ResumeOnTopoff        bool       `json:"resume_on_topoff,omitempty"`
 	WorkspaceID           string     `json:"workspace_id,omitempty"`
 	PauseReason           string     `json:"pause_reason,omitempty"`
-	IdleTimeoutSeconds    string     `json:"idle_timeout_seconds,omitempty"`
+	IdleTimeoutSeconds    int64      `json:"idle_timeout_seconds,omitempty"`
 	RepoHint              string     `json:"repo_hint,omitempty"`
 	Warnings              []string   `json:"warnings,omitempty"`
 	ConfigID              string     `json:"config_id,omitempty"`
