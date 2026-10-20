@@ -24,7 +24,7 @@ func TestSimulationTool_Tools(t *testing.T) {
 	})
 
 	tools := tool.Tools()
-	require.Len(t, tools, 21, "should have 21 simulation tools")
+	require.Len(t, tools, 16, "should have 16 simulation tools")
 
 	expectedTools := map[string]bool{
 		"genai-simulation-list-scenario-sets":               false,
@@ -39,11 +39,6 @@ func TestSimulationTool_Tools(t *testing.T) {
 		"genai-simulation-list-scenario-library-scenarios":  false,
 		"genai-simulation-create-scenario-set-from-library": false,
 		"genai-simulation-create-run":                       false,
-		"genai-simulation-list-runs":                        false,
-		"genai-simulation-get-run":                          false,
-		"genai-simulation-update-run":                       false,
-		"genai-simulation-cancel-run":                       false,
-		"genai-simulation-delete-run":                       false,
 		"genai-simulation-list-episodes":                    false,
 		"genai-simulation-get-episode":                      false,
 		"genai-simulation-get-episode-trajectory":           false,
@@ -109,10 +104,24 @@ func TestSimulationTool_generateScenarioSet_missingArgs(t *testing.T) {
 
 func TestSimulationTool_createRun_missingArgs(t *testing.T) {
 	tool := setupSimulationToolWithFailingClient()
-	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"scenario_set_uuid": "ss"}}}
-	resp, err := tool.createRun(context.Background(), req)
-	require.NoError(t, err)
-	require.True(t, resp.IsError)
+
+	tests := []struct {
+		name string
+		args map[string]any
+	}{
+		{name: "missing agent", args: map[string]any{"scenario_set_uuid": "ss", "metric_uuids": []any{"m1"}}},
+		{name: "missing metrics", args: map[string]any{"scenario_set_uuid": "ss", "agent_uuid": "a1"}},
+		{name: "empty metrics", args: map[string]any{"scenario_set_uuid": "ss", "agent_uuid": "a1", "metric_uuids": []any{}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: tt.args}}
+			resp, err := tool.createRun(context.Background(), req)
+			require.NoError(t, err)
+			require.True(t, resp.IsError)
+		})
+	}
 }
 
 func TestSimulationTool_deleteScenarioSet_consent(t *testing.T) {
@@ -135,26 +144,6 @@ func TestSimulationTool_deleteScenarioSet_consent(t *testing.T) {
 			require.True(t, resp.IsError)
 		})
 	}
-}
-
-func TestSimulationTool_deleteRun_consent(t *testing.T) {
-	tool := setupSimulationToolWithFailingClient()
-	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-		"run_uuid": "run-1",
-	}}}
-	resp, err := tool.deleteRun(context.Background(), req)
-	require.NoError(t, err)
-	require.True(t, resp.IsError)
-}
-
-func TestSimulationTool_cancelRun_consent(t *testing.T) {
-	tool := setupSimulationToolWithFailingClient()
-	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{
-		"run_uuid": "run-1",
-	}}}
-	resp, err := tool.cancelRun(context.Background(), req)
-	require.NoError(t, err)
-	require.True(t, resp.IsError)
 }
 
 func TestSimulationTool_getEpisode_missingArgs(t *testing.T) {
