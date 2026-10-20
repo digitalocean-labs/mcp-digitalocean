@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"gopkg.in/yaml.v3"
 
 	"mcp-digitalocean/pkg/registry/common"
 )
@@ -155,13 +156,39 @@ func (t *Tool) createAgentConfig(ctx context.Context, req mcp.CallToolRequest) (
 	}
 
 	args := req.GetArguments()
-	manifest, hasManifest := args["Manifest"].(map[string]any)
-	if !hasManifest || len(manifest) == 0 {
-		return mcp.NewToolResultError("Manifest is required and must be a non-empty object"), nil
+	name, _ := args["Name"].(string)
+	if name == "" {
+		return mcp.NewToolResultError("Name is required"), nil
+	}
+
+	// The API expects manifest_yaml as a YAML string. Accept either a
+	// pre-formatted YAML string or a JSON object that we convert to YAML.
+	var manifestYAML string
+	switch v := args["Manifest"].(type) {
+	case string:
+		if v == "" {
+			return mcp.NewToolResultError("Manifest must not be empty"), nil
+		}
+		manifestYAML = v
+	case map[string]any:
+		if len(v) == 0 {
+			return mcp.NewToolResultError("Manifest must not be empty"), nil
+		}
+		yamlBytes, err := yaml.Marshal(v)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to convert manifest to YAML", err), nil
+		}
+		manifestYAML = string(yamlBytes)
+	default:
+		return mcp.NewToolResultError("Manifest is required (provide a YAML string or a JSON object)"), nil
 	}
 
 	body := map[string]any{
-		"manifest": manifest,
+		"name":          name,
+		"manifest_yaml": manifestYAML,
+	}
+	if v, ok := args["ManageModelAccessKey"].(bool); ok {
+		body["manage_model_access_key"] = v
 	}
 
 	encoded, err := json.Marshal(body)
@@ -329,8 +356,10 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				agentConfigOut.Schema(),
-				mcp.WithDescription("Create a new hosted agent config (Environment Config) from a manifest object. The manifest encodes the full agent environment spec (runtime, entry point, system prompt, credential slots, etc.). Returns the created config including its assigned UUID."),
-				mcp.WithObject("Manifest", mcp.Required(), mcp.Description("The agent environment spec manifest as a JSON object (e.g. flat manifest with spec.runtime, spec.entrypoint, spec.system_prompt fields)")),
+				mcp.WithDescription("Create a new hosted agent config from a name and an agents.yaml manifest. The manifest can be provided as a YAML string or a JSON object (which will be converted to YAML). Configs are immutable after creation; clone to change content. Returns the created config including its assigned UUID."),
+				mcp.WithString("Name", mcp.Required(), mcp.Description("Config name (1-64 chars, alphanumeric/dots/hyphens/underscores, unique among the team's active configs)")),
+				mcp.WithObject("Manifest", mcp.Required(), mcp.Description("The agent manifest as a JSON object (e.g. {\"agent\":\"codex\",\"size\":\"mars-2vcpu-4gb\",\"env\":{...}}) — will be serialized to YAML for the API. Alternatively pass a pre-formatted YAML string.")),
+				mcp.WithBoolean("ManageModelAccessKey", mcp.Description("Ask the platform to provision a DO serverless-inference key for the agent (default false)")),
 			),
 		},
 		{

@@ -12,7 +12,7 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 
 - **`harness-runtime-list-agent-configs`** — List the active agent configs for the team (id, name, content hash, creator, timestamps). Supports `PageSize` (1-200, default 50), `PageToken` (cursor from `next_page_token`) and `Search` (case-insensitive name substring, max 64 chars). Manifests are not returned.
 - **`harness-runtime-get-agent-config`** — Get one agent config by `ConfigID` (UUID), including its sanitized manifest and redacted credential slot metadata. Secret values are never returned.
-- **`harness-runtime-create-agent-config`** — Create a new agent config from a `Manifest` object (required JSON object with the full agent environment spec). Returns the created config with its assigned UUID.
+- **`harness-runtime-create-agent-config`** — Create a new agent config from a `Name` (required, 1-64 chars) and `Manifest` (required, JSON object or YAML string with the agent environment spec — e.g. `agent`, `size`, `env`, `permissions`, `egress`). Optionally set `ManageModelAccessKey` to have the platform provision a serverless-inference key. Configs are immutable after creation. Returns the created config with its assigned UUID.
 - **`harness-runtime-delete-agent-config`** — Permanently delete an agent config by `ConfigID` (UUID). **Destructive.** Existing sessions that reference this config are retained.
 - **`harness-runtime-clone-agent-config`** — Clone an existing agent config into a new config with a fresh UUID. Takes `ConfigID` (required) and optional `Name` for the clone.
 - **`harness-runtime-list-config-sessions`** — List all sessions created from a specific agent config by `ConfigID`. Supports `PageSize`, `PageToken`, and `Status` filter.

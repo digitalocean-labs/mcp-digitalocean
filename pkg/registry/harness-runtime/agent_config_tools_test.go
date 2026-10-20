@@ -230,6 +230,7 @@ func TestCreateAgentConfig(t *testing.T) {
 	})
 
 	res, err := tool.createAgentConfig(context.Background(), request(map[string]any{
+		"Name":     "my-new-agent",
 		"Manifest": testManifest(),
 	}))
 	require.NoError(t, err)
@@ -238,15 +239,34 @@ func TestCreateAgentConfig(t *testing.T) {
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Contains(t, gotContentType, "application/json")
 
-	manifestInBody, ok := gotBody["manifest"].(map[string]any)
-	require.True(t, ok, "request body should have a 'manifest' key")
-	spec, ok := manifestInBody["spec"].(map[string]any)
-	require.True(t, ok)
-	require.Equal(t, "python3.11", spec["runtime"])
+	require.Equal(t, "my-new-agent", gotBody["name"])
+	manifestYAML, ok := gotBody["manifest_yaml"].(string)
+	require.True(t, ok, "request body should have a 'manifest_yaml' string key")
+	require.Contains(t, manifestYAML, "python3.11")
+	require.Contains(t, manifestYAML, "agent.py")
 
 	text := callText(t, res)
 	require.Contains(t, text, testConfigID)
 	require.Contains(t, text, "my-new-agent")
+}
+
+func TestCreateAgentConfigWithManageKey(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"config":` + configJSON(testConfigID, "my-agent") + `}`))
+	})
+
+	res, err := tool.createAgentConfig(context.Background(), request(map[string]any{
+		"Name":                "my-agent",
+		"Manifest":            testManifest(),
+		"ManageModelAccessKey": true,
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, true, gotBody["manage_model_access_key"])
 }
 
 func TestCreateAgentConfigValidation(t *testing.T) {
@@ -255,9 +275,11 @@ func TestCreateAgentConfigValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing manifest":     {},
-		"empty manifest":       {"Manifest": map[string]any{}},
-		"manifest not object":  {"Manifest": "not-an-object"},
+		"missing name and manifest": {},
+		"missing name":              {"Manifest": testManifest()},
+		"missing manifest":          {"Name": "my-agent"},
+		"empty manifest object":     {"Name": "my-agent", "Manifest": map[string]any{}},
+		"empty manifest string":     {"Name": "my-agent", "Manifest": ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.createAgentConfig(context.Background(), request(args))
@@ -275,6 +297,7 @@ func TestCreateAgentConfigAPIError(t *testing.T) {
 	})
 
 	res, err := tool.createAgentConfig(context.Background(), request(map[string]any{
+		"Name":     "my-agent",
 		"Manifest": testManifest(),
 	}))
 	require.NoError(t, err)
