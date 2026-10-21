@@ -3,14 +3,13 @@ package harnessruntime
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"gopkg.in/yaml.v3"
 
 	"mcp-digitalocean/pkg/registry/common"
 )
@@ -33,16 +32,23 @@ type ListSandboxSizesResponse struct {
 	Sizes []SandboxSize `json:"sizes"`
 }
 
-// PolicyViolation is a single policy rule violation returned by ValidatePolicy.
-type PolicyViolation struct {
+// RuleVerdict is a per-rule verdict from ValidatePolicy.
+type RuleVerdict struct {
 	Rule    string `json:"rule,omitempty"`
-	Message string `json:"message,omitempty"`
+	Verdict string `json:"verdict,omitempty"`
+	Reason  string `json:"reason,omitempty"`
 }
 
-// ValidatePolicyResponse is the response of POST /v2/agents/sessions/{id}/policy/validate.
+// ValidatePolicyResponse is the response of POST /v2/agents/sessions/policy/validate.
 type ValidatePolicyResponse struct {
-	Valid      bool              `json:"valid"`
-	Violations []PolicyViolation `json:"violations,omitempty"`
+	Agent                 string        `json:"agent,omitempty"`
+	Version               string        `json:"version,omitempty"`
+	OK                    bool          `json:"ok"`
+	DefaultAction         string        `json:"defaultAction,omitempty"`
+	DefaultActionVerdict  string        `json:"defaultActionVerdict,omitempty"`
+	DefaultActionRendered string        `json:"defaultActionRendered,omitempty"`
+	DefaultActionReason   string        `json:"defaultActionReason,omitempty"`
+	Verdicts              []RuleVerdict `json:"verdicts,omitempty"`
 }
 
 // listSandboxSizes returns the catalog of available sandbox compute sizes.
@@ -67,8 +73,9 @@ func (t *Tool) listSandboxSizes(ctx context.Context, req mcp.CallToolRequest) (*
 	return sandboxSizesOut.Result(out)
 }
 
-// validatePolicy checks whether a policy document is syntactically and
-// semantically valid for the given session without committing it.
+// validatePolicy checks a manifest's tool-permission policy against the
+// agent's capabilities without creating a session. Accepts the same manifest
+// as create-agent-config (JSON object → YAML, or a pre-formatted YAML string).
 func (t *Tool) validatePolicy(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.client(ctx)
 	if err != nil {
@@ -76,35 +83,36 @@ func (t *Tool) validatePolicy(ctx context.Context, req mcp.CallToolRequest) (*mc
 	}
 
 	args := req.GetArguments()
-	sessionID, _ := args["SessionID"].(string)
-	if sessionID == "" {
-		return mcp.NewToolResultError("SessionID is required"), nil
-	}
-	if _, err := uuid.Parse(sessionID); err != nil {
-		return mcp.NewToolResultError("SessionID must be a UUID"), nil
+
+	// Accept Manifest as JSON object (→ YAML) or raw YAML string.
+	var manifestYAML string
+	switch v := args["Manifest"].(type) {
+	case string:
+		if v == "" {
+			return mcp.NewToolResultError("Manifest must not be empty"), nil
+		}
+		manifestYAML = v
+	case map[string]any:
+		if len(v) == 0 {
+			return mcp.NewToolResultError("Manifest must not be empty"), nil
+		}
+		yamlBytes, err := yaml.Marshal(v)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Failed to convert manifest to YAML", err), nil
+		}
+		manifestYAML = string(yamlBytes)
+	default:
+		return mcp.NewToolResultError("Manifest is required (provide a YAML string or a JSON object)"), nil
 	}
 
-	policy, hasPolicy := args["Policy"].(map[string]any)
-	if !hasPolicy || len(policy) == 0 {
-		return mcp.NewToolResultError("Policy is required and must be a non-empty object"), nil
-	}
-
-	body := map[string]any{
-		"policy": policy,
-	}
-	encoded, err := json.Marshal(body)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
-	}
-
-	path := sessionsPath + "/" + sessionID + "/policy/validate"
+	path := sessionsPath + "/policy/validate"
 	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
-	apiReq.Header.Set("Content-Type", "application/json")
-	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
-	apiReq.ContentLength = int64(len(encoded))
+	apiReq.Header.Set("Content-Type", "application/x-yaml")
+	apiReq.Body = io.NopCloser(bytes.NewReader([]byte(manifestYAML)))
+	apiReq.ContentLength = int64(len(manifestYAML))
 
 	var out ValidatePolicyResponse
 	if _, err := client.Do(ctx, apiReq, &out); err != nil {
@@ -131,9 +139,8 @@ func (t *Tool) sandboxTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				validatePolicyOut.Schema(),
-				mcp.WithDescription("Validate a policy document against a session without committing it. Returns valid=true when the policy is syntactically and semantically correct, or valid=false with a list of violations describing what needs to be fixed."),
-				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID to validate the policy against")),
-				mcp.WithObject("Policy", mcp.Required(), mcp.Description("The policy document to validate as a JSON object")),
+				mcp.WithDescription("Stateless preflight: check a manifest's tool-permission policy against the agent's capabilities without creating a session. Returns per-rule verdicts (exact, degraded, unsupported, unverified). ok=false means CreateSession would reject this policy. Accepts the same manifest as create-agent-config."),
+				mcp.WithObject("Manifest", mcp.Required(), mcp.Description("The agent manifest as a JSON object (same shape as create-agent-config's Manifest — must include a permissions block to validate). Will be serialized to YAML.")),
 			),
 		},
 	}

@@ -32,7 +32,7 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 ### Sandbox
 
 - **`harness-runtime-list-sandbox-sizes`** — List the available sandbox compute sizes (slug, vCPUs, memory, hourly and monthly pricing). The returned slugs are valid values for sandbox size fields in manifests.
-- **`harness-runtime-validate-policy`** — Validate a policy document against a session without committing it. Returns `valid=true` when the policy is correct, or `valid=false` with a list of violations. Requires `SessionID` (UUID) and `Policy` (JSON object).
+- **`harness-runtime-validate-policy`** — Stateless preflight: check a manifest's tool-permission policy against the agent's capabilities without creating a session. Takes `Manifest` (same JSON object as create-agent-config, must include a `permissions` block). Returns per-rule verdicts (`exact`, `degraded`, `unsupported`, `unverified`); `ok=false` means CreateSession would reject this policy.
 
 Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_session:create` / `agent_harness_session:delete` (write tools).
 
