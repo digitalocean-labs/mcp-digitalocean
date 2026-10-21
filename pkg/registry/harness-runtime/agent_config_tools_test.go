@@ -399,6 +399,35 @@ func TestCloneAgentConfigMissingName(t *testing.T) {
 	require.True(t, res.IsError)
 }
 
+func TestCloneAgentConfigWithSecretsAndOAuth(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"config":` + configJSON(testCloneConfigID, "support-agent-copy") + `}`))
+	})
+
+	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{
+		"ConfigID": testConfigID,
+		"Name":     "support-agent-copy",
+		"Secrets":  map[string]any{"OPENAI_API_KEY": "sk-test-value"},
+		"OAuthAssignments": map[string]any{
+			"github": "11111111-1111-1111-1111-111111111111",
+		},
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+
+	secrets, ok := gotBody["secrets"].(map[string]any)
+	require.True(t, ok, "request body should have a 'secrets' key")
+	require.Equal(t, "sk-test-value", secrets["OPENAI_API_KEY"])
+
+	oauth, ok := gotBody["oauth_assignments"].(map[string]any)
+	require.True(t, ok, "request body should have an 'oauth_assignments' key")
+	require.Equal(t, "11111111-1111-1111-1111-111111111111", oauth["github"])
+}
+
 func TestCloneAgentConfigValidation(t *testing.T) {
 	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
 		t.Fatal("API must not be called for invalid input")
