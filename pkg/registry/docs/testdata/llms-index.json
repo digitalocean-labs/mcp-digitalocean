@@ -1867,5 +1867,94 @@
   "section": "why-is-smtp-blocked",
   "title": "Why is SMTP blocked?",
   "url": "https://docs.digitalocean.com/support/why-is-smtp-blocked/"
+ },
+ {
+  "description": "Recover from accidental data loss by manually restoring a MongoDB database cluster from backups.",
+  "lastmod": "2026-07-31T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/restore-from-backups/index.html.md",
+  "product": "Managed Databases",
+  "section": "mongodb",
+  "title": "How to Manually Restore MongoDB Database Clusters from Backups",
+  "url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/restore-from-backups/"
+ },
+ {
+  "description": "Enable backups to automatically create system-level disk images weekly or daily with no configuration required.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/backups/index.html.md",
+  "product": "Backups",
+  "title": "Backups",
+  "url": "https://docs.digitalocean.com/products/backups/"
+ },
+ {
+  "description": "Backups are automatically-created disk images of Droplets. Enabling backups for Droplets enables system-level backups, which provides a way to revert to an older state or create new Droplets.",
+  "lastmod": "2018-06-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/backups/details/features/index.html.md",
+  "product": "Backups",
+  "section": "details",
+  "title": "Backups Features",
+  "url": "https://docs.digitalocean.com/products/backups/details/features/"
+ },
+ {
+  "description": "Use SnapShooter to automatically create backups for a MongoDB database server and store them in S3-based storage of your choice.\n",
+  "lastmod": "2023-09-26T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/snapshooter/how-to/back-up-mongodb-servers/index.html.md",
+  "product": "SnapShooter",
+  "section": "how-to",
+  "title": "How to Back Up MongoDB Servers with SnapShooter",
+  "url": "https://docs.digitalocean.com/products/snapshooter/how-to/back-up-mongodb-servers/"
+ },
+ {
+  "description": "Destroy a database cluster to permanently and irreversibly destroy the cluster, its contents, and its automated backups.",
+  "lastmod": "2026-09-03T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/destroy/index.html.md",
+  "product": "Managed Databases",
+  "section": "mongodb",
+  "title": "How to Destroy MongoDB Database Clusters",
+  "url": "https://docs.digitalocean.com/products/databases/mongodb/how-to/destroy/"
+ },
+ {
+  "description": "Set custom CORS headers.",
+  "lastmod": "2022-05-23T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/functions/how-to/set-custom-cors-headers/index.html.md",
+  "product": "Functions",
+  "section": "how-to",
+  "title": "How to Set Custom CORS Headers",
+  "url": "https://docs.digitalocean.com/products/functions/how-to/set-custom-cors-headers/"
+ },
+ {
+  "description": "The commands under `node-pool` are for managing Kubernetes cluster's node pools. You can use these commands to create or delete node pools, enable autoscaling, and more.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl kubernetes cluster node-pool",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/"
+ },
+ {
+  "description": "Creates a new node pool for the specified cluster. The command requires values for the `--name`, `--size`, and `--count` flags to create a node pool. You can also specify that you'd like to enable autoscaling and set minimum and maximum node poll sizes.",
+  "lastmod": "2026-10-15T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/create/index.html.md",
+  "product": "Reference",
+  "section": "doctl",
+  "title": "doctl kubernetes cluster node-pool create",
+  "url": "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/create/"
+ },
+ {
+  "description": "kube-state-metrics is a service that listens to the Kubernetes API server and generates metrics about the state of the objects.",
+  "lastmod": "2026-01-19T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/marketplace/catalog/kube-state-metrics/index.html.md",
+  "product": "Marketplace",
+  "section": "catalog",
+  "title": "kube-state-metrics",
+  "url": "https://docs.digitalocean.com/products/marketplace/catalog/kube-state-metrics/"
+ },
+ {
+  "description": "PENN Stack combines four powerful technologies—PostgreSQL, Express.js, Next.js, and Nginx—into one cohesive and scalable solution. Designed for developers who a...",
+  "lastmod": "2025-03-30T00:00:00+00:00",
+  "markdown_url": "https://docs.digitalocean.com/products/marketplace/catalog/penn-postgres-express-next-js/index.html.md",
+  "product": "Marketplace",
+  "section": "catalog",
+  "title": "PENN (Postgres + Express + Next.js)",
+  "url": "https://docs.digitalocean.com/products/marketplace/catalog/penn-postgres-express-next-js/"
  }
 ]

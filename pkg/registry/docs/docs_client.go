@@ -6,6 +6,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -45,6 +46,34 @@ type DocsIndex struct {
 	Sections  []string
 	Source    string // "llms-index.json" or "llms.txt"
 	FetchedAt time.Time
+
+	// tokens is parallel to Entries. It is populated by newDocsIndex; an
+	// index built as a literal (tests) is tokenized on the fly instead.
+	tokens []entryTokens
+}
+
+// newDocsIndex builds an index and tokenizes its entries once.
+func newDocsIndex(entries []DocsEntry, sections []string, source string) *DocsIndex {
+	tokens := make([]entryTokens, len(entries))
+	for i, entry := range entries {
+		tokens[i] = tokenizeEntry(entry)
+	}
+	return &DocsIndex{
+		Entries:   entries,
+		Sections:  sections,
+		Source:    source,
+		FetchedAt: time.Now(),
+		tokens:    tokens,
+	}
+}
+
+// entryTokensAt returns the cached tokens for entry i, tokenizing on demand
+// when the index was not built with newDocsIndex.
+func (index *DocsIndex) entryTokensAt(i int) entryTokens {
+	if i < len(index.tokens) {
+		return index.tokens[i]
+	}
+	return tokenizeEntry(index.Entries[i])
 }
 
 // cacheEntry holds a cached value with expiry.
@@ -105,11 +134,10 @@ type DocsClient struct {
 	httpClient *http.Client
 	cache      *cache
 
-	// indexBase is the origin the page index is loaded from. It defaults to
-	// docsBase and is only overridden by tests.
-	indexBase string
-
 	indexGroup singleflight.Group
+
+	// maxResponseSize is the accepted-body cap; tests lower it.
+	maxResponseSize int64
 	// staleIndex is the last successfully loaded index. It is served when a
 	// refresh fails so transient docs-site errors do not break search.
 	staleIndex atomic.Pointer[DocsIndex]
@@ -118,10 +146,27 @@ type DocsClient struct {
 // NewDocsClient creates a new DocsClient.
 func NewDocsClient() *DocsClient {
 	return &DocsClient{
-		httpClient: &http.Client{Timeout: 15 * time.Second},
-		cache:      newCache(),
-		indexBase:  docsBase,
+		httpClient: &http.Client{
+			Timeout: 15 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 10 {
+					return fmt.Errorf("stopped after 10 redirects")
+				}
+				return validateDocsURL(req.URL)
+			},
+		},
+		cache:           newCache(),
+		maxResponseSize: maxResponseSize,
 	}
+}
+
+// validateDocsURL confines requests, including redirects, to the public HTTPS
+// docs origin.
+func validateDocsURL(u *neturl.URL) error {
+	if u.Scheme != "https" || u.Host != "docs.digitalocean.com" || u.User != nil {
+		return fmt.Errorf("refusing to fetch %s: only %s pages are supported", u, docsBase)
+	}
+	return nil
 }
 
 func (d *DocsClient) fetch(url string) (string, error) {
@@ -145,6 +190,10 @@ func (d *DocsClient) fetchUncached(url string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
+	if err := validateDocsURL(req.URL); err != nil {
+		return "", err
+	}
+
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := d.httpClient.Do(req)
@@ -156,10 +205,24 @@ func (d *DocsClient) fetchUncached(url string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("failed to fetch %s: HTTP %d", url, resp.StatusCode)
 	}
+	limit := d.maxResponseSize
+	if limit <= 0 {
+		limit = maxResponseSize
+	}
+	if resp.ContentLength > limit {
+		// Refuse up front rather than download 10 MB of a response that
+		// would be cut mid-document anyway.
+		return "", fmt.Errorf("failed to fetch %s: response is %d bytes, limit is %d", url, resp.ContentLength, limit)
+	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+	// One extra byte distinguishes an exactly-at-limit body from an oversized
+	// chunked or decompressed response without trusting Content-Length.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 	if err != nil {
 		return "", fmt.Errorf("failed to read response from %s: %w", url, err)
+	}
+	if int64(len(body)) > limit {
+		return "", fmt.Errorf("failed to fetch %s: response exceeds limit of %d bytes", url, limit)
 	}
 
 	return string(body), nil
@@ -197,12 +260,7 @@ func parseLlmsTxt(text string) *DocsIndex {
 		}
 	}
 
-	return &DocsIndex{
-		Entries:   entries,
-		Sections:  sections,
-		Source:    "llms.txt",
-		FetchedAt: time.Now(),
-	}
+	return newDocsIndex(entries, sections, "llms.txt")
 }
 
 // llmsIndexRecord mirrors one element of llms-index.json.
@@ -260,12 +318,7 @@ func parseLlmsIndex(data []byte) (*DocsIndex, error) {
 	}
 
 	sort.Strings(sections)
-	return &DocsIndex{
-		Entries:   entries,
-		Sections:  sections,
-		Source:    "llms-index.json",
-		FetchedAt: time.Now(),
-	}, nil
+	return newDocsIndex(entries, sections, "llms-index.json"), nil
 }
 
 // GetDocsIndex returns the searchable page index. It prefers llms-index.json
@@ -302,7 +355,7 @@ func (d *DocsClient) GetDocsIndex() (*DocsIndex, error) {
 }
 
 func (d *DocsClient) loadIndex() (*DocsIndex, error) {
-	data, indexErr := d.fetchUncached(d.indexBase + llmsIndexPath)
+	data, indexErr := d.fetchUncached(docsBase + llmsIndexPath)
 	if indexErr == nil {
 		index, parseErr := parseLlmsIndex([]byte(data))
 		if parseErr == nil {
@@ -310,8 +363,13 @@ func (d *DocsClient) loadIndex() (*DocsIndex, error) {
 		}
 		indexErr = parseErr
 	}
+	if stale := d.staleIndex.Load(); stale != nil && stale.Source == "llms-index.json" {
+		// Let GetDocsIndex serve the richer stale index with a short retry TTL
+		// instead of replacing it with the much smaller llms.txt fallback.
+		return nil, indexErr
+	}
 
-	text, txtErr := d.fetchUncached(d.indexBase + llmsTxtPath)
+	text, txtErr := d.fetchUncached(docsBase + llmsTxtPath)
 	if txtErr != nil {
 		return nil, fmt.Errorf("failed to fetch docs index: %w (llms-index.json: %v)", txtErr, indexErr)
 	}
@@ -409,17 +467,65 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 
 // queryTerm is one normalized query token plus a light stem so that, for
 // example, "configuration" also matches "configure" and "codes" matches
-// "code". Matching is substring-based, consistent with the original scoring.
+// "code". Terms match complete field tokens, never arbitrary substrings.
 type queryTerm struct {
 	text string
 	stem string
 }
 
-func (q queryTerm) matches(field string) bool {
-	if strings.Contains(field, q.text) {
+// minPrefixLen is the shortest query term allowed to match a longer token by
+// prefix, so "postgres" finds "postgresql" and "kube" finds "kubernetes"
+// while "spaces" still does not find "namespace".
+const minPrefixLen = 4
+
+// matchesToken reports whether the query term matches one field token:
+// exact text, equal stem, or a prefix of at least minPrefixLen characters.
+func (q queryTerm) matchesToken(token queryTerm) bool {
+	if token.text == q.text || token.stem == q.stem {
 		return true
 	}
-	return q.stem != q.text && strings.Contains(field, q.stem)
+	return len(q.text) >= minPrefixLen && strings.HasPrefix(token.text, q.text)
+}
+
+func (q queryTerm) matches(field string) bool {
+	return q.matchesTokens(fieldTerms(field))
+}
+
+func (q queryTerm) matchesTokens(tokens []queryTerm) bool {
+	for _, token := range tokens {
+		if q.matchesToken(token) {
+			return true
+		}
+	}
+	return false
+}
+
+// entryTokens holds the tokenized metadata fields of one index entry. They
+// are built once when the index is parsed so queries do not re-tokenize
+// 4,600 entries each time.
+type entryTokens struct {
+	title, description, section, url []queryTerm
+}
+
+func tokenizeEntry(entry DocsEntry) entryTokens {
+	return entryTokens{
+		title:       fieldTerms(strings.ToLower(entry.Title)),
+		description: fieldTerms(strings.ToLower(entry.Description)),
+		section:     fieldTerms(strings.ToLower(entry.Section)),
+		url:         fieldTerms(urlPathLower(entry.URL)),
+	}
+}
+
+// fieldTerms keeps all metadata tokens, including stop words.
+func fieldTerms(field string) []queryTerm {
+	raw := tokenSplitRe.Split(field, -1)
+	terms := make([]queryTerm, 0, len(raw))
+	for _, token := range raw {
+		if token != "" {
+			terms = append(terms, queryTerm{text: token, stem: lightStem(token)})
+		}
+	}
+	return terms
 }
 
 // matchesWord reports whether the term appears in field as a whole word,
@@ -535,7 +641,7 @@ func rankEntries(results []scoredEntry) []DocsEntry {
 
 // SearchIndex ranks index entries against a query by keyword matching over
 // title, description, section, and URL path segments. Entries matching all
-// query terms are boosted above partial matches. It does not search page
+// query terms receive an additive boost. It does not search page
 // bodies.
 func SearchIndex(index *DocsIndex, query string) []DocsEntry {
 	return searchIndex(index, query, false)
@@ -608,7 +714,7 @@ func (m fieldMatch) any() bool {
 }
 
 const (
-	// allTermsBoost ranks entries matching every query term above partial matches.
+	// allTermsBoost rewards complete coverage; field scores still affect order.
 	allTermsBoost = 15
 
 	// rareTermFraction and rareTermWeight double the contribution of terms
@@ -630,19 +736,17 @@ func matchTerms(index *DocsIndex, terms []queryTerm) ([][]fieldMatch, []int) {
 
 	for i, entry := range index.Entries {
 		titleLower := strings.ToLower(entry.Title)
-		descLower := strings.ToLower(entry.Description)
-		sectionLower := strings.ToLower(entry.Section)
-		urlLower := urlPathLower(entry.URL)
+		tokens := index.entryTokensAt(i)
 
 		row := backing[i*len(terms) : (i+1)*len(terms)]
 		for t, term := range terms {
 			row[t] = fieldMatch{
-				title:       term.matches(titleLower),
+				title:       term.matchesTokens(tokens.title),
 				titleWord:   term.matchesWord(titleLower),
-				description: term.matches(descLower),
-				section:     term.matches(sectionLower),
+				description: term.matchesTokens(tokens.description),
+				section:     term.matchesTokens(tokens.section),
 				// URL path segments, e.g. "manage-domains" matches "domain"
-				url: term.matches(urlLower),
+				url: term.matchesTokens(tokens.url),
 			}
 			if row[t].any() {
 				docFreq[t]++

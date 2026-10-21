@@ -168,5 +168,33 @@
    "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-iso/",
    "https://docs.digitalocean.com/products/droplets/how-to/recovery/"
   ]
+ },
+ {
+  "query": "mongo backups",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/databases/mongodb/how-to/restore-from-backups/"
+  ]
+ },
+ {
+  "query": "config spaces cors",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/spaces/how-to/configure-cors/"
+  ]
+ },
+ {
+  "query": "kube node pool",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/"
+  ]
+ },
+ {
+  "query": "postgres connection pool",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-connection-pools/"
+  ]
  }
 ]

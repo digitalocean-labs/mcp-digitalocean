@@ -3,7 +3,6 @@ package docs
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
@@ -22,6 +21,12 @@ type regressionQuery struct {
 	Tool     string   `json:"tool"`
 	Expected []string `json:"expected"`
 }
+
+// Recall@5 on every judged query is the contract; MRR is gated loosely so
+// a tie-break change or an upstream content edit does not fail the build.
+// Measured: fixture 0.88, live 0.88 (2026-10-20).
+const minimumFixtureMRR = 0.80
+const minimumLiveMRR = 0.75
 
 func loadFixtureIndex(t *testing.T) *DocsIndex {
 	t.Helper()
@@ -165,8 +170,8 @@ func TestQueryTerm_MatchesWord(t *testing.T) {
 
 // TestRegressionSet_Fixture is the judged ranking regression set. Every
 // query must place an expected page in the top 5 against the fixture
-// universe (a 200-page sample of llms-index.json including each target and
-// its strongest competitors).
+// universe (a 218-page sample of llms-index.json including each target and
+// selected competitors; it does not represent the full live universe).
 func TestRegressionSet_Fixture(t *testing.T) {
 	index := loadFixtureIndex(t)
 	queries := loadRegressionQueries(t)
@@ -185,6 +190,7 @@ func TestRegressionSet_Fixture(t *testing.T) {
 		})
 	}
 	t.Logf("fixture Recall@5=%d/%d MRR=%.3f", hits, len(queries), reciprocal/float64(len(queries)))
+	require.GreaterOrEqual(t, reciprocal/float64(len(queries)), minimumFixtureMRR, "fixture MRR regressed")
 }
 
 func topURLs(results []DocsEntry, n int) []string {
@@ -250,15 +256,6 @@ func TestSearchIndex_PunctuationAndStemming(t *testing.T) {
 	require.Len(t, SearchIndex(index, "docs"), 0)
 }
 
-// newIndexTestClient returns a client whose index loads come from the given
-// test server instead of docs.digitalocean.com.
-func newIndexTestClient(server *httptest.Server) *DocsClient {
-	client := NewDocsClient()
-	client.indexBase = server.URL
-	client.httpClient = server.Client()
-	return client
-}
-
 const fallbackLlmsTxt = "## Droplets\n\n- [Droplet Quickstart](https://docs.digitalocean.com/products/droplets/getting-started/quickstart/index.html.md): Start here.\n"
 
 func TestGetDocsIndex_PrefersLlmsIndexJSON(t *testing.T) {
@@ -266,7 +263,7 @@ func TestGetDocsIndex_PrefersLlmsIndexJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	var txtHits atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case llmsIndexPath:
 			_, _ = w.Write(fixture)
@@ -277,9 +274,8 @@ func TestGetDocsIndex_PrefersLlmsIndexJSON(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
 
-	index, err := newIndexTestClient(server).GetDocsIndex()
+	index, err := client.GetDocsIndex()
 	require.NoError(t, err)
 	require.Equal(t, "llms-index.json", index.Source)
 	require.Greater(t, len(index.Entries), 100)
@@ -292,7 +288,7 @@ func TestGetDocsIndex_FallsBackToLlmsTxt(t *testing.T) {
 		"invalid": func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`{"oops":`)) },
 	} {
 		t.Run(name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
 				case llmsIndexPath:
 					indexHandler(w, r)
@@ -302,9 +298,8 @@ func TestGetDocsIndex_FallsBackToLlmsTxt(t *testing.T) {
 					http.NotFound(w, r)
 				}
 			}))
-			defer server.Close()
 
-			index, err := newIndexTestClient(server).GetDocsIndex()
+			index, err := client.GetDocsIndex()
 			require.NoError(t, err)
 			require.Equal(t, "llms.txt", index.Source)
 			require.Len(t, index.Entries, 1)
@@ -313,12 +308,11 @@ func TestGetDocsIndex_FallsBackToLlmsTxt(t *testing.T) {
 }
 
 func TestGetDocsIndex_ErrorWhenBothSourcesFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "down", http.StatusBadGateway)
 	}))
-	defer server.Close()
 
-	_, err := newIndexTestClient(server).GetDocsIndex()
+	_, err := client.GetDocsIndex()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "llms-index.json")
 }
@@ -326,7 +320,7 @@ func TestGetDocsIndex_ErrorWhenBothSourcesFail(t *testing.T) {
 func TestGetDocsIndex_ServesStaleOnRefreshFailure(t *testing.T) {
 	var healthy atomic.Bool
 	healthy.Store(true)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !healthy.Load() {
 			http.Error(w, "down", http.StatusBadGateway)
 			return
@@ -337,9 +331,7 @@ func TestGetDocsIndex_ServesStaleOnRefreshFailure(t *testing.T) {
 		}
 		http.NotFound(w, r)
 	}))
-	defer server.Close()
 
-	client := newIndexTestClient(server)
 	first, err := client.GetDocsIndex()
 	require.NoError(t, err)
 
@@ -359,19 +351,20 @@ func TestGetDocsIndex_ServesStaleOnRefreshFailure(t *testing.T) {
 
 func TestGetDocsIndex_CollapsesConcurrentColdLoads(t *testing.T) {
 	var hits atomic.Int32
+	entered := make(chan struct{})
 	release := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != llmsTxtPath {
 			http.NotFound(w, r)
 			return
 		}
-		hits.Add(1)
+		if hits.Add(1) == 1 {
+			close(entered)
+		}
 		<-release
 		_, _ = w.Write([]byte(fallbackLlmsTxt))
 	}))
-	defer server.Close()
 
-	client := newIndexTestClient(server)
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {
 		wg.Add(1)
@@ -381,8 +374,8 @@ func TestGetDocsIndex_CollapsesConcurrentColdLoads(t *testing.T) {
 			require.NoError(t, err)
 		}()
 	}
-	// Give the goroutines time to pile up on the in-flight load before releasing it.
-	time.Sleep(50 * time.Millisecond)
+	// Wait for the shared origin load before releasing it.
+	<-entered
 	close(release)
 	wg.Wait()
 
