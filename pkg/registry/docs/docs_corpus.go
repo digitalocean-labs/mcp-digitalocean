@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -27,9 +28,6 @@ const (
 	// shards fall back to their description.
 	maxShardsPerQuery = 8
 	shardConcurrency  = 4
-	// excerptBudget caps the extra time a search spends enriching results.
-	// Shards that do not arrive in time are skipped, not failed.
-	excerptBudget = 5 * time.Second
 
 	// maxBodyBytes bounds the body kept per page; excerpts come from the
 	// start of the page in practice and a shard can hold a 2.7 MB changelog.
@@ -41,6 +39,9 @@ const (
 	// maxHitsPerTerm bounds window candidates on long bodies.
 	maxHitsPerTerm = 8
 )
+
+// excerptBudget caps enrichment time; late shards are skipped.
+var excerptBudget = 5 * time.Second
 
 // corpusManifest maps a directory URL (with trailing slash) to the shard that
 // holds the bodies of pages under it.
@@ -112,8 +113,9 @@ func (d *DocsClient) getCorpusManifest(ctx context.Context) *corpusManifest {
 }
 
 type corpusDoc struct {
-	CanonicalURL string `json:"canonical_url"`
-	Content      string `json:"content"`
+	CanonicalURL  string `json:"canonical_url"`
+	Content       string `json:"content"`
+	ContentFormat string `json:"content_format"`
 }
 
 // parseShard reads page bodies out of a JSONL shard, keyed by canonical URL.
@@ -128,9 +130,27 @@ func parseShard(data string) map[string]string {
 		if err := json.Unmarshal(scanner.Bytes(), &doc); err != nil || doc.CanonicalURL == "" {
 			continue
 		}
-		bodies[doc.CanonicalURL] = truncateUTF8(doc.Content, maxBodyBytes)
+		content := truncateUTF8(doc.Content, maxBodyBytes)
+		if doc.ContentFormat == "markdown" {
+			content = stripMarkdown(content)
+		}
+		bodies[doc.CanonicalURL] = strings.Clone(content)
 	}
 	return bodies
+}
+
+var (
+	markdownImageRe   = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`)
+	markdownLinkRe    = regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`)
+	markdownHeadingRe = regexp.MustCompile(`(?m)^[\t ]*#+[\t ]*`)
+	markdownMarksRe   = regexp.MustCompile("[*_`]+")
+)
+
+func stripMarkdown(content string) string {
+	content = markdownImageRe.ReplaceAllString(content, "")
+	content = markdownLinkRe.ReplaceAllString(content, "$1")
+	content = markdownHeadingRe.ReplaceAllString(content, "")
+	return strings.TrimSpace(markdownMarksRe.ReplaceAllString(content, ""))
 }
 
 // loadShard returns the parsed shard, or nil when it is unavailable.
@@ -207,9 +227,6 @@ func (d *DocsClient) corpusValue(ctx context.Context, key string, ttl time.Durat
 		case d.slots() <- struct{}{}:
 			defer func() { <-d.corpusSlots }()
 		case <-loadCtx.Done():
-			if d.noteTimeout(key) {
-				d.cache.set(key, nil, negativeCacheTTL)
-			}
 			return nil, loadCtx.Err()
 		}
 		value, err := load(loadCtx)
@@ -353,10 +370,10 @@ func excerpt(content string, terms []queryTerm) string {
 	}
 	text := strings.Join(strings.Fields(content[bestStart:bestEnd]), " ")
 	if bestStart > 0 {
-		text = "…" + text
+		text = "..." + text
 	}
 	if bestEnd < len(content) {
-		text += "…"
+		text += "..."
 	}
 	return text
 }

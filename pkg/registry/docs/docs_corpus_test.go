@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
@@ -62,9 +63,59 @@ func TestParseShard_TolerantOfTruncation(t *testing.T) {
 	require.Len(t, bodies[resizeURL], maxBodyBytes, "bodies are capped")
 }
 
+func TestParseShardContentFormat(t *testing.T) {
+	content := "# Heading\n![screenshot](https://example.com/image.png)\n[Docs](https://example.com/) **bold** _italic_ `code`"
+	var data strings.Builder
+	for i, format := range []string{"markdown", "text", ""} {
+		record, err := json.Marshal(corpusDoc{
+			CanonicalURL: fmt.Sprintf("%s/page%d/", docsBase, i), Content: content, ContentFormat: format,
+		})
+		require.NoError(t, err)
+		data.Write(record)
+		data.WriteByte('\n')
+	}
+	bodies := parseShard(data.String())
+	require.Equal(t, "Heading\n\nDocs bold italic code", bodies[docsBase+"/page0/"])
+	require.Equal(t, content, bodies[docsBase+"/page1/"])
+	require.Equal(t, content, bodies[docsBase+"/page2/"])
+
+	record, err := json.Marshal(corpusDoc{CanonicalURL: smtpURL, Content: strings.Repeat("*", maxBodyBytes) + "tail", ContentFormat: "markdown"})
+	require.NoError(t, err)
+	require.Empty(t, parseShard(string(record))[smtpURL], "truncate before stripping markup")
+}
+
+func TestCorpusSlotWaitDoesNotPoisonManifest(t *testing.T) {
+	originalBudget := excerptBudget
+	excerptBudget = 50 * time.Millisecond
+	t.Cleanup(func() { excerptBudget = originalBudget })
+	var hits atomic.Int32
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits.Add(1)
+		fmt.Fprint(w, manifestLine(supportDir))
+	}))
+	for range shardConcurrency {
+		client.slots() <- struct{}{}
+	}
+	for range maxConsecutiveTimeouts + 1 {
+		require.Nil(t, client.getCorpusManifest(context.Background()))
+		_, cached := client.cache.get("corpusManifest")
+		require.False(t, cached, "waiting for capacity must not negative-cache the manifest")
+		client.timeoutMu.Lock()
+		timeouts := client.timeouts["corpusManifest"]
+		client.timeoutMu.Unlock()
+		require.Zero(t, timeouts, "local contention is not an origin timeout")
+	}
+	require.Zero(t, hits.Load())
+	for range shardConcurrency {
+		<-client.slots()
+	}
+	require.NotNil(t, client.getCorpusManifest(context.Background()), "load recovers as soon as a slot is available")
+	require.EqualValues(t, 1, hits.Load())
+}
+
 func TestTruncateUTF8(t *testing.T) {
 	require.Equal(t, "héllo", truncateUTF8("héllo", 10))
-	require.Equal(t, "h", truncateUTF8("héllo", 2), "does not split the two-byte é")
+	require.Equal(t, "h", truncateUTF8("héllo", 2), "does not split a two-byte character")
 	require.Equal(t, "hé", truncateUTF8("héllo", 3))
 }
 
@@ -77,10 +128,10 @@ func TestExcerpt(t *testing.T) {
 	t.Run("picks the densest window and marks the cut", func(t *testing.T) {
 		text := excerpt(body, parseQueryTerms("why is smtp blocked"))
 		require.Contains(t, text, "SMTP ports 25, 465, and 587 are blocked")
-		require.True(t, strings.HasPrefix(text, "…"), "window starts mid-page")
-		require.True(t, strings.HasSuffix(text, "…"), "window ends mid-page")
+		require.True(t, strings.HasPrefix(text, "..."), "window starts mid-page")
+		require.True(t, strings.HasSuffix(text, "..."), "window ends mid-page")
 		require.NotContains(t, text, "\n", "whitespace is collapsed")
-		require.LessOrEqual(t, len(text), excerptLength+2*len("…")+excerptLead)
+		require.LessOrEqual(t, len(text), excerptLength+2*len("...")+excerptLead)
 	})
 
 	t.Run("prefers the window covering more distinct terms", func(t *testing.T) {
@@ -258,7 +309,7 @@ func TestPaginate(t *testing.T) {
 	require.Equal(t, len(content), next)
 
 	page, next = paginate(content, 0, 2)
-	require.Equal(t, "h", page, "does not split é")
+	require.Equal(t, "h", page, "does not split a two-byte character")
 	require.Equal(t, 1, next)
 
 	page, next = paginate(content, next, 10)
@@ -266,7 +317,7 @@ func TestPaginate(t *testing.T) {
 	require.Equal(t, 11, next)
 
 	page, next = paginate(content, 2, 100)
-	require.Equal(t, "llo wörld, this is a page", page, "a start inside é snaps forward to the next rune")
+	require.Equal(t, "llo wörld, this is a page", page, "a start inside a character snaps forward to the next rune")
 	require.Equal(t, len(content), next)
 
 	page, next = paginate(content, len(content)+5, 10)
@@ -284,7 +335,7 @@ func TestSearchDocs_ExcerptsAndProductFilter(t *testing.T) {
 	mock.EXPECT().ContentExcerpts(gomock.Any(), gomock.Any(), "resize").DoAndReturn(
 		func(_ context.Context, entries []DocsEntry, _ string) map[string]string {
 			require.LessOrEqual(t, len(entries), 3, "only the returned results are enriched")
-			return map[string]string{canonicalDocURL(entries[0].URL): "…Resize a Droplet to add CPU and RAM…"}
+			return map[string]string{canonicalDocURL(entries[0].URL): "...Resize a Droplet to add CPU and RAM..."}
 		})
 	tool := setupDocsToolWithMock(mock)
 
@@ -294,7 +345,7 @@ func TestSearchDocs_ExcerptsAndProductFilter(t *testing.T) {
 	require.False(t, resp.IsError)
 	text := resp.Content[0].(mcp.TextContent).Text
 	require.Contains(t, text, `pages in "droplets")`)
-	require.Contains(t, text, "…Resize a Droplet to add CPU and RAM…", "body excerpt replaces the description")
+	require.Contains(t, text, "...Resize a Droplet to add CPU and RAM...", "body excerpt replaces the description")
 	require.NotContains(t, text, "/products/kubernetes/")
 
 	t.Run("unknown product", func(t *testing.T) {
@@ -349,7 +400,7 @@ func TestTroubleshoot_BudgetsEmbeddedPage(t *testing.T) {
 	mock := NewMockDocsService(ctrl)
 	mock.EXPECT().FindTroubleshootPage("smtp").Return(entries, nil)
 	mock.EXPECT().FetchDocPage(smtpURL).Return(long, nil)
-	mock.EXPECT().ContentExcerpts(gomock.Any(), entries[1:], "smtp").Return(map[string]string{resizeURL: "…body excerpt…"})
+	mock.EXPECT().ContentExcerpts(gomock.Any(), entries[1:], "smtp").Return(map[string]string{resizeURL: "...body excerpt..."})
 	tool := setupDocsToolWithMock(mock)
 
 	resp, err := tool.troubleshoot(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"Symptom": "smtp"}}})
@@ -359,6 +410,6 @@ func TestTroubleshoot_BudgetsEmbeddedPage(t *testing.T) {
 	require.Less(t, len(text), len(long), "embedded page is cut")
 	require.Contains(t, text, fmt.Sprintf("Call docs-get-page with URL=%s and StartIndex=%d", smtpURL, maxEmbeddedPageBytes))
 	require.Contains(t, text, "2. Resize\n")
-	require.Contains(t, text, "…body excerpt…")
+	require.Contains(t, text, "...body excerpt...")
 	require.NotContains(t, text, "Resize description.")
 }

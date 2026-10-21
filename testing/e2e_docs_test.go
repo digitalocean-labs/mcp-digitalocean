@@ -288,7 +288,7 @@ func TestDocsFindForService(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		// Should not error — returns a helpful fallback message
+		// Should not error - returns a helpful fallback message
 		require.False(t, resp.IsError)
 
 		text := resp.Content[0].(mcp.TextContent).Text
@@ -349,7 +349,7 @@ func TestDocsGetQuickstart(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		// Should not error — returns a helpful fallback message
+		// Should not error - returns a helpful fallback message
 		require.False(t, resp.IsError)
 
 		text := resp.Content[0].(mcp.TextContent).Text

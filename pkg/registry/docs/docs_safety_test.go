@@ -512,7 +512,7 @@ func TestExcerptsPreserveUnicodeAndMatches(t *testing.T) {
 		require.NotEmpty(t, text, "body=%q", body)
 		require.True(t, utf8.ValidString(text), "%q", text)
 		require.Contains(t, text, "SMTP", "snapping must preserve a complete query hit and source case")
-		require.LessOrEqual(t, len(text), excerptLength+2*len("…"))
+		require.LessOrEqual(t, len(text), excerptLength+2*len("..."))
 		if strings.Contains(body, "API_KEY") {
 			require.Contains(t, text, "API_KEY=VALUE")
 		}
