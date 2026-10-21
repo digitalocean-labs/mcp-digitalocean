@@ -49,7 +49,6 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-get-agent-config",
 		"harness-runtime-create-agent-config",
 		"harness-runtime-delete-agent-config",
-		"harness-runtime-clone-agent-config",
 		"harness-runtime-list-config-sessions",
 		"harness-runtime-create-session",
 		"harness-runtime-get-session",
@@ -352,110 +351,6 @@ func TestDeleteAgentConfigAPIError(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to delete agent config")
-}
-
-// ---- CloneAgentConfig ----
-
-const testCloneConfigID = "119fb39c-14d9-7080-933e-b9b90e25acdb"
-
-func TestCloneAgentConfig(t *testing.T) {
-	var gotPath, gotMethod, gotContentType string
-	var gotBody map[string]any
-
-	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.Path
-		gotMethod = r.Method
-		gotContentType = r.Header.Get("Content-Type")
-		_ = json.NewDecoder(r.Body).Decode(&gotBody)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"config":` + configJSON(testCloneConfigID, "support-agent-copy") + `}`))
-	})
-
-	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{
-		"ConfigID": testConfigID,
-		"Name":     "support-agent-copy",
-	}))
-	require.NoError(t, err)
-	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs/"+testConfigID+"/clone", gotPath)
-	require.Equal(t, http.MethodPost, gotMethod)
-	require.Contains(t, gotContentType, "application/json")
-	require.Equal(t, "support-agent-copy", gotBody["name"])
-
-	text := callText(t, res)
-	require.Contains(t, text, testCloneConfigID)
-	require.Contains(t, text, "support-agent-copy")
-}
-
-func TestCloneAgentConfigMissingName(t *testing.T) {
-	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
-		t.Fatal("API must not be called for missing name")
-	})
-
-	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{
-		"ConfigID": testConfigID,
-	}))
-	require.NoError(t, err)
-	require.True(t, res.IsError)
-}
-
-func TestCloneAgentConfigWithSecretsAndOAuth(t *testing.T) {
-	var gotBody map[string]any
-
-	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&gotBody)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"config":` + configJSON(testCloneConfigID, "support-agent-copy") + `}`))
-	})
-
-	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{
-		"ConfigID": testConfigID,
-		"Name":     "support-agent-copy",
-		"Secrets":  map[string]any{"OPENAI_API_KEY": "sk-test-value"},
-		"OAuthAssignments": map[string]any{
-			"github": "11111111-1111-1111-1111-111111111111",
-		},
-	}))
-	require.NoError(t, err)
-	require.False(t, res.IsError)
-
-	secrets, ok := gotBody["secrets"].(map[string]any)
-	require.True(t, ok, "request body should have a 'secrets' key")
-	require.Equal(t, "sk-test-value", secrets["OPENAI_API_KEY"])
-
-	oauth, ok := gotBody["oauth_assignments"].(map[string]any)
-	require.True(t, ok, "request body should have an 'oauth_assignments' key")
-	require.Equal(t, "11111111-1111-1111-1111-111111111111", oauth["github"])
-}
-
-func TestCloneAgentConfigValidation(t *testing.T) {
-	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
-		t.Fatal("API must not be called for invalid input")
-	})
-
-	for name, args := range map[string]map[string]any{
-		"missing":  {},
-		"not uuid": {"ConfigID": "support-agent"},
-	} {
-		t.Run(name, func(t *testing.T) {
-			res, err := tool.cloneAgentConfig(context.Background(), request(args))
-			require.NoError(t, err)
-			require.True(t, res.IsError)
-		})
-	}
-}
-
-func TestCloneAgentConfigAPIError(t *testing.T) {
-	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"id":"not_found","message":"config not found"}`))
-	})
-
-	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID, "Name": "clone-api-err"}))
-	require.NoError(t, err)
-	require.True(t, res.IsError)
-	require.Contains(t, callText(t, res), "Failed to clone agent config")
 }
 
 // ---- ListConfigSessions ----
