@@ -251,9 +251,12 @@ func (t *Tool) cloneAgentConfig(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultError("ConfigID must be a UUID"), nil
 	}
 
-	body := map[string]any{}
-	if v, _ := args["Name"].(string); v != "" {
-		body["name"] = v
+	name, _ := args["Name"].(string)
+	if name == "" {
+		return mcp.NewToolResultError("Name is required for clone"), nil
+	}
+	body := map[string]any{
+		"name": name,
 	}
 
 	encoded, err := json.Marshal(body)
@@ -379,7 +382,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				agentConfigOut.Schema(),
 				mcp.WithDescription("Clone an existing hosted agent config into a new config with a fresh UUID. Useful for creating a variant of an existing environment spec without modifying the original. Returns the newly created clone."),
 				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID to clone")),
-				mcp.WithString("Name", mcp.Description("Optional name for the clone; if omitted the API derives a name from the source config")),
+				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the clone (1-64 chars, alphanumeric/dots/hyphens/underscores, unique among the team's active configs)")),
 			),
 		},
 		{

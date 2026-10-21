@@ -387,24 +387,16 @@ func TestCloneAgentConfig(t *testing.T) {
 	require.Contains(t, text, "support-agent-copy")
 }
 
-func TestCloneAgentConfigNoName(t *testing.T) {
-	var gotBody map[string]any
-
-	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&gotBody)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"config":` + configJSON(testCloneConfigID, "support-agent-clone") + `}`))
+func TestCloneAgentConfigMissingName(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for missing name")
 	})
 
 	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{
 		"ConfigID": testConfigID,
 	}))
 	require.NoError(t, err)
-	require.False(t, res.IsError)
-	// No name in body when not provided.
-	_, hasName := gotBody["name"]
-	require.False(t, hasName)
-	require.Contains(t, callText(t, res), testCloneConfigID)
+	require.True(t, res.IsError)
 }
 
 func TestCloneAgentConfigValidation(t *testing.T) {
@@ -431,7 +423,7 @@ func TestCloneAgentConfigAPIError(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":"not_found","message":"config not found"}`))
 	})
 
-	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID}))
+	res, err := tool.cloneAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID, "Name": "clone-api-err"}))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to clone agent config")
