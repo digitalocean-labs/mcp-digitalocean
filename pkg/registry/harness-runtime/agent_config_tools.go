@@ -236,55 +236,6 @@ func (t *Tool) deleteAgentConfig(ctx context.Context, req mcp.CallToolRequest) (
 	return mcp.NewToolResultText(fmt.Sprintf("Agent config %s deleted successfully.", configID)), nil
 }
 
-func (t *Tool) cloneAgentConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	args := req.GetArguments()
-	configID, _ := args["ConfigID"].(string)
-	if configID == "" {
-		return mcp.NewToolResultError("ConfigID is required"), nil
-	}
-	if _, err := uuid.Parse(configID); err != nil {
-		return mcp.NewToolResultError("ConfigID must be a UUID"), nil
-	}
-
-	name, _ := args["Name"].(string)
-	if name == "" {
-		return mcp.NewToolResultError("Name is required for clone"), nil
-	}
-	body := map[string]any{
-		"name": name,
-	}
-	if v, ok := args["Secrets"].(map[string]any); ok && len(v) > 0 {
-		body["secrets"] = v
-	}
-	if v, ok := args["OAuthAssignments"].(map[string]any); ok && len(v) > 0 {
-		body["oauth_assignments"] = v
-	}
-
-	encoded, err := json.Marshal(body)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
-	}
-
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, agentConfigsPath+"/"+configID+"/clone", nil)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
-	}
-	apiReq.Header.Set("Content-Type", "application/json")
-	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
-	apiReq.ContentLength = int64(len(encoded))
-
-	var out AgentConfigResponse
-	if _, err := client.Do(ctx, apiReq, &out); err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to clone agent config", err), nil
-	}
-	return agentConfigOut.Result(out)
-}
-
 func (t *Tool) listConfigSessions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.client(ctx)
 	if err != nil {
@@ -365,7 +316,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				agentConfigOut.Schema(),
-				mcp.WithDescription("Create a new hosted agent config from a name and an agents.yaml manifest. The manifest can be provided as a YAML string or a JSON object (which will be converted to YAML). Configs are immutable after creation; clone to change content. Returns the created config including its assigned UUID. SECURITY WARNING: if the manifest's top-level `secrets` map declares any credentials (e.g. API keys), those values are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files or source control, and avoid passing them through a terminal that logs history; prefer environment variables or the DO Console."),
+				mcp.WithDescription("Create a new hosted agent config from a name and an agents.yaml manifest. The manifest can be provided as a YAML string or a JSON object (which will be converted to YAML). Configs are immutable after creation; create a new config to change content. Returns the created config including its assigned UUID. SECURITY WARNING: if the manifest's top-level `secrets` map declares any credentials (e.g. API keys), those values are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files or source control, and avoid passing them through a terminal that logs history; prefer environment variables or the DO Console."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Config name (1-64 chars, alphanumeric/dots/hyphens/underscores, unique among the team's active configs)")),
 				mcp.WithObject("Manifest", mcp.Required(), mcp.Description("The agent manifest as a JSON object (e.g. {\"agent\":\"codex\",\"size\":\"mars-2vcpu-4gb\",\"env\":{...},\"secrets\":{...}}) — will be serialized to YAML for the API. Alternatively pass a pre-formatted YAML string. Any values under `secrets` are treated as sensitive write-only credentials (see security warning above).")),
 				mcp.WithBoolean("ManageModelAccessKey", mcp.Description("Ask the platform to provision a DO serverless-inference key for the agent (default false)")),
@@ -376,21 +327,8 @@ func (t *Tool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("harness-runtime-delete-agent-config",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
-				mcp.WithDescription("Permanently delete a hosted agent config by id. Any sessions that reference this config will remain but cannot be cloned. Returns 204 on success."),
+				mcp.WithDescription("Permanently delete a hosted agent config by id. Any sessions that reference this config will remain. Returns 204 on success."),
 				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID to delete")),
-			),
-		},
-		{
-			Handler: t.cloneAgentConfig,
-			Tool: mcp.NewTool("harness-runtime-clone-agent-config",
-				common.WithHints(common.HintsCreate),
-				common.WithRisk(common.RiskMedium),
-				agentConfigOut.Schema(),
-				mcp.WithDescription("Clone an existing hosted agent config into a new config with a fresh UUID. Useful for creating a variant of an existing environment spec without modifying the original. Returns the newly created clone. SECURITY WARNING: credentials are never copied from the source config. If the source manifest declares tenantSecret or oauth slots, their values are required here (via Secrets / OAuthAssignments) or the clone is rejected. Secrets values are write-only — never persisted or echoed back; avoid passing real secret values through a terminal that logs history."),
-				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID to clone")),
-				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the clone (1-64 chars, alphanumeric/dots/hyphens/underscores, unique among the team's active configs)")),
-				mcp.WithObject("Secrets", mcp.Description("Write-only map of tenantSecret slot name -> plaintext value, required when the source config declares those slots (never copied from the source; never returned by any tool)")),
-				mcp.WithObject("OAuthAssignments", mcp.Description("Map of oauth slot name -> OAuth assignment UUID, required when the source config declares those slots (never copied from the source)")),
 			),
 		},
 		{

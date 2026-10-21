@@ -14,7 +14,6 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 - **`harness-runtime-get-agent-config`** — Get one agent config by `ConfigID` (UUID), including its sanitized manifest and redacted credential slot metadata. Secret values are never returned.
 - **`harness-runtime-create-agent-config`** — Create a new agent config from a `Name` (required, 1-64 chars) and `Manifest` (required, JSON object or YAML string with the agent environment spec — e.g. `agent`, `size`, `env`, `permissions`, `egress`, `secrets`). Optionally set `ManageModelAccessKey` to have the platform provision a serverless-inference key. Configs are immutable after creation. Returns the created config with its assigned UUID. **SECURITY:** any values under the manifest's top-level `secrets` map are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files/source control; prefer environment variables or the DO Console over pasting them into a terminal that logs history.
 - **`harness-runtime-delete-agent-config`** — Permanently delete an agent config by `ConfigID` (UUID). **Destructive.** Existing sessions that reference this config are retained.
-- **`harness-runtime-clone-agent-config`** — Clone an existing agent config into a new config with a fresh UUID. Takes `ConfigID` and `Name` (both required). Optional `Secrets` (map of tenantSecret slot name → plaintext) and `OAuthAssignments` (map of oauth slot name → assignment UUID) — **required** when the source config declares those slots, since credentials are never copied from the source. Same write-only security note applies as create.
 - **`harness-runtime-list-config-sessions`** — List all sessions created from a specific agent config by `ConfigID`. Supports `PageSize`, `PageToken`, and `Status` filter.
 
 ### Sessions
@@ -56,7 +55,6 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - Show me the manifest of agent config 019fb39c-14d9-7080-933e-b9b90e25acda.
 - Find the agent config named "support" so I can run a simulation against it.
 - Create a new agent config from this manifest JSON.
-- Clone agent config 019fb39c-14d9-7080-933e-b9b90e25acda and name the copy "support-v2".
 - Delete agent config 019fb39c-14d9-7080-933e-b9b90e25acda.
 - List all sessions created from config 019fb39c-14d9-7080-933e-b9b90e25acda.
 - Create a new session from config 019fb39c-14d9-7080-933e-b9b90e25acda named "test-run-1".
