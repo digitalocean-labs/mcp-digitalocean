@@ -408,6 +408,7 @@ func (t *Tool) Tools() []server.ServerTool {
 		},
 	}
 	tools = append(tools, t.sessionTools()...)
+	tools = append(tools, t.checkpointTools()...)
 	tools = append(tools, t.sandboxTools()...)
 	return tools
 }

@@ -25,28 +25,28 @@ const (
 
 // Session is the user-facing record of a managed agent + sandbox pair.
 type Session struct {
-	SessionID             string     `json:"session_id"`
-	Name                  string     `json:"name,omitempty"`
-	ParentSessionID       string     `json:"parent_session_id,omitempty"`
-	ForkID                string     `json:"fork_id,omitempty"`
-	ForkFromCheckpointID  string     `json:"fork_from_checkpoint_id,omitempty"`
-	ForkCutoffEventID     string     `json:"fork_cutoff_event_id,omitempty"`
-	ForkedAt              *time.Time `json:"forked_at,omitempty"`
-	AgentKind             string     `json:"agent_kind,omitempty"`
-	Status                string     `json:"status,omitempty"`
-	SandboxID             string     `json:"sandbox_id,omitempty"`
-	CreatedAt             *time.Time `json:"created_at,omitempty"`
-	LastEventAt           *time.Time `json:"last_event_at,omitempty"`
-	KeepWarm              bool       `json:"keep_warm,omitempty"`
-	ResumeOnTopoff        bool       `json:"resume_on_topoff,omitempty"`
-	WorkspaceID           string     `json:"workspace_id,omitempty"`
-	PauseReason           string     `json:"pause_reason,omitempty"`
-	IdleTimeoutSeconds    int64      `json:"idle_timeout_seconds,omitempty"`
-	RepoHint              string     `json:"repo_hint,omitempty"`
-	Warnings              []string   `json:"warnings,omitempty"`
-	ConfigID              string     `json:"config_id,omitempty"`
-	OpenAISessionID       string     `json:"openai_session_id,omitempty"`
-	OpenAIEnvironmentID   string     `json:"openai_environment_id,omitempty"`
+	SessionID            string     `json:"session_id"`
+	Name                 string     `json:"name,omitempty"`
+	ParentSessionID      string     `json:"parent_session_id,omitempty"`
+	ForkID               string     `json:"fork_id,omitempty"`
+	ForkFromCheckpointID string     `json:"fork_from_checkpoint_id,omitempty"`
+	ForkCutoffEventID    string     `json:"fork_cutoff_event_id,omitempty"`
+	ForkedAt             *time.Time `json:"forked_at,omitempty"`
+	AgentKind            string     `json:"agent_kind,omitempty"`
+	Status               string     `json:"status,omitempty"`
+	SandboxID            string     `json:"sandbox_id,omitempty"`
+	CreatedAt            *time.Time `json:"created_at,omitempty"`
+	LastEventAt          *time.Time `json:"last_event_at,omitempty"`
+	KeepWarm             bool       `json:"keep_warm,omitempty"`
+	ResumeOnTopoff       bool       `json:"resume_on_topoff,omitempty"`
+	WorkspaceID          string     `json:"workspace_id,omitempty"`
+	PauseReason          string     `json:"pause_reason,omitempty"`
+	IdleTimeoutSeconds   int64      `json:"idle_timeout_seconds,omitempty"`
+	RepoHint             string     `json:"repo_hint,omitempty"`
+	Warnings             []string   `json:"warnings,omitempty"`
+	ConfigID             string     `json:"config_id,omitempty"`
+	OpenAISessionID      string     `json:"openai_session_id,omitempty"`
+	OpenAIEnvironmentID  string     `json:"openai_environment_id,omitempty"`
 }
 
 // CreateSessionResponse is the response of POST /v2/agents/sessions.
@@ -430,6 +430,224 @@ func (t *Tool) resolveHITL(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	return mcp.NewToolResultText(fmt.Sprintf("HITL request %s on session %s resolved with outcome %s.", requestID, sessionID, outcome)), nil
 }
 
+// ForkSessionResponse is the response of POST .../fork.
+type ForkSessionResponse struct {
+	Sessions []Session `json:"sessions"`
+}
+
+// ExecInSandboxResponse is the response of POST .../sandbox/exec.
+type ExecInSandboxResponse struct {
+	ExitCode   int32  `json:"exit_code"`
+	Stdout     string `json:"stdout,omitempty"`
+	Stderr     string `json:"stderr,omitempty"`
+	DurationMs int64  `json:"duration_ms,omitempty"`
+}
+
+// SessionIngressURL is the public HTTPS URL to a guest port of the session's sandbox.
+type SessionIngressURL struct {
+	IngressURLID string `json:"ingress_url_id,omitempty"`
+	SessionID    string `json:"session_id,omitempty"`
+	Port         int64  `json:"port,omitempty"`
+	URL          string `json:"url,omitempty"`
+	State        string `json:"state,omitempty"`
+}
+
+// GetIngressURLResponse is the response of GET .../ingress.
+type GetIngressURLResponse struct {
+	IngressURL SessionIngressURL `json:"ingress_url"`
+}
+
+// CancelTurnResponse is the response of POST .../cancel.
+type CancelTurnResponse struct {
+	Outcome string `json:"outcome,omitempty"`
+	RunID   string `json:"run_id,omitempty"`
+}
+
+// forkSession creates child sessions from a checkpoint of this session.
+func (t *Tool) forkSession(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	args := req.GetArguments()
+	sessionID, _ := args["SessionID"].(string)
+	if sessionID == "" {
+		return mcp.NewToolResultError("SessionID is required"), nil
+	}
+	if _, err := uuid.Parse(sessionID); err != nil {
+		return mcp.NewToolResultError("SessionID must be a UUID"), nil
+	}
+
+	body := map[string]any{}
+	if v, _ := args["FromCheckpointID"].(string); v != "" {
+		body["from_checkpoint_id"] = v
+	}
+	if v, ok := args["Count"].(float64); ok {
+		count := int(v)
+		if count < 1 || count > 4 {
+			return mcp.NewToolResultError("Count must be between 1 and 4"), nil
+		}
+		body["count"] = count
+	}
+
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
+	}
+
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, sessionsPath+"/"+sessionID+"/fork", nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+	apiReq.Header.Set("Content-Type", "application/json")
+	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
+	apiReq.ContentLength = int64(len(encoded))
+
+	var out ForkSessionResponse
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to fork session", err), nil
+	}
+	if out.Sessions == nil {
+		out.Sessions = []Session{}
+	}
+	return forkSessionOut.Result(out)
+}
+
+// execInSandbox runs a one-shot command inside the session's sandbox.
+func (t *Tool) execInSandbox(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	args := req.GetArguments()
+	sessionID, _ := args["SessionID"].(string)
+	if sessionID == "" {
+		return mcp.NewToolResultError("SessionID is required"), nil
+	}
+	if _, err := uuid.Parse(sessionID); err != nil {
+		return mcp.NewToolResultError("SessionID must be a UUID"), nil
+	}
+
+	rawArgv := args["Argv"]
+	if rawArgv == nil {
+		return mcp.NewToolResultError("Argv is required"), nil
+	}
+	argvSlice, ok := rawArgv.([]any)
+	if !ok || len(argvSlice) == 0 {
+		return mcp.NewToolResultError("Argv must be a non-empty array of strings"), nil
+	}
+	argv := make([]string, 0, len(argvSlice))
+	for _, a := range argvSlice {
+		s, ok := a.(string)
+		if !ok {
+			return mcp.NewToolResultError("Each element of Argv must be a string"), nil
+		}
+		argv = append(argv, s)
+	}
+
+	body := map[string]any{
+		"argv": argv,
+	}
+	if v, _ := args["Workdir"].(string); v != "" {
+		body["workdir"] = v
+	}
+	if v, _ := args["Stdin"].(string); v != "" {
+		body["stdin"] = v
+	}
+	if v, ok := args["TimeoutSeconds"].(float64); ok {
+		body["timeout_seconds"] = strconv.FormatInt(int64(v), 10)
+	}
+
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
+	}
+
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, sessionsPath+"/"+sessionID+"/sandbox/exec", nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+	apiReq.Header.Set("Content-Type", "application/json")
+	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
+	apiReq.ContentLength = int64(len(encoded))
+
+	var out ExecInSandboxResponse
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to exec in sandbox", err), nil
+	}
+	return execInSandboxOut.Result(out)
+}
+
+// getIngressURL returns the public HTTPS URL of the session's sandbox ingress.
+func (t *Tool) getIngressURL(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	sessionID, _ := req.GetArguments()["SessionID"].(string)
+	if sessionID == "" {
+		return mcp.NewToolResultError("SessionID is required"), nil
+	}
+	if _, err := uuid.Parse(sessionID); err != nil {
+		return mcp.NewToolResultError("SessionID must be a UUID"), nil
+	}
+
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, sessionsPath+"/"+sessionID+"/ingress", nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+
+	var out GetIngressURLResponse
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to get ingress URL", err), nil
+	}
+	return ingressURLOut.Result(out)
+}
+
+// cancelTurn stops the turn the agent is running right now and leaves the session idle.
+func (t *Tool) cancelTurn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	args := req.GetArguments()
+	sessionID, _ := args["SessionID"].(string)
+	if sessionID == "" {
+		return mcp.NewToolResultError("SessionID is required"), nil
+	}
+	if _, err := uuid.Parse(sessionID); err != nil {
+		return mcp.NewToolResultError("SessionID must be a UUID"), nil
+	}
+
+	body := map[string]any{}
+	if v, _ := args["RunID"].(string); v != "" {
+		body["run_id"] = v
+	}
+
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
+	}
+
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, sessionsPath+"/"+sessionID+"/cancel", nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+	apiReq.Header.Set("Content-Type", "application/json")
+	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
+	apiReq.ContentLength = int64(len(encoded))
+
+	var out CancelTurnResponse
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to cancel turn", err), nil
+	}
+	return cancelTurnOut.Result(out)
+}
+
 // sessionTools returns the session MCP tools to be merged into Tools().
 func (t *Tool) sessionTools() []server.ServerTool {
 	return []server.ServerTool{
@@ -531,6 +749,53 @@ func (t *Tool) sessionTools() []server.ServerTool {
 				mcp.WithString("Outcome", mcp.Required(), mcp.Description("Decision: HITL_OUTCOME_APPROVE, HITL_OUTCOME_REJECT, or HITL_OUTCOME_DEFER (back off without rejecting)")),
 				mcp.WithString("Reason", mcp.Description("Optional free-text reason captured in the audit trail")),
 				mcp.WithObject("Content", mcp.Description("Optional structured answer for a gated request that asks for DATA (e.g. form elicitation); a flat object matching the requestedSchema")),
+			),
+		},
+		{
+			Handler: t.forkSession,
+			Tool: mcp.NewTool("harness-runtime-fork-session",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
+				forkSessionOut.Schema(),
+				mcp.WithDescription("Create 1-4 child sessions from a checkpoint of this session. Each child boots a fresh sandbox from the checkpoint's machine-state capture and is drivable exactly like any other session. When FromCheckpointID is omitted, an implicit checkpoint of the session \"now\" is captured first. All-or-nothing: on failure nothing is left running. parent_session_id and fork_id are set on the returned sessions for lineage tracking."),
+				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The parent session UUID to fork from")),
+				mcp.WithString("FromCheckpointID", mcp.Description("Checkpoint to fork from (must be READY); omit to capture an implicit checkpoint of the session \"now\" first")),
+				mcp.WithNumber("Count", mcp.Description("Number of child sessions to create (1-4, default 1)")),
+			),
+		},
+		{
+			Handler: t.execInSandbox,
+			Tool: mcp.NewTool("harness-runtime-exec-in-sandbox",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
+				execInSandboxOut.Schema(),
+				mcp.WithDescription("Run a one-shot command inside the session's sandbox. Argv is run directly with no shell interpretation. Buffers stdout/stderr (capped at 1 MiB each) and returns them with the guest exit code. A non-zero exit code is still a success response — check exit_code in the result. Use argv=[\"bash\",\"-lc\",\"...\"] for pipelines. Each call is a fresh process; env/directory changes do not persist. timeout_seconds is clamped server-side to at most 240."),
+				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID to exec into")),
+				mcp.WithArray("Argv", mcp.Required(), mcp.Description("Program and arguments as an array of strings (e.g. [\"ls\", \"-la\", \"/workspace\"]); run directly, no shell expansion"), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithString("Workdir", mcp.Description("Working directory inside the sandbox (default /workspace)")),
+				mcp.WithString("Stdin", mcp.Description("Optional base64-encoded stdin payload delivered in full then closed (one-shot only, no streaming stdin)")),
+				mcp.WithNumber("TimeoutSeconds", mcp.Description("Optional timeout in seconds (server clamps to 240 max)")),
+			),
+		},
+		{
+			Handler: t.getIngressURL,
+			Tool: mcp.NewTool("harness-runtime-get-ingress-url",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
+				ingressURLOut.Schema(),
+				mcp.WithDescription("Get (or provision on first call) the public HTTPS URL of the session's sandbox ingress port (8000, the OpenHands Agent Server). Idempotent while the session runs: the same URL is returned on every call. The URL is revoked on pause/lock/rollback — re-fetch after those operations. Poll until state is INGRESS_URL_STATE_READY. Only READY and DETACHED sessions are served; PAUSED returns 409. Only OpenHands sessions support ingress. Requests to the URL require the caller's DO token as a Bearer header."),
+				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID")),
+			),
+		},
+		{
+			Handler: t.cancelTurn,
+			Tool: mcp.NewTool("harness-runtime-cancel-turn",
+				common.WithHints(common.HintsAction),
+				common.WithRisk(common.RiskMedium),
+				cancelTurnOut.Schema(),
+				mcp.WithDescription("Stop the turn the agent is running right now and leave the session alive and idle, ready for the next prompt (the Ctrl-C / Esc equivalent). The turn terminates on the data-plane stream as run.failed with code RUN_FAILURE_CODE_CANCELLED. Outcome: 'acked' (cancel forwarded), 'no_turn' (nothing running, not an error), 'unsupported' (agent cannot be interrupted). Not a pause or rollback — the microVM keeps running. Never billing-gated."),
+				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID")),
+				mcp.WithString("RunID", mcp.Description("Optional: the run_id of the specific turn to cancel (as returned by send-input); omit to cancel whatever turn is currently in flight")),
 			),
 		},
 	}

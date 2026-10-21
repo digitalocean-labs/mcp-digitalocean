@@ -28,6 +28,18 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 - **`harness-runtime-resume-session`** — Explicitly thaw a PAUSED session's sandbox. Returns synchronously once ready.
 - **`harness-runtime-patch-session`** — Update session-scoped settings. Currently supports `ResumeOnTopoff` (auto-resume consent toggle). Returns the updated session snapshot.
 - **`harness-runtime-resolve-hitl`** — Record the user's decision on a pending HITL request. `Outcome` must be one of `HITL_OUTCOME_APPROVE`, `HITL_OUTCOME_REJECT`, or `HITL_OUTCOME_DEFER`. Optional: `Reason` (audit trail text), `Content` (structured form answer).
+- **`harness-runtime-fork-session`** — Create 1-4 child sessions from a checkpoint of an existing session. `SessionID` required; `FromCheckpointID` (READY checkpoint UUID to fork from — omit to capture an implicit checkpoint of "now") and `Count` (1-4, default 1) are optional. Returns the created child sessions with `parent_session_id` and `fork_id` set.
+- **`harness-runtime-exec-in-sandbox`** — Run a one-shot command inside a session's sandbox. `SessionID` and `Argv` (non-empty string array) required. Optional: `Workdir` (default `/workspace`), `Stdin` (base64-encoded), `TimeoutSeconds` (max 240, server-enforced). Returns `exit_code`, `stdout`, `stderr`, and `duration_ms`. A non-zero exit code is still a successful HTTP response — check the field.
+- **`harness-runtime-get-ingress-url`** — Get (or provision on first call) the public HTTPS ingress URL for the session's sandbox port 8000 (OpenHands Agent Server). Idempotent while the session runs; revoked on pause/lock/rollback — re-fetch after those operations. Poll until `state` is `INGRESS_URL_STATE_READY`. Only OpenHands sessions support ingress.
+- **`harness-runtime-cancel-turn`** — Stop the turn currently running in a session (the Ctrl-C / Esc equivalent) and leave the session alive and idle. `SessionID` required; `RunID` optional (from `send-input`'s response — names the specific turn to cancel; omit to cancel whatever is in flight). The outcome field tells you what happened: `acked`, `no_turn`, or `unsupported`.
+
+### Checkpoints
+
+- **`harness-runtime-list-checkpoints`** — List a session's checkpoints newest first. `SessionID` required. Supports `PageSize` (1-200) and `PageToken` cursor.
+- **`harness-runtime-get-checkpoint`** — Get the current snapshot of a checkpoint by `SessionID` and `CheckpointID`. Poll until `status` is `READY` before forking or rolling back.
+- **`harness-runtime-create-checkpoint`** — Capture a session's live sandbox state as a durable checkpoint. `SessionID` required; optional `Label`. Synchronous — blocks until the checkpoint is READY and returns it directly. The session must not have an active turn in flight (409 if busy). Returns 501 for agents/substrates that do not support checkpoints.
+- **`harness-runtime-delete-checkpoint`** — Delete a checkpoint and its underlying machine-state capture. `SessionID` and `CheckpointID` required. **Destructive.** Idempotent: deleting an already-gone checkpoint still returns success.
+- **`harness-runtime-rollback-checkpoint`** — Rewind a session to a READY checkpoint. `SessionID` and `CheckpointID` required. **Destructive.** In-place restore — same `session_id`, new `sandbox_id`. The session must not have a workspace attached. The ingress URL is revoked — re-fetch after the session is READY.
 
 ### Sandbox
 
@@ -56,5 +68,14 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - Approve the HITL request on session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - Enable auto-resume on session 029ab39c-14d9-7080-933e-b9b90e25acda so it restarts automatically when the balance is restored.
 - Destroy session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Fork session 029ab39c-14d9-7080-933e-b9b90e25acda into 3 child sessions.
+- Fork from checkpoint cp_9f2c1a4b of session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Run `ls /workspace` in session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Get the ingress URL for session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Cancel the current turn in session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- List all checkpoints for session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Create a checkpoint of session 029ab39c-14d9-7080-933e-b9b90e25acda labeled "before-refactor".
+- Roll back session 029ab39c-14d9-7080-933e-b9b90e25acda to checkpoint cp_9f2c1a4b.
+- Delete checkpoint cp_9f2c1a4b from session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - What sandbox sizes are available?
 - Validate this policy against session 029ab39c-14d9-7080-933e-b9b90e25acda.

@@ -120,9 +120,9 @@ func TestValidatePolicyValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing manifest":       {},
-		"empty manifest object":  {"Manifest": map[string]any{}},
-		"empty manifest string":  {"Manifest": ""},
+		"missing manifest":      {},
+		"empty manifest object": {"Manifest": map[string]any{}},
+		"empty manifest string": {"Manifest": ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.validatePolicy(context.Background(), request(args))

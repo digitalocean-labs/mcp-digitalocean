@@ -342,8 +342,8 @@ func TestSendInputValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing session id":     {"Text": "hello"},
-		"invalid session id":     {"SessionID": "not-a-uuid", "Text": "hello"},
+		"missing session id":      {"Text": "hello"},
+		"invalid session id":      {"SessionID": "not-a-uuid", "Text": "hello"},
 		"missing text and inputs": {"SessionID": testSessionID},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -504,9 +504,9 @@ func TestPatchSessionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing session id":         {"ResumeOnTopoff": true},
-		"invalid session id":         {"SessionID": "not-uuid", "ResumeOnTopoff": true},
-		"missing patchable fields":   {"SessionID": testSessionID},
+		"missing session id":       {"ResumeOnTopoff": true},
+		"invalid session id":       {"SessionID": "not-uuid", "ResumeOnTopoff": true},
+		"missing patchable fields": {"SessionID": testSessionID},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.patchSession(context.Background(), request(args))
@@ -591,11 +591,11 @@ func TestResolveHITLValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing session id":  {"RequestID": testHITLReqID, "Outcome": "HITL_OUTCOME_APPROVE"},
-		"invalid session id":  {"SessionID": "not-uuid", "RequestID": testHITLReqID, "Outcome": "HITL_OUTCOME_APPROVE"},
-		"missing request id":  {"SessionID": testSessionID, "Outcome": "HITL_OUTCOME_APPROVE"},
-		"missing outcome":     {"SessionID": testSessionID, "RequestID": testHITLReqID},
-		"invalid outcome":     {"SessionID": testSessionID, "RequestID": testHITLReqID, "Outcome": "INVALID_OUTCOME"},
+		"missing session id": {"RequestID": testHITLReqID, "Outcome": "HITL_OUTCOME_APPROVE"},
+		"invalid session id": {"SessionID": "not-uuid", "RequestID": testHITLReqID, "Outcome": "HITL_OUTCOME_APPROVE"},
+		"missing request id": {"SessionID": testSessionID, "Outcome": "HITL_OUTCOME_APPROVE"},
+		"missing outcome":    {"SessionID": testSessionID, "RequestID": testHITLReqID},
+		"invalid outcome":    {"SessionID": testSessionID, "RequestID": testHITLReqID, "Outcome": "INVALID_OUTCOME"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.resolveHITL(context.Background(), request(args))
@@ -637,4 +637,308 @@ func TestResolveHITLAPIError(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to resolve HITL request")
+}
+
+// ---- ForkSession ----
+
+func TestForkSession(t *testing.T) {
+	var gotPath, gotMethod string
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"sessions":[` + sessionJSON(testSessionID2, "fork-1", "SESSION_STATUS_PROVISIONING") + `]}`))
+	})
+
+	res, err := tool.forkSession(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Count":     float64(1),
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/fork", gotPath)
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, float64(1), gotBody["count"])
+
+	text := callText(t, res)
+	require.Contains(t, text, testSessionID2)
+}
+
+func TestForkSessionWithCheckpoint(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"sessions":[` + sessionJSON(testSessionID2, "fork-from-cp", "SESSION_STATUS_PROVISIONING") + `]}`))
+	})
+
+	res, err := tool.forkSession(context.Background(), request(map[string]any{
+		"SessionID":        testSessionID,
+		"FromCheckpointID": "cp_9f2c1a4b",
+		"Count":            float64(2),
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "cp_9f2c1a4b", gotBody["from_checkpoint_id"])
+	require.Equal(t, float64(2), gotBody["count"])
+}
+
+func TestForkSessionValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing session id": {},
+		"invalid session id": {"SessionID": "not-a-uuid"},
+		"count too low":      {"SessionID": testSessionID, "Count": float64(0)},
+		"count too high":     {"SessionID": testSessionID, "Count": float64(5)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.forkSession(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestForkSessionEmptyResponse(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	})
+
+	res, err := tool.forkSession(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	text := callText(t, res)
+	require.Contains(t, text, "[]")
+}
+
+// ---- ExecInSandbox ----
+
+func TestExecInSandbox(t *testing.T) {
+	var gotPath, gotMethod string
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"exit_code":0,"stdout":"hello\n","stderr":"","duration_ms":42}`))
+	})
+
+	res, err := tool.execInSandbox(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Argv":      []any{"echo", "hello"},
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/sandbox/exec", gotPath)
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, []any{"echo", "hello"}, gotBody["argv"])
+
+	text := callText(t, res)
+	require.Contains(t, text, "hello")
+}
+
+func TestExecInSandboxWithOptionalParams(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"exit_code":0,"stdout":"ok\n"}`))
+	})
+
+	res, err := tool.execInSandbox(context.Background(), request(map[string]any{
+		"SessionID":      testSessionID,
+		"Argv":           []any{"cat", "input.txt"},
+		"Workdir":        "/tmp",
+		"Stdin":          "aGVsbG8=",
+		"TimeoutSeconds": float64(30),
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/tmp", gotBody["workdir"])
+	require.Equal(t, "aGVsbG8=", gotBody["stdin"])
+	require.Equal(t, "30", gotBody["timeout_seconds"])
+}
+
+func TestExecInSandboxValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing session id":   {"Argv": []any{"ls"}},
+		"invalid session id":   {"SessionID": "not-a-uuid", "Argv": []any{"ls"}},
+		"missing argv":         {"SessionID": testSessionID},
+		"empty argv":           {"SessionID": testSessionID, "Argv": []any{}},
+		"non-string argv elem": {"SessionID": testSessionID, "Argv": []any{42}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.execInSandbox(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestExecInSandboxAPIError(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"id":"conflict","message":"session not ready"}`))
+	})
+
+	res, err := tool.execInSandbox(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Argv":      []any{"ls"},
+	}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+}
+
+// ---- GetIngressURL ----
+
+func TestGetIngressURL(t *testing.T) {
+	var gotPath, gotMethod string
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotMethod = r.Method
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ingress_url":{"ingress_url_id":"iu_abc123","session_id":"` + testSessionID + `","port":8000,"url":"https://iu_abc123.nyc3.sandbox.ondigitalocean.com","state":"INGRESS_URL_STATE_READY"}}`))
+	})
+
+	res, err := tool.getIngressURL(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/ingress", gotPath)
+	require.Equal(t, http.MethodGet, gotMethod)
+
+	text := callText(t, res)
+	require.Contains(t, text, "INGRESS_URL_STATE_READY")
+	require.Contains(t, text, "nyc3.sandbox.ondigitalocean.com")
+}
+
+func TestGetIngressURLValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing session id": {},
+		"invalid session id": {"SessionID": "not-a-uuid"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.getIngressURL(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestGetIngressURLAPIError(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"id":"conflict","message":"session not running"}`))
+	})
+
+	res, err := tool.getIngressURL(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+	}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+}
+
+// ---- CancelTurn ----
+
+func TestCancelTurn(t *testing.T) {
+	var gotPath, gotMethod string
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"outcome":"acked","run_id":"run_xyz"}`))
+	})
+
+	res, err := tool.cancelTurn(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"RunID":     "run_xyz",
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/cancel", gotPath)
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, "run_xyz", gotBody["run_id"])
+
+	text := callText(t, res)
+	require.Contains(t, text, "acked")
+	require.Contains(t, text, "run_xyz")
+}
+
+func TestCancelTurnNoRunID(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"outcome":"no_turn"}`))
+	})
+
+	res, err := tool.cancelTurn(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	_, hasRunID := gotBody["run_id"]
+	require.False(t, hasRunID)
+	text := callText(t, res)
+	require.Contains(t, text, "no_turn")
+}
+
+func TestCancelTurnValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing session id": {},
+		"invalid session id": {"SessionID": "not-a-uuid"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.cancelTurn(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestCancelTurnAPIError(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"id":"forbidden","message":"cancel_turn not enabled for team"}`))
+	})
+
+	res, err := tool.cancelTurn(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+	}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
 }

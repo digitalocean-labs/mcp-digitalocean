@@ -60,6 +60,15 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-resume-session",
 		"harness-runtime-patch-session",
 		"harness-runtime-resolve-hitl",
+		"harness-runtime-fork-session",
+		"harness-runtime-exec-in-sandbox",
+		"harness-runtime-get-ingress-url",
+		"harness-runtime-cancel-turn",
+		"harness-runtime-list-checkpoints",
+		"harness-runtime-get-checkpoint",
+		"harness-runtime-create-checkpoint",
+		"harness-runtime-delete-checkpoint",
+		"harness-runtime-rollback-checkpoint",
 		"harness-runtime-list-sandbox-sizes",
 		"harness-runtime-validate-policy",
 	}, names)
@@ -260,8 +269,8 @@ func TestCreateAgentConfigWithManageKey(t *testing.T) {
 	})
 
 	res, err := tool.createAgentConfig(context.Background(), request(map[string]any{
-		"Name":                "my-agent",
-		"Manifest":            testManifest(),
+		"Name":                 "my-agent",
+		"Manifest":             testManifest(),
 		"ManageModelAccessKey": true,
 	}))
 	require.NoError(t, err)
