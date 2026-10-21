@@ -123,10 +123,10 @@ func TestSearchDocs_RendersCitationMetadata(t *testing.T) {
 	require.Contains(t, text, "Found 2 result(s)")
 	require.Contains(t, text, "searched 2 pages")
 	require.Contains(t, text, "1. Why is SMTP blocked?\n   https://docs.digitalocean.com/support/why-is-smtp-blocked/\n")
-	require.Contains(t, text, "[Support · support · updated 2026-07-13]")
+	require.Contains(t, text, "[Support | support | updated 2026-07-13]")
 	require.Contains(t, text, "SMTP is blocked on Droplets to prevent spam and abuse.")
 	require.Contains(t, text, "2. Droplet Quickstart\n   https://docs.digitalocean.com/products/droplets/getting-started/quickstart/\n")
-	require.Contains(t, text, "[Droplets · getting-started]")
+	require.Contains(t, text, "[Droplets | getting-started]")
 	require.Contains(t, text, "docs-get-page")
 	require.NotContains(t, text, "index.html.md", "results should cite canonical URLs")
 }

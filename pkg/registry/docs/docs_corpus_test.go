@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -16,7 +15,6 @@ import (
 )
 
 const (
-	smtpURL     = docsBase + "/support/why-is-smtp-blocked/"
 	resizeURL   = docsBase + "/products/droplets/how-to/resize/"
 	apiURL      = docsBase + "/reference/api/reference/droplets/"
 	supportDir  = docsBase + "/support/"
@@ -113,24 +111,6 @@ type corpusServer struct {
 	hits   map[string]*atomic.Int32
 }
 
-func newHandlerClient(handler http.Handler) *DocsClient {
-	client := NewDocsClient()
-	client.httpClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		if err := req.Context().Err(); err != nil {
-			return nil, err
-		}
-		recorder := httptest.NewRecorder()
-		handler.ServeHTTP(recorder, req)
-		if err := req.Context().Err(); err != nil {
-			return nil, err
-		}
-		response := recorder.Result()
-		response.Request = req
-		return response, nil
-	})
-	return client
-}
-
 func newCorpusServer(t *testing.T, shards map[string]string) *corpusServer {
 	t.Helper()
 	cs := &corpusServer{hits: make(map[string]*atomic.Int32)}
@@ -165,10 +145,6 @@ func newCorpusServer(t *testing.T, shards map[string]string) *corpusServer {
 	cs.client = newHandlerClient(mux)
 	return cs
 }
-
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
 
 func TestContentExcerpts(t *testing.T) {
 	server := newCorpusServer(t, map[string]string{

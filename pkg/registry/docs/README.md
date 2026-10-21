@@ -10,7 +10,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
   Keyword search over the titles, descriptions, and URLs of every public docs page (~4,600 pages, including individual support articles and API/CLI/SDK reference pages). Returns ranked results with canonical URL, product, page type, last-updated date, and an excerpt: the passage of the page body that mentions the query terms when available, otherwise the page description. Ranking does not search page bodies.
   **Arguments:**
     - `Query` (string, required): Search keywords
-    - `Limit` (number, default: 10): Maximum number of results to return
+    - `Limit` (number, default: 10): Maximum number of results to return (1 to 50)
     - `Product` (string, optional): Restrict results to one product or area (e.g., `"droplets"`, `"app platform"`, `"vpc"`, `"support"`, `"api"`)
 
 - **docs-get-page**
@@ -34,7 +34,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
   Find support and troubleshooting articles matching an error message or symptom by keyword, ranking support articles and troubleshooting-style titles first. Returns the content of the best matching page (up to 16 KB, with a pointer to the rest), plus related pages with excerpts.
   **Arguments:**
     - `Symptom` (string, required): Error message, symptom description, or keywords (e.g., `"520 status code"`, `"deployment failed health check"`)
-    - `Limit` (number, default: 5): Maximum number of results to return
+    - `Limit` (number, default: 5): Maximum number of results to return (1 to 50)
 
 - **docs-get-related**
   Extract and categorize all outbound documentation links from a specific docs page. Returns links grouped by type (how-to, reference, support, getting-started, concept, details).
