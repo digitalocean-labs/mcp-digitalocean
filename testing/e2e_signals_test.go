@@ -39,20 +39,24 @@ func TestSignalsGetExportOptions(t *testing.T) {
 }
 
 func TestSignalsGetAgentConsent(t *testing.T) {
-	agentID := os.Getenv("SIGNALS_AGENT_ID")
-	if agentID == "" {
-		t.Skip("SIGNALS_AGENT_ID not set")
+	envID := os.Getenv("SIGNALS_ENVIRONMENT_ID")
+	if envID == "" {
+		envID = os.Getenv("SIGNALS_AGENT_ID")
+	}
+	if envID == "" {
+		t.Skip("SIGNALS_ENVIRONMENT_ID or SIGNALS_AGENT_ID not set")
 	}
 	ctx, c := getTestClient(t)
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name:      "signals-get-agent-consent",
-			Arguments: map[string]any{"AgentID": agentID},
+			Arguments: map[string]any{"EnvironmentID": envID},
 		},
 	})
 	require.NoError(t, err)
 	skipIfSignalsUnavailable(t, resp)
 	require.False(t, resp.IsError, callToolResultText(resp))
 	text := callToolResultText(resp)
-	require.Contains(t, text, agentID)
+	require.Contains(t, text, envID)
+	require.Contains(t, text, "environment_id")
 }
