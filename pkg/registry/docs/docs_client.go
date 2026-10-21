@@ -7,12 +7,14 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -28,6 +30,7 @@ const (
 	negativeCacheTTL = 10 * time.Minute
 
 	maxResponseSize = 10 * 1024 * 1024 // 10 MB
+	maxCacheEntries = 256
 )
 
 // DocsEntry represents a single documentation page known to the index.
@@ -109,7 +112,28 @@ func (c *cache) get(key string) (any, bool) {
 func (c *cache) set(key string, data any, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if _, exists := c.store[key]; !exists && len(c.store) >= maxCacheEntries {
+		c.evictLocked()
+	}
 	c.store[key] = cacheEntry{data: data, expiresAt: time.Now().Add(ttl)}
+}
+
+func (c *cache) evictLocked() {
+	now := time.Now()
+	var oldestKey string
+	var oldestExpiry time.Time
+	for key, entry := range c.store {
+		if !entry.expiresAt.After(now) {
+			delete(c.store, key)
+			continue
+		}
+		if oldestExpiry.IsZero() || entry.expiresAt.Before(oldestExpiry) {
+			oldestKey, oldestExpiry = key, entry.expiresAt
+		}
+	}
+	if len(c.store) >= maxCacheEntries {
+		delete(c.store, oldestKey)
+	}
 }
 
 // RelatedLink represents a link found within a docs page.
@@ -135,6 +159,7 @@ type DocsClient struct {
 	cache      *cache
 
 	indexGroup singleflight.Group
+	fetchGroup singleflight.Group
 
 	// maxResponseSize is the accepted-body cap; tests lower it.
 	maxResponseSize int64
@@ -169,17 +194,77 @@ func validateDocsURL(u *neturl.URL) error {
 	return nil
 }
 
+func normalizePageURL(raw string) (string, error) {
+	if strings.ContainsAny(raw, "\\\x00\r\n\t") {
+		return "", fmt.Errorf("invalid page URL: forbidden character")
+	}
+	raw = strings.TrimSpace(raw)
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("invalid page URL: %w", err)
+	}
+	if u.Scheme == "" {
+		u, err = neturl.Parse(docsBase + "/" + strings.TrimLeft(raw, "/"))
+		if err != nil {
+			return "", fmt.Errorf("invalid page URL: %w", err)
+		}
+	}
+	if err := validateDocsURL(u); err != nil {
+		return "", err
+	}
+	cleaned := path.Clean("/" + u.Path)
+	if strings.HasSuffix(u.Path, "/") && cleaned != "/" {
+		cleaned += "/"
+	}
+	return (&neturl.URL{Scheme: u.Scheme, Host: u.Host, Path: cleaned}).String(), nil
+}
+
+func isDocsURL(raw string) bool {
+	u, err := neturl.Parse(raw)
+	return err == nil && validateDocsURL(u) == nil
+}
+
+func cleanInline(text string) string {
+	text = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, text)
+	return strings.Join(strings.Fields(text), " ")
+}
+
+func lastModDate(raw string) string {
+	if len(raw) < len(time.DateOnly) {
+		return ""
+	}
+	date := raw[:len(time.DateOnly)]
+	if _, err := time.Parse(time.DateOnly, date); err != nil {
+		return ""
+	}
+	return date
+}
+
 func (d *DocsClient) fetch(url string) (string, error) {
 	if cached, ok := d.cache.get("fetch:" + url); ok {
 		return cached.(string), nil
 	}
 
-	text, err := d.fetchUncached(url)
+	result, err, _ := d.fetchGroup.Do(url, func() (any, error) {
+		if cached, ok := d.cache.get("fetch:" + url); ok {
+			return cached, nil
+		}
+		text, err := d.fetchUncached(url)
+		if err != nil {
+			return nil, err
+		}
+		d.cache.set("fetch:"+url, text, pageCacheTTL)
+		return text, nil
+	})
 	if err != nil {
 		return "", err
 	}
-	d.cache.set("fetch:"+url, text, pageCacheTTL)
-	return text, nil
+	return result.(string), nil
 }
 
 // fetchUncached performs a bounded GET without touching the response cache.
@@ -240,7 +325,7 @@ func parseLlmsTxt(text string) *DocsIndex {
 
 		// Track section headers (## or ###)
 		if strings.HasPrefix(trimmed, "## ") || strings.HasPrefix(trimmed, "### ") {
-			section := strings.TrimLeft(trimmed, "# ")
+			section := cleanInline(html.UnescapeString(strings.TrimLeft(trimmed, "# ")))
 			currentSection = section
 			if _, exists := sectionSet[section]; !exists {
 				sectionSet[section] = struct{}{}
@@ -251,10 +336,13 @@ func parseLlmsTxt(text string) *DocsIndex {
 
 		// Parse link entries: - [Title](URL): Description
 		if matches := entryRe.FindStringSubmatch(trimmed); matches != nil {
+			if !isDocsURL(matches[2]) {
+				continue
+			}
 			entries = append(entries, DocsEntry{
-				Title:       matches[1],
+				Title:       cleanInline(html.UnescapeString(matches[1])),
 				URL:         matches[2],
-				Description: matches[3],
+				Description: cleanInline(html.UnescapeString(matches[3])),
 				Section:     currentSection,
 			})
 		}
@@ -292,10 +380,13 @@ func parseLlmsIndex(data []byte) (*DocsIndex, error) {
 		if r.URL == "" || r.Title == "" {
 			continue
 		}
-		if !strings.HasPrefix(r.URL, docsBase+"/") && r.URL != docsBase+"/" {
+		if !isDocsURL(r.URL) {
 			continue
 		}
-		section := r.Product
+		section := cleanInline(html.UnescapeString(r.Product))
+		if section == "" {
+			section = cleanInline(html.UnescapeString(r.Section))
+		}
 		if section == "" {
 			section = "General"
 		}
@@ -303,13 +394,16 @@ func parseLlmsIndex(data []byte) (*DocsIndex, error) {
 			sectionSet[section] = struct{}{}
 			sections = append(sections, section)
 		}
+		if !isDocsURL(r.MarkdownURL) {
+			r.MarkdownURL = ""
+		}
 		entries = append(entries, DocsEntry{
-			Title:        html.UnescapeString(r.Title),
+			Title:        cleanInline(html.UnescapeString(r.Title)),
 			URL:          r.URL,
-			Description:  html.UnescapeString(r.Description),
+			Description:  cleanInline(html.UnescapeString(r.Description)),
 			Section:      section,
 			MarkdownURL:  r.MarkdownURL,
-			LastModified: strings.SplitN(r.LastMod, "T", 2)[0],
+			LastModified: lastModDate(r.LastMod),
 		})
 	}
 
@@ -383,6 +477,9 @@ func (d *DocsClient) loadIndex() (*DocsIndex, error) {
 // GetServiceIndex fetches the llms.txt for a specific service.
 func (d *DocsClient) GetServiceIndex(service string) (*DocsIndex, error) {
 	slug := resolveServiceSlug(service)
+	if !validServiceSlug(slug) {
+		return nil, nil
+	}
 	cacheKey := "serviceIndex:" + slug
 
 	if cached, ok := d.cache.get(cacheKey); ok {
@@ -418,23 +515,14 @@ func (d *DocsClient) GetServiceIndex(service string) (*DocsIndex, error) {
 
 // FetchDocPage fetches a doc page as clean markdown.
 func (d *DocsClient) FetchDocPage(url string) (string, error) {
-	cacheKey := "page:" + url
+	pageURL, err := normalizePageURL(url)
+	if err != nil {
+		return "", err
+	}
+	cacheKey := "page:" + pageURL
 
 	if cached, ok := d.cache.get(cacheKey); ok {
 		return cached.(string), nil
-	}
-
-	// Normalize URL
-	pageURL := url
-	if !strings.HasPrefix(pageURL, "http") {
-		if !strings.HasPrefix(pageURL, "/") {
-			pageURL = "/" + pageURL
-		}
-		pageURL = docsBase + pageURL
-	} else if pageURL != docsBase && !strings.HasPrefix(pageURL, docsBase+"/") {
-		// Keep the docs tools closed-world: absolute URLs outside the docs
-		// site are rejected rather than proxied.
-		return "", fmt.Errorf("refusing to fetch %s: only %s pages are supported", url, docsBase)
 	}
 
 	// Try index.html.md for raw markdown
@@ -769,6 +857,9 @@ func matchTerms(index *DocsIndex, terms []queryTerm) ([][]fieldMatch, []int) {
 // FindQuickstart finds the quickstart page for a service.
 func (d *DocsClient) FindQuickstart(service string) (string, string, error) {
 	slug := resolveServiceSlug(service)
+	if !validServiceSlug(slug) {
+		return "", "", fmt.Errorf("invalid service slug %q", slug)
+	}
 
 	// Try common quickstart URL patterns
 	patterns := []string{
@@ -911,7 +1002,8 @@ func (d *DocsClient) ExtractRelatedLinks(url string) ([]RelatedLink, error) {
 		linkURL := match[2]
 
 		// Only include docs.digitalocean.com links
-		if !strings.Contains(linkURL, "docs.digitalocean.com") {
+		u, err := neturl.Parse(linkURL)
+		if err != nil || validateDocsURL(u) != nil {
 			continue
 		}
 
@@ -1057,4 +1149,10 @@ func resolveServiceSlug(service string) string {
 		return slug
 	}
 	return strings.ReplaceAll(lower, " ", "-")
+}
+
+var serviceSlugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*){0,2}$`)
+
+func validServiceSlug(slug string) bool {
+	return len(slug) <= 64 && serviceSlugRe.MatchString(slug)
 }
