@@ -757,7 +757,7 @@ func (t *Tool) sessionTools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				forkSessionOut.Schema(),
-				mcp.WithDescription("Create 1-4 child sessions from a checkpoint of this session. Each child boots a fresh sandbox from the checkpoint's machine-state capture and is drivable exactly like any other session. When FromCheckpointID is omitted, an implicit checkpoint of the session \"now\" is captured first. All-or-nothing: on failure nothing is left running. parent_session_id and fork_id are set on the returned sessions for lineage tracking."),
+				mcp.WithDescription("Create 1-4 child sessions from a checkpoint of this session. Each child boots a fresh sandbox from the checkpoint's machine-state capture and is drivable exactly like any other session. When FromCheckpointID is omitted, an implicit checkpoint of the session \"now\" is captured first. All-or-nothing: on failure nothing is left running. parent_session_id and fork_id are set on the returned sessions for lineage tracking. NOTE: only original (non-forked) sessions can be forked — a session that already has a parent_session_id returns 409. Use harness-runtime-get-session to check lineage before forking."),
 				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The parent session UUID to fork from")),
 				mcp.WithString("FromCheckpointID", mcp.Description("Checkpoint to fork from (must be READY); omit to capture an implicit checkpoint of the session \"now\" first")),
 				mcp.WithNumber("Count", mcp.Description("Number of child sessions to create (1-4, default 1)")),
