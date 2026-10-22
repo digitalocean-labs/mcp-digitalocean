@@ -156,16 +156,36 @@ func TestParseQueryTerms(t *testing.T) {
 	require.False(t, term.matches("how to manage domains"))
 }
 
-func TestQueryTerm_MatchesWord(t *testing.T) {
+func TestQueryTerm_MatchesExactTokens(t *testing.T) {
 	term := parseQueryTerms("droplet")[0]
-	require.True(t, term.matchesWord("droplet"))
-	require.True(t, term.matchesWord("resize a droplet today"))
-	require.True(t, term.matchesWord("droplet-based (droplet)"))
-	require.False(t, term.matchesWord("droplets"))
-	require.False(t, term.matchesWord("my_droplet"))
-	// Finds a later whole-word occurrence after a partial one.
-	require.True(t, term.matchesWord("droplets and one droplet"))
-	require.False(t, term.matchesWord(""))
+	for _, title := range []string{"droplet", "resize a droplet today", "droplet-based (droplet)", "my_droplet", "droplets and one droplet"} {
+		require.True(t, term.matchesExactTokens(fieldTerms(title)), title)
+	}
+	for _, title := range []string{"droplets", ""} {
+		require.False(t, term.matchesExactTokens(fieldTerms(title)), title)
+	}
+}
+
+func TestTitleBoostUsesExactTokens(t *testing.T) {
+	for _, tc := range []struct {
+		query, title string
+		titleMatch   bool
+		exactMatch   bool
+	}{
+		{"droplet", "MY_DROPLET", true, true},
+		{"configuration", "configure", true, false},
+		{"postgres", "postgresql", true, false},
+		{"spaces", "namespace", false, false},
+		{"caf", "caf\u00e9", false, false},
+		{"clair", "\u00e9clair", false, false},
+	} {
+		index := newDocsIndex([]DocsEntry{{Title: tc.title, URL: docsBase + "/x/"}}, nil, "llms-index.json")
+		matches, _ := matchTerms(index, parseQueryTerms(tc.query))
+		require.Equal(t, tc.titleMatch, matches[0][0].title, tc.query)
+		require.Equal(t, tc.exactMatch, matches[0][0].titleWord, tc.query)
+	}
+	index := newDocsIndex([]DocsEntry{{Title: "caf\u00e9", URL: docsBase + "/x/"}}, nil, "llms-index.json")
+	require.Empty(t, SearchIndex(index, "caf"), "the boost must not introduce a result with no matching token")
 }
 
 // TestRegressionSet_Fixture is the judged ranking regression set. Every

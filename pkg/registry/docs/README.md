@@ -45,7 +45,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 - `docs-search` and `docs-troubleshoot` rank pages from `docs.digitalocean.com/llms-index.json`, the published per-page metadata index (title, description, product, section, canonical URL, last-modified). It covers every public page, including support articles that the curated `llms.txt` overview omits. If `llms-index.json` is unavailable the client falls back to `llms.txt`, and if a refresh fails it keeps serving the last good index.
 - Ranking is keyword-based: query terms are lowercased, stripped of punctuation and stop words, and matched (with light stemming) against title, description, product, and URL path. Title matches outrank description and URL matches, pages matching every term are boosted, and terms that match very few pages (such as an error code) weigh double so they are not drowned out by common product words. Page bodies are not searched; see `corpus-search-followup.md` for the plan to add content-backed retrieval from `docs-corpus.jsonl`.
 - `docs-find-for-service` uses per-service `llms.txt` files
-- Fetches raw markdown via the `index.html.md` endpoint; only `docs.digitalocean.com` URLs are fetched
+- Uses `markdown_url` from the cached page index when available, including the last good index during refresh failures. Falls back to the `index.html.md` endpoint and then the original page URL without loading the index for a page read; only `docs.digitalocean.com` URLs are fetched
 - In-memory caching (30 min for pages, 1 hour for indexes); concurrent cold loads of the index share one fetch
 - Supports common service name aliases (e.g., "k8s" → "kubernetes", "gpu" → "bare-metal-gpus")
 

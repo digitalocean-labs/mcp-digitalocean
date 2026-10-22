@@ -525,7 +525,6 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 		return cached.(string), nil
 	}
 
-	// Try index.html.md for raw markdown
 	mdURL := pageURL
 	if strings.HasSuffix(mdURL, "index.html.md") {
 		// Already correct
@@ -535,22 +534,50 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 		mdURL += "/index.html.md"
 	}
 
-	content, err := d.fetch(mdURL)
-	if err == nil {
-		cleaned := cleanMarkdown(content)
-		d.cache.set(cacheKey, cleaned, pageCacheTTL)
-		return cleaned, nil
+	seen := make(map[string]bool)
+	for _, target := range []string{d.cachedMarkdownURL(pageURL), mdURL, pageURL} {
+		if target == "" || seen[target] {
+			continue
+		}
+		seen[target] = true
+		var content string
+		content, err = d.fetch(target)
+		if err == nil {
+			cleaned := cleanMarkdown(content)
+			d.cache.set(cacheKey, cleaned, pageCacheTTL)
+			return cleaned, nil
+		}
 	}
+	return "", fmt.Errorf("failed to fetch doc page %s: %w", url, err)
+}
 
-	// Fall back to the original URL
-	content, err = d.fetch(pageURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch doc page %s: %w", url, err)
+func (d *DocsClient) cachedMarkdownURL(pageURL string) string {
+	// A page read must not download the whole index just to discover a URL.
+	index := d.staleIndex.Load()
+	if cached, ok := d.cache.get("docsIndex"); ok {
+		index = cached.(*DocsIndex)
 	}
-
-	cleaned := cleanMarkdown(content)
-	d.cache.set(cacheKey, cleaned, pageCacheTTL)
-	return cleaned, nil
+	if index == nil {
+		return ""
+	}
+	key := strings.TrimSuffix(canonicalDocURL(pageURL), "/")
+	for _, entry := range index.Entries {
+		if !isDocsURL(entry.MarkdownURL) {
+			continue
+		}
+		mdURL, err := normalizePageURL(entry.MarkdownURL)
+		if err != nil {
+			continue
+		}
+		if mdURL == pageURL {
+			return mdURL
+		}
+		canonical, err := normalizePageURL(entry.URL)
+		if err == nil && strings.TrimSuffix(canonicalDocURL(canonical), "/") == key {
+			return mdURL
+		}
+	}
+	return ""
 }
 
 // queryTerm is one normalized query token plus a light stem so that, for
@@ -588,6 +615,15 @@ func (q queryTerm) matchesTokens(tokens []queryTerm) bool {
 	return false
 }
 
+func (q queryTerm) matchesExactTokens(tokens []queryTerm) bool {
+	for _, token := range tokens {
+		if token.text == q.text {
+			return true
+		}
+	}
+	return false
+}
+
 // entryTokens holds the tokenized metadata fields of one index entry. They
 // are built once when the index is parsed so queries do not re-tokenize
 // 4,600 entries each time.
@@ -614,27 +650,6 @@ func fieldTerms(field string) []queryTerm {
 		}
 	}
 	return terms
-}
-
-// matchesWord reports whether the term appears in field as a whole word,
-// i.e. not flanked by letters or digits.
-func (q queryTerm) matchesWord(field string) bool {
-	for start := 0; ; {
-		idx := strings.Index(field[start:], q.text)
-		if idx < 0 {
-			return false
-		}
-		from := start + idx
-		to := from + len(q.text)
-		if (from == 0 || !isWordByte(field[from-1])) && (to == len(field) || !isWordByte(field[to])) {
-			return true
-		}
-		start = from + 1
-	}
-}
-
-func isWordByte(b byte) bool {
-	return b == '_' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
 // stopWords are dropped from queries when other terms remain. They carry no
@@ -822,15 +837,14 @@ func matchTerms(index *DocsIndex, terms []queryTerm) ([][]fieldMatch, []int) {
 	backing := make([]fieldMatch, len(index.Entries)*len(terms))
 	docFreq := make([]int, len(terms))
 
-	for i, entry := range index.Entries {
-		titleLower := strings.ToLower(entry.Title)
+	for i := range index.Entries {
 		tokens := index.entryTokensAt(i)
 
 		row := backing[i*len(terms) : (i+1)*len(terms)]
 		for t, term := range terms {
 			row[t] = fieldMatch{
 				title:       term.matchesTokens(tokens.title),
-				titleWord:   term.matchesWord(titleLower),
+				titleWord:   term.matchesExactTokens(tokens.title),
 				description: term.matchesTokens(tokens.description),
 				section:     term.matchesTokens(tokens.section),
 				// URL path segments, e.g. "manage-domains" matches "domain"

@@ -454,3 +454,55 @@ func TestLastModDate(t *testing.T) {
 	require.Equal(t, "2024-02-29", lastModDate("2024-02-29"))
 	require.Equal(t, "2026-10-21", lastModDate("2026-10-21T00:00:00Z"))
 }
+
+func TestFetchDocPagePrefersMarkdownURL(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		markdown   string
+		request    string
+		stale      bool
+		failCustom bool
+		failFixed  bool
+		wantPaths  []string
+	}{
+		{"metadata", docsBase + "/alternate/page.md", "/page/", false, false, false, []string{"/alternate/page.md"}},
+		{"stale metadata", docsBase + "/alternate/page.md", "/page/", true, false, false, []string{"/alternate/page.md"}},
+		{"canonical request", docsBase + "/alternate/page.md", "/x/../page/?a=1#x", false, false, false, []string{"/alternate/page.md"}},
+		{"markdown request", docsBase + "/alternate/page.md", "/alternate/page.md", false, false, false, []string{"/alternate/page.md"}},
+		{"metadata missing", "", "/page/", false, false, false, []string{"/page/index.html.md"}},
+		{"metadata unavailable", docsBase + "/alternate/page.md", "/page/", false, true, false, []string{"/alternate/page.md", "/page/index.html.md"}},
+		{"original fallback", docsBase + "/alternate/page.md", "/page/", false, true, true, []string{"/alternate/page.md", "/page/index.html.md", "/page/"}},
+		{"duplicate fallback", docsBase + "/page/index.html.md", "/page/", false, false, true, []string{"/page/index.html.md", "/page/"}},
+		{"off origin", "https://evil.example/page.md", "/page/", false, false, false, []string{"/page/index.html.md"}},
+		{"off origin redirect", docsBase + "/alternate/page.md", "/page/", false, true, false, []string{"/alternate/page.md", "/page/index.html.md"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var paths []string
+			client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				paths = append(paths, r.URL.Path)
+				require.Equal(t, "docs.digitalocean.com", r.URL.Host)
+				if tc.name == "off origin redirect" && r.URL.Path == "/alternate/page.md" {
+					http.Redirect(w, r, "https://evil.example/page.md", http.StatusFound)
+					return
+				}
+				if (tc.failCustom && r.URL.Path == "/alternate/page.md") || (tc.failFixed && r.URL.Path == "/page/index.html.md") {
+					http.NotFound(w, r)
+					return
+				}
+				fmt.Fprint(w, "# Page")
+			}))
+			index := &DocsIndex{Entries: []DocsEntry{{Title: "Page", URL: docsBase + "/page/", MarkdownURL: tc.markdown}}}
+			if tc.stale {
+				client.staleIndex.Store(index)
+			} else {
+				client.cache.set("docsIndex", index, indexCacheTTL)
+			}
+			for range 2 {
+				content, err := client.FetchDocPage(tc.request)
+				require.NoError(t, err)
+				require.Equal(t, "# Page", content)
+			}
+			require.Equal(t, tc.wantPaths, paths, "page reads must not download the index")
+		})
+	}
+}
