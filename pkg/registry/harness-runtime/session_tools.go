@@ -557,7 +557,7 @@ func (t *Tool) execInSandbox(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		body["stdin"] = v
 	}
 	if v, ok := args["TimeoutSeconds"].(float64); ok {
-		body["timeout_seconds"] = strconv.FormatInt(int64(v), 10)
+		body["timeout_seconds"] = int64(v)
 	}
 
 	encoded, err := json.Marshal(body)

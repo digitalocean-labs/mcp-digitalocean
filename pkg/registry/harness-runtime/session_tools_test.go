@@ -769,7 +769,7 @@ func TestExecInSandboxWithOptionalParams(t *testing.T) {
 	require.False(t, res.IsError)
 	require.Equal(t, "/tmp", gotBody["workdir"])
 	require.Equal(t, "aGVsbG8=", gotBody["stdin"])
-	require.Equal(t, "30", gotBody["timeout_seconds"])
+	require.Equal(t, float64(30), gotBody["timeout_seconds"]) // JSON numbers unmarshal as float64
 }
 
 func TestExecInSandboxValidation(t *testing.T) {
