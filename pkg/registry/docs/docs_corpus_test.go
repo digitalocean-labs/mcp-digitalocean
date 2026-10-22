@@ -301,6 +301,48 @@ func TestFilterByProduct(t *testing.T) {
 	require.Equal(t, "app platform", normalizeFacet("App-Platform"))
 }
 
+func TestFilterByProductPrefersExactIdentity(t *testing.T) {
+	entries := []DocsEntry{
+		{Title: "App", Section: "App", URL: docsBase + "/products/app/"},
+		{Title: "App Platform", Section: "App Platform", URL: docsBase + "/products/app-platform/"},
+		{Title: "Application Platform", Section: "Application Platform", URL: docsBase + "/products/application-platform/"},
+		{Title: "Databases", Section: "Databases", URL: docsBase + "/products/databases/"},
+		{Title: "Networking", Section: "Networking", URL: docsBase + "/products/networking/"},
+		{Title: "Internet", Section: "Internet", URL: docsBase + "/products/internet/"},
+		{Title: "VPC", Section: "Networking", URL: docsBase + "/products/networking/vpc/"},
+	}
+	for _, tc := range []struct {
+		product string
+		want    []string
+	}{
+		{"app", []string{"App"}},
+		{"apps", []string{"App Platform"}},
+		{"App-Platform", []string{"App Platform"}},
+		{"networking", []string{"Networking", "VPC"}},
+		{"vpc", []string{"VPC"}},
+		{"net", nil},
+		{"a", nil},
+		{"platform", []string{"App Platform", "Application Platform"}},
+	} {
+		t.Run(tc.product, func(t *testing.T) {
+			index := newDocsIndex(entries, nil, "llms-index.json")
+			filtered := filterByProduct(index, tc.product)
+			var titles []string
+			for i, entry := range filtered.Entries {
+				titles = append(titles, entry.Title)
+				require.Equal(t, tokenizeEntry(entry), filtered.entryTokensAt(i))
+			}
+			require.Equal(t, tc.want, titles)
+		})
+	}
+	index := newDocsIndex(entries[1:], nil, "llms-index.json")
+	filtered := filterByProduct(index, "app")
+	require.Len(t, filtered.Entries, 1, "fallback respects token boundaries")
+	require.Equal(t, "App Platform", filtered.Entries[0].Title)
+	filtered = filterByProduct(index, "netw")
+	require.Len(t, filtered.Entries, 2, "long prefixes remain useful without matching Internet")
+}
+
 func TestPaginate(t *testing.T) {
 	content := "héllo wörld, this is a page"
 

@@ -762,22 +762,39 @@ func rankEntries(results []scoredEntry) []DocsEntry {
 	return entries
 }
 
-// filterByProduct narrows an index to one product. A page matches when its
-// section is (or contains) the product name, or its URL path contains the
-// product's slug, so "vpc" selects /networking/vpc/ pages even though their
-// section is "Networking". Term rarity is then measured within the subset.
+// filterByProduct prefers exact product names, aliases, and URL slugs.
+// Token matches are used only when no exact identity matches.
 func filterByProduct(index *DocsIndex, product string) *DocsIndex {
 	want := normalizeFacet(product)
 	if want == "" {
 		return index
 	}
-	slug := "/" + resolveServiceSlug(product) + "/"
+	service := resolveServiceSlug(product)
+	alias := normalizeFacet(service)
+	slug := "/" + service + "/"
+	exact := make([]bool, len(index.Entries))
+	hasExact := false
+	for i, entry := range index.Entries {
+		section := normalizeFacet(entry.Section)
+		exact[i] = section == want || section == alias || strings.Contains(urlPathLower(entry.URL), slug)
+		hasExact = hasExact || exact[i]
+	}
+	terms := fieldTerms(want)
 
 	filtered := &DocsIndex{Source: index.Source, FetchedAt: index.FetchedAt}
 	sectionSet := make(map[string]struct{})
 	for i, entry := range index.Entries {
-		section := normalizeFacet(entry.Section)
-		if !strings.Contains(section, want) && !strings.Contains(urlPathLower(entry.URL), slug) {
+		matches := exact[i]
+		if !hasExact {
+			matches = true
+			for _, term := range terms {
+				if !term.matchesTokens(index.entryTokensAt(i).section) {
+					matches = false
+					break
+				}
+			}
+		}
+		if !matches {
 			continue
 		}
 		filtered.Entries = append(filtered.Entries, entry)
