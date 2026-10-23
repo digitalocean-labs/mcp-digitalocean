@@ -45,6 +45,37 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 - **`harness-runtime-list-sandbox-sizes`** — List the available sandbox compute sizes (slug, vCPUs, memory, hourly and monthly pricing). The returned slugs are valid values for sandbox size fields in manifests.
 - **`harness-runtime-validate-policy`** — Stateless preflight: check a manifest's tool-permission policy against the agent's capabilities without creating a session. Takes `Manifest` (same JSON object as create-agent-config, must include a `permissions` block). Returns per-rule verdicts (`exact`, `degraded`, `unsupported`, `unverified`); `ok=false` means CreateSession would reject this policy.
 
+### Templates
+
+Custom sandbox templates let you layer an OCI image on a base template for a customized agent environment.
+
+- **`harness-runtime-list-templates`** — List the team's custom sandbox templates (id, name, status, spec, timestamps). Keyset-paginated. Only READY templates can be referenced in agent configs.
+- **`harness-runtime-get-template`** — Get a single custom sandbox template by `TemplateID` (UUID), including its spec (base template + OCI image source) and status.
+- **`harness-runtime-create-template`** — Register a new custom sandbox template. Requires `Name`, `BaseTemplate` (key like `codex-base`, `opencode-base`, `claude-code-base`, `hermes-base`, `hermes-byoa-base`, `langgraph-base`, `coding-base`, `crewai`), and `SourceOCIRef` (OCI image reference). The platform builds it asynchronously — poll until `TEMPLATE_STATUS_READY`.
+- **`harness-runtime-update-template`** — Update a template's `SourceOCIRef` and/or `BaseTemplate` key. Triggers a new build; poll until READY. Returns the updated template.
+- **`harness-runtime-delete-template`** — Permanently delete a custom sandbox template by `TemplateID` (UUID). **Destructive.** Agent configs referencing this template can no longer create sessions.
+- **`harness-runtime-list-template-builds`** — List builds for a template (newest first). `TemplateID` required. Supports `PageSize` and `PageToken` cursor.
+- **`harness-runtime-get-template-build`** — Get a single build by `TemplateID` and `BuildID` (both UUIDs). Includes status (PENDING, BUILDING, SUCCEEDED, FAILED), error message on failure, and the spec.
+
+### Workspaces
+
+Persistent workspaces are virtual disk volumes that survive across sessions.
+
+- **`harness-runtime-create-workspace`** — Provision a new persistent workspace. `SizeGibibytes` (1-100, integer) required. Optional `Name` label. Size is fixed at creation.
+- **`harness-runtime-list-workspaces`** — List the team's workspaces. Supports `PageSize`, `PageToken`, and `State` filter (`AVAILABLE`, `ATTACHING`, `ATTACHED`, `RELEASING`, `FAILED`, `DELETING`).
+- **`harness-runtime-get-workspace`** — Get a single workspace by `WorkspaceID` (UUID), including state, attached session, size, bytes used, and timestamps.
+- **`harness-runtime-delete-workspace`** — Permanently delete a workspace by `WorkspaceID`. **Destructive.** Must not be attached (409 if attached). All data is lost.
+
+### Workspace Transfers
+
+Bulk file transfer to/from a session's attached workspace via multipart upload or async download.
+
+- **`harness-runtime-create-workspace-transfer`** — Initiate a transfer (`SessionID` + `Direction` = `upload` | `download`). Uploads return `transfer_id`, `upload_id`, `part_size`, `expires_at`. Downloads return `transfer_id` — poll until completed.
+- **`harness-runtime-get-workspace-transfer`** — Get transfer status. For downloads, poll until `completed` to get `download_url` and `sha256`. For uploads, check `bytes_written`.
+- **`harness-runtime-cancel-workspace-transfer`** — Abort an active transfer. Idempotent.
+- **`harness-runtime-commit-workspace-upload`** — Finalize a multipart upload after all parts are PUT. Returns `size_bytes`.
+- **`harness-runtime-create-workspace-part-urls`** — Get presigned PUT URLs for a set of part numbers. `PartNumbers` (array of positive integers) required. URLs expire at `expires_at`.
+
 Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_session:create` / `agent_harness_session:delete` (write tools).
 
 ---
@@ -77,3 +108,19 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - Delete checkpoint cp_9f2c1a4b from session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - What sandbox sizes are available?
 - Validate this policy against session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- List my custom sandbox templates.
+- Show me template 049fb39c-14d9-7080-933e-b9b90e25acdc.
+- Create a new template "my-python-env" from codex-base with my OCI image.
+- Update template 049fb39c-14d9-7080-933e-b9b90e25acdc to use a new image tag.
+- Delete template 049fb39c-14d9-7080-933e-b9b90e25acdc.
+- List builds for template 049fb39c-14d9-7080-933e-b9b90e25acdc.
+- Show build details for template 049fb39c-14d9-7080-933e-b9b90e25acdc build 059fb39c-14d9-7080-933e-b9b90e25acdd.
+- Create a 10 GiB workspace named "project-data".
+- List my workspaces.
+- What's the status of workspace 069fb39c-14d9-7080-933e-b9b90e25acde?
+- Delete workspace 069fb39c-14d9-7080-933e-b9b90e25acde.
+- Start an upload transfer on session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Check the status of transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Get upload URLs for parts 1, 2, and 3 of transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Commit transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Cancel transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.

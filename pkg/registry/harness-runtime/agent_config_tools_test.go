@@ -70,6 +70,22 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-rollback-checkpoint",
 		"harness-runtime-list-sandbox-sizes",
 		"harness-runtime-validate-policy",
+		"harness-runtime-list-templates",
+		"harness-runtime-get-template",
+		"harness-runtime-create-template",
+		"harness-runtime-update-template",
+		"harness-runtime-delete-template",
+		"harness-runtime-list-template-builds",
+		"harness-runtime-get-template-build",
+		"harness-runtime-create-workspace",
+		"harness-runtime-list-workspaces",
+		"harness-runtime-get-workspace",
+		"harness-runtime-delete-workspace",
+		"harness-runtime-create-workspace-transfer",
+		"harness-runtime-get-workspace-transfer",
+		"harness-runtime-cancel-workspace-transfer",
+		"harness-runtime-commit-workspace-upload",
+		"harness-runtime-create-workspace-part-urls",
 	}, names)
 }
 
