@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -42,6 +43,35 @@ const (
 	oauthTokenPrefix = "doo_"
 )
 
+// publicContentServices may run with --allow-anonymous: their tools read
+// published content and never construct a DigitalOcean API client. Any other
+// service keeps the bearer guard, so a stray ALLOW_ANONYMOUS cannot drop
+// authentication from an account-scoped deployment.
+var publicContentServices = map[string]struct{}{
+	"docs": {},
+}
+
+// checkAnonymousServices reports whether the enabled service set may run
+// without the bearer guard. An empty set means every service is registered,
+// which includes account-scoped ones, so it is rejected along with any service
+// outside publicContentServices. Names are compared exactly as the registry
+// receives them, so a name this accepts is always one the registry can resolve.
+func checkAnonymousServices(services []string) error {
+	if len(services) == 0 {
+		return errors.New("--allow-anonymous requires --services to list only public-content services (docs); all services are enabled")
+	}
+	var rejected []string
+	for _, s := range services {
+		if _, ok := publicContentServices[s]; !ok {
+			rejected = append(rejected, fmt.Sprintf("%q", s))
+		}
+	}
+	if len(rejected) > 0 {
+		return fmt.Errorf("--allow-anonymous supports only public-content services (docs), got %s", strings.Join(rejected, ", "))
+	}
+	return nil
+}
+
 // getEnv retrieves the value of the environment variable named by the key.
 // If the variable is empty or not present, it returns the fallback value.
 func getEnv(key, fallback string) string {
@@ -49,6 +79,35 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvBool accepts the forms strconv.ParseBool does ("1", "true", "TRUE"),
+// so an operator writing ALLOW_ANONYMOUS=1 gets what they intended. An
+// unparseable value falls back rather than guessing; invalidBoolEnv reports it
+// so startup can warn once the logger exists.
+func getEnvBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(strings.TrimSpace(v))
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+// invalidBoolEnv returns the raw value of key when it is set to something
+// getEnvBool cannot parse, otherwise the empty string.
+func invalidBoolEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return ""
+	}
+	if _, err := strconv.ParseBool(strings.TrimSpace(v)); err != nil {
+		return v
+	}
+	return ""
 }
 
 func main() {
@@ -65,6 +124,7 @@ func main() {
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	allowAnonymous := flag.Bool("allow-anonymous", getEnvBool("ALLOW_ANONYMOUS", false), "Serve the MCP endpoint without the bearer-token guard or OAuth metadata. Requires --services to list only public-content services (docs); the server refuses to start otherwise (remote transport only)")
 	flag.Parse()
 
 	var level slog.Level
@@ -140,6 +200,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	if v := invalidBoolEnv("ALLOW_ANONYMOUS"); v != "" {
+		logger.Warn("ignoring ALLOW_ANONYMOUS: not a boolean", "value", v)
+	}
+
+	if *allowAnonymous {
+		if *transport == "stdio" {
+			logger.Warn("--allow-anonymous has no effect on stdio transport")
+		} else if err := checkAnonymousServices(services); err != nil {
+			logger.Error("refusing to start with anonymous access", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	var opts []server.ServerOption
 	opts = append(opts, server.WithPromptCapabilities(true))
 	if *enableToolErrorLogging {
@@ -150,33 +223,38 @@ func main() {
 	svr := server.NewMCPServer(mcpName, mcpVersion, opts...)
 
 	// For remote (non-stdio) transports, serve the OAuth protected resource
-	// metadata document and challenge unauthenticated requests. The resource is
-	// taken from --mcp-resource-url when set, otherwise derived from each
-	// request's scheme and host.
+	// metadata document and challenge unauthenticated requests, unless
+	// --allow-anonymous opts a public-content service (docs) out of both. The
+	// resource is taken from --mcp-resource-url when set, otherwise derived from
+	// each request's scheme and host.
 	var (
 		wellKnownHandler       http.HandlerFunc
 		openaiChallengeHandler http.HandlerFunc
 		requireAuth            func(http.Handler) http.Handler
 	)
 	if *transport != "stdio" {
-		authServer := oauthmeta.ProdAuthorizationServer
-		serverURL := strings.TrimSpace(*serverURLFlag)
+		if *allowAnonymous {
+			logger.Info("anonymous access enabled; not serving OAuth metadata or challenging requests")
+		} else {
+			authServer := oauthmeta.ProdAuthorizationServer
+			serverURL := strings.TrimSpace(*serverURLFlag)
 
-		wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
-			Resource:               serverURL,
-			AuthorizationServers:   []string{authServer},
-			BearerMethodsSupported: []string{"header"},
-		})
+			wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
+				Resource:               serverURL,
+				AuthorizationServers:   []string{authServer},
+				BearerMethodsSupported: []string{"header"},
+			})
 
-		challengeCfg := oauthmeta.ChallengeConfig{
-			Resource: serverURL,
-			Scopes:   []string{"read", "write"},
+			challengeCfg := oauthmeta.ChallengeConfig{
+				Resource: serverURL,
+				Scopes:   []string{"read", "write"},
+			}
+			requireAuth = func(next http.Handler) http.Handler {
+				return oauthmeta.RequireBearer(next, challengeCfg)
+			}
+
+			logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
 		}
-		requireAuth = func(next http.Handler) http.Handler {
-			return oauthmeta.RequireBearer(next, challengeCfg)
-		}
-
-		logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
 
 		if token := strings.TrimSpace(*openaiAppsVerificationTokenFlag); token != "" && token != "OPENAI_APPS_VERIFICATION_TOKEN" {
 			openaiChallengeHandler = openaichallenge.Handler(token)
