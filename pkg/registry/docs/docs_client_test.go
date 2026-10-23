@@ -132,6 +132,10 @@ func TestSearchIndex(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			results := SearchIndex(index, tc.query)
+			if tc.expectMinimum == 0 {
+				require.Empty(t, results)
+				return
+			}
 			require.GreaterOrEqual(t, len(results), tc.expectMinimum)
 			if tc.expectFirst != "" && len(results) > 0 {
 				require.Equal(t, tc.expectFirst, results[0].Title)
@@ -252,7 +256,6 @@ func TestCategorizeDocLink(t *testing.T) {
 }
 
 func TestFindTroubleshootPage(t *testing.T) {
-	// Uses SearchIndex-style logic internally; test the troubleshoot-specific scoring
 	index := parseLlmsTxt(testLlmsTxt + `
 ### App Platform Support
 
@@ -268,6 +271,14 @@ func TestFindTroubleshootPage(t *testing.T) {
 		}
 	}
 	require.Equal(t, 2, supportCount, "should have parsed 2 support entries")
+	client := NewDocsClient()
+	client.cache.set("docsIndex", index, indexCacheTTL)
+	results, err := client.FindTroubleshootPage("520 status code")
+	require.NoError(t, err)
+	require.NotEmpty(t, results)
+	require.Equal(t, "Why am I receiving 520 status codes from my app?", results[0].Title)
+	_, err = client.FindTroubleshootPage("!!!")
+	require.ErrorContains(t, err, "no searchable terms")
 }
 
 func TestCleanMarkdown(t *testing.T) {
