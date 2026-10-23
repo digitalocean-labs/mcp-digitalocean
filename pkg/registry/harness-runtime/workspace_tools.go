@@ -283,8 +283,26 @@ func (t *Tool) createWorkspaceTransfer(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultError("Direction is required and must be 'upload' or 'download'"), nil
 	}
 
+	wsPath, _ := args["Path"].(string)
+	if wsPath == "" {
+		return mcp.NewToolResultError("Path is required"), nil
+	}
+
 	body := map[string]any{
 		"direction": direction,
+		"path":      wsPath,
+	}
+	if v, ok := args["IsArchive"].(bool); ok {
+		body["is_archive"] = v
+	}
+	if v, ok := args["AsArchive"].(bool); ok {
+		body["as_archive"] = v
+	}
+	if v, ok := args["SizeBytes"].(float64); ok {
+		body["size_bytes"] = int64(v)
+	}
+	if v, _ := args["SHA256"].(string); v != "" {
+		body["sha256"] = v
 	}
 
 	encoded, err := json.Marshal(body)
@@ -527,6 +545,11 @@ func (t *Tool) workspaceTools() []server.ServerTool {
 				mcp.WithDescription("Initiate a workspace bulk transfer (upload or download). For uploads: returns a transfer_id, upload_id, part_size, and expires_at — split the payload into parts of part_size bytes, then call create-workspace-part-upload-urls to get presigned PUT URLs, upload each part, and finally commit-workspace-upload. For downloads: starts an async export and returns transfer_id — poll get-workspace-transfer until status is 'completed' to get the download_url."),
 				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID whose workspace to transfer")),
 				mcp.WithString("Direction", mcp.Required(), mcp.Description("Transfer direction: 'upload' or 'download'")),
+				mcp.WithString("Path", mcp.Required(), mcp.Description("Workspace-relative path. Destination for upload, source for download. Paths that escape the workspace root are rejected.")),
+				mcp.WithBoolean("IsArchive", mcp.Description("Upload only. When true, the payload is a tar the guest extracts at Path.")),
+				mcp.WithBoolean("AsArchive", mcp.Description("Download only. When true, Path is exported as a tar stream.")),
+				mcp.WithNumber("SizeBytes", mcp.Description("Optional total payload size in bytes. Validated against the max staged object size (50 GiB); a larger value returns 413.")),
+				mcp.WithString("SHA256", mcp.Description("Optional lowercase hex SHA-256 of the full payload. If set on an upload, it must match on commit.")),
 			),
 		},
 		{

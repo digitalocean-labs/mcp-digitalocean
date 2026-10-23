@@ -283,12 +283,14 @@ func TestCreateWorkspaceTransfer(t *testing.T) {
 	res, err := tool.createWorkspaceTransfer(context.Background(), request(map[string]any{
 		"SessionID": testSessionID,
 		"Direction": "upload",
+		"Path":      "/workspace/data.tar",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/workspace/transfers", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Equal(t, "upload", gotBody["direction"])
+	require.Equal(t, "/workspace/data.tar", gotBody["path"])
 
 	text := callText(t, res)
 	require.Contains(t, text, testTransferID)
@@ -309,10 +311,39 @@ func TestCreateWorkspaceTransferDownload(t *testing.T) {
 	res, err := tool.createWorkspaceTransfer(context.Background(), request(map[string]any{
 		"SessionID": testSessionID,
 		"Direction": "download",
+		"Path":      "/workspace/export",
+		"AsArchive": true,
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Equal(t, "download", gotBody["direction"])
+	require.Equal(t, "/workspace/export", gotBody["path"])
+	require.Equal(t, true, gotBody["as_archive"])
+}
+
+func TestCreateWorkspaceTransferWithOptionalParams(t *testing.T) {
+	var gotBody map[string]any
+
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"transfer_id":"` + testTransferID + `","direction":"upload","status":"pending"}`))
+	})
+
+	res, err := tool.createWorkspaceTransfer(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Direction": "upload",
+		"Path":      "/workspace/archive.tar",
+		"IsArchive": true,
+		"SizeBytes": float64(1048576),
+		"SHA256":    "abc123def456",
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, true, gotBody["is_archive"])
+	require.Equal(t, float64(1048576), gotBody["size_bytes"])
+	require.Equal(t, "abc123def456", gotBody["sha256"])
 }
 
 func TestCreateWorkspaceTransferValidation(t *testing.T) {
@@ -321,10 +352,11 @@ func TestCreateWorkspaceTransferValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing session id": {"Direction": "upload"},
-		"invalid session id": {"SessionID": "not-a-uuid", "Direction": "upload"},
-		"missing direction":  {"SessionID": testSessionID},
-		"invalid direction":  {"SessionID": testSessionID, "Direction": "sideways"},
+		"missing session id": {"Direction": "upload", "Path": "/workspace/f"},
+		"invalid session id": {"SessionID": "not-a-uuid", "Direction": "upload", "Path": "/workspace/f"},
+		"missing direction":  {"SessionID": testSessionID, "Path": "/workspace/f"},
+		"invalid direction":  {"SessionID": testSessionID, "Direction": "sideways", "Path": "/workspace/f"},
+		"missing path":       {"SessionID": testSessionID, "Direction": "upload"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.createWorkspaceTransfer(context.Background(), request(args))
@@ -344,6 +376,7 @@ func TestCreateWorkspaceTransferAPIError(t *testing.T) {
 	res, err := tool.createWorkspaceTransfer(context.Background(), request(map[string]any{
 		"SessionID": testSessionID,
 		"Direction": "upload",
+		"Path":      "/workspace/data.tar",
 	}))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
