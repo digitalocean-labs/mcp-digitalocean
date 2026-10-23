@@ -1317,10 +1317,11 @@ func stripHTMLFragment(s string) string {
 }
 
 // serviceAliases maps common service name aliases to URL slugs. A slug has to
-// be one the site serves markdown for: the AI product consolidated under
-// /products/inference/, and its older inference-hub and ai-platform paths are
-// HTML-only 302 aliases, so the index.html.md variant 404s and FetchDocPage
-// falls back to the rendered page.
+// be one the site serves markdown for. Superseded product paths such as
+// inference-hub, ai-platform, images/snapshots and network-file-storage are
+// HTML-only 302 aliases: the redirect is not applied to the index.html.md
+// variant, so it 404s, FetchDocPage falls back to the rendered page and
+// FindQuickstart finds nothing.
 var serviceAliases = map[string]string{
 	"kubernetes":           "kubernetes",
 	"k8s":                  "kubernetes",
@@ -1353,8 +1354,8 @@ var serviceAliases = map[string]string{
 	"docr":                 "container-registry",
 	"volumes":              "volumes",
 	"block storage":        "volumes",
-	"snapshots":            "images/snapshots",
-	"backups":              "images/backups",
+	"snapshots":            "snapshots",
+	"backups":              "backups",
 	"marketplace":          "marketplace",
 	"serverless inference": "inference",
 	"genai":                "inference",
@@ -1369,8 +1370,8 @@ var serviceAliases = map[string]string{
 	"inference hub":        "inference",
 	"cspm":                 "cspm",
 	"cloud security":       "cspm",
-	"nfs":                  "network-file-storage",
-	"network file storage": "network-file-storage",
+	"nfs":                  "nfs",
+	"network file storage": "nfs",
 }
 
 func resolveServiceSlug(service string) string {

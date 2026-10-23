@@ -172,6 +172,10 @@ func TestResolveServiceSlug(t *testing.T) {
 		{"gradient", "inference"},
 		{"inference", "inference"},
 		{"inference hub", "inference"},
+		{"nfs", "nfs"},
+		{"network file storage", "nfs"},
+		{"snapshots", "snapshots"},
+		{"backups", "backups"},
 	}
 
 	for _, tc := range tests {
