@@ -1316,7 +1316,11 @@ func stripHTMLFragment(s string) string {
 	return htmlTags.ReplaceAllString(s, "")
 }
 
-// serviceAliases maps common service name aliases to URL slugs.
+// serviceAliases maps common service name aliases to URL slugs. A slug has to
+// be one the site serves markdown for: the AI product consolidated under
+// /products/inference/, and its older inference-hub and ai-platform paths are
+// HTML-only 302 aliases, so the index.html.md variant 404s and FetchDocPage
+// falls back to the rendered page.
 var serviceAliases = map[string]string{
 	"kubernetes":           "kubernetes",
 	"k8s":                  "kubernetes",
@@ -1352,15 +1356,17 @@ var serviceAliases = map[string]string{
 	"snapshots":            "images/snapshots",
 	"backups":              "images/backups",
 	"marketplace":          "marketplace",
-	"gradient":             "gradient",
-	"gradient ai":          "gradient",
-	"dedicated inference":  "ai-platform",
-	"dedicated-inference":  "ai-platform",
+	"serverless inference": "inference",
+	"genai":                "inference",
+	"gradient":             "inference",
+	"gradient ai":          "inference",
+	"dedicated inference":  "inference",
+	"dedicated-inference":  "inference",
 	"gpu":                  "bare-metal-gpus",
 	"bare metal":           "bare-metal-gpus",
 	"gpu droplets":         "bare-metal-gpus",
-	"inference":            "inference-hub",
-	"inference hub":        "inference-hub",
+	"inference":            "inference",
+	"inference hub":        "inference",
 	"cspm":                 "cspm",
 	"cloud security":       "cspm",
 	"nfs":                  "network-file-storage",
