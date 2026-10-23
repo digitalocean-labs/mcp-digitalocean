@@ -1,9 +1,10 @@
 # Follow-up: content-backed docs retrieval from `docs-corpus.jsonl`
 
-Status: proposal. This documents what the first slice (metadata retrieval over
-`llms-index.json`) deliberately does not do, and how to add content-backed
-retrieval without regressing the credential-free, closed-world design of the
-docs tools.
+Status: option A (lazy shard fetch for excerpts) is shipped; option B
+(content-backed ranking) remains a proposal. This documents what the
+metadata ranker over `llms-index.json` deliberately does not do, what the
+excerpt layer adds, and how to add content-backed retrieval without
+regressing the credential-free, closed-world design of the docs tools.
 
 ## Where the first slice stops
 
@@ -13,12 +14,13 @@ page bodies. On the judged regression set (`testdata/regression_queries.json`)
 that moved Recall@5 from 1/24 to 24/24, so the candidate universe, not body
 text, was the bottleneck.
 
-Body text still matters for two things the first slice cannot do:
+Body text still matters for two things:
 
 1. Queries whose terms appear only in the body (an exact error string, a flag
-   name, a config key).
-2. Query-focused excerpts for citations. Today the excerpt is the page
-   description (median 74 characters; 141 pages have none).
+   name, a config key). Not addressed; stage 1 still gates candidates.
+2. Query-focused excerpts for citations. Addressed by option A below: the
+   excerpt is now a query-focused body window from a bounded set of hits, falling
+   back to the description (median 74 characters; 141 pages have none).
 
 ## The content feed
 
@@ -60,22 +62,53 @@ snapshot in the binary was already rejected in #360 because it goes stale.
 
 ## Options
 
-### A. Lazy shard fetch for the top-K (in-repo, no new infrastructure)
+### A. Lazy shard fetch for the returned results (shipped, in-repo)
 
-Keep metadata retrieval as stage 1. For the top-K candidates (K = 10), map
-each canonical URL to its shard by longest-prefix match over the manifest,
-fetch only those shards (deduplicated, bounded concurrency 4, 15 s timeout,
-10 MB cap, 30 min cache), then:
+Metadata retrieval stays stage 1. For the results a query returns (at most
+`Limit`), `ContentExcerpts` maps each canonical URL to its shard by walking
+up the path over the manifest, fetches only those shards (deduplicated, at
+most 8 per query in result order, at most 4 concurrent corpus loads across
+one client, 5 s enrichment deadline, 30 min shard cache). Concurrent queries
+share each manifest/shard load. A cancelled caller stops waiting without
+cancelling another caller's load; shared loads have their own 5 s deadline.
+Origin failures are negative-cached for 10 min. A single deadline expiry is
+not, so one stall is retried by the next query; three in a row for the same
+key are, so a persistently slow origin does not add the full budget to every
+query.
 
-- re-rank the top-K with a field-weighted score that includes body text;
-- return a query-focused excerpt (first window containing the most query
-  terms, ~300 characters) instead of the description.
+The client rejects a declared oversized response before downloading its body
+and also checks the streamed/decompressed size using a one-byte overflow
+probe. Bodies over 10 MB are rejected, never parsed or cached as a successful
+prefix. All requests and redirects stay on the HTTPS docs origin.
 
-Cost per cold query: typically 1-5 shards, ~0.5-1 s added. Warm: none.
-Pages in shards over the size cap (API reference) fall back to the
-description. The shard-prefix mapping is empirically exact but is not a
-documented contract of the schema; the manifest should grow a `prefix` field
-or the client must tolerate misses (fall back to metadata).
+Excerpts preserve source case and UTF-8 boundaries and contain at least one
+complete query-term match (same token rule as ranking: exact, stem, or
+4+ character prefix). Selection considers the first 8 hits per term in the
+first 64 KB of the page body, scoring the actual whitespace-adjusted windows
+of up to 300 bytes plus ellipses. It does not promise the globally best
+passage in the full page. Anything unresolved falls back to the description.
+
+Measured on 2026-10-20 against the live site over the 28-query regression
+set (top-5 per query), with a fresh corpus cache for every cold measurement
+so "cold" includes the manifest fetch:
+
+| Metric | Value |
+| --- | --- |
+| Results with a body excerpt | 136 / 140 (the misses are API reference pages; that shard is 14 MB and is refused by the size cap) |
+| Top-1 results with a body excerpt | 28 / 28 |
+| Added latency, cold | avg 267 ms, max 535 ms |
+| Added latency, warm | ~3 ms |
+
+Body text is deliberately not used to re-rank. The metadata ranker is at
+28/28 and MRR 0.875 on this set. The earlier BM25-over-content
+measurement (17/24) showed that body frequency favours long reference pages;
+a re-ranker needs body-only queries in the regression set first (see
+Evaluation) so there is something to measure it against.
+
+The shard-prefix mapping is empirically exact (4,896/4,896) but is not a
+documented contract of the schema; the client tolerates misses by falling
+back to the description. A `prefix` field on manifest records would make it
+a contract.
 
 Recall for body-only terms does not improve: stage 1 still gates candidates.
 
@@ -92,10 +125,10 @@ the only one where the 14 MB API reference shard can be indexed at all.
 
 ### Recommendation
 
-Ship A behind the existing tools only if excerpt quality is the priority and
-after re-measuring the regression set with the re-ranker; otherwise go
-straight to B. Do not ship A as a new tool: both options should improve
-`docs-search` and `docs-troubleshoot` in place.
+A is shipped inside the existing tools. B is the next step if body-only
+recall matters; it should also improve `docs-search` and `docs-troubleshoot`
+in place rather than add a tool. The excerpt layer from A stays useful under
+B as the fallback when the service is unavailable.
 
 ## Design for option B
 
@@ -162,6 +195,11 @@ straight to B. Do not ship A as a new tool: both options should improve
   the service has something to win on.
 - Gate deploys on Recall@5 >= 0.95 and MRR not lower than the metadata
   ranker on the full set, measured against the live index in CI
-  (`TestLiveRegressionSet` already does this for the metadata ranker).
+  (`TestLiveRegressionSet` gates Recall@5 >= 0.9, MRR >= 0.75 and ranking
+  latency < 50 ms/query when run with the `integration` tag; standard CI
+  does not run it). Standard CI gates on top-5 recall for every judgment
+  and MRR >= 0.80 against the 218-page fixture. That sample cannot
+  establish live ranking quality; separate negative-match tests and a
+  synthetic 4,600-page rarity test cover specific failure modes.
 - Report excerpt quality separately: fraction of top-1 results whose excerpt
   contains at least one query term.

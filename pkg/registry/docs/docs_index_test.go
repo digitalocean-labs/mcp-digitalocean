@@ -24,9 +24,10 @@ type regressionQuery struct {
 
 // Recall@5 on every judged query is the contract; MRR is gated loosely so
 // a tie-break change or an upstream content edit does not fail the build.
-// Measured: fixture 0.88, live 0.88 (2026-10-20).
+// Measured: fixture 0.88, live 0.88 (2026-10-20). The live threshold lives
+// in docs_live_test.go so this file stays unused-const-clean without the
+// integration tag.
 const minimumFixtureMRR = 0.80
-const minimumLiveMRR = 0.75
 
 func loadFixtureIndex(t *testing.T) *DocsIndex {
 	t.Helper()

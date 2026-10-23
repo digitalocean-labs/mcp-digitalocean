@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
@@ -453,6 +454,270 @@ func TestLastModDate(t *testing.T) {
 	}
 	require.Equal(t, "2024-02-29", lastModDate("2024-02-29"))
 	require.Equal(t, "2026-10-21", lastModDate("2026-10-21T00:00:00Z"))
+}
+
+func TestOversizedShardIsNotCachedAsPartialSuccess(t *testing.T) {
+	var hits int
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		fmt.Fprint(w, shardLine(smtpURL, "SMTP body"), strings.Repeat(" ", testResponseCap))
+	}))
+	client.maxResponseSize = testResponseCap
+	for range 2 {
+		require.Nil(t, client.loadShard(context.Background(), supportDir+"docs-corpus.jsonl"))
+	}
+	require.Equal(t, 1, hits, "oversized feed is negative-cached, not stored as a partial map")
+}
+
+func TestPageWindowsRejectInvalidNumbersAndMakeProgress(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockDocsService(ctrl)
+	mock.EXPECT().FetchDocPage("/x/").Return("éabc", nil).AnyTimes()
+	tool := setupDocsToolWithMock(mock)
+	call := func(args map[string]any) *mcp.CallToolResult {
+		args["URL"] = "/x/"
+		response, err := tool.getDoc(context.Background(), mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: args}})
+		require.NoError(t, err)
+		return response
+	}
+	for _, name := range []string{"StartIndex", "MaxLength"} {
+		for _, value := range []any{-1.0, 0.5, math.Inf(1), math.NaN(), math.Nextafter(math.Exp2(63), 0), "10"} {
+			require.True(t, call(map[string]any{name: value}).IsError, "%s=%v", name, value)
+		}
+	}
+	response := call(map[string]any{"MaxLength": 1.0})
+	require.True(t, response.IsError)
+	require.Contains(t, response.Content[0].(mcp.TextContent).Text, "too small")
+	response = call(map[string]any{"MaxLength": 2.0})
+	require.False(t, response.IsError)
+	text := response.Content[0].(mcp.TextContent).Text
+	require.True(t, strings.HasPrefix(text, "é\n"))
+	require.Contains(t, text, "StartIndex=2")
+	response = call(map[string]any{"StartIndex": 2.0, "MaxLength": 1.0})
+	require.False(t, response.IsError)
+	require.True(t, strings.HasPrefix(response.Content[0].(mcp.TextContent).Text, "a\n"))
+	page, next := paginate("hello", 1, int(^uint(0)>>1))
+	require.Equal(t, "ello", page)
+	require.Equal(t, 5, next, "utility arithmetic also handles max-int without overflow")
+}
+
+func TestExcerptsPreserveUnicodeAndMatches(t *testing.T) {
+	for _, body := range []string{
+		"İ: Export API_KEY=VALUE before using SMTP.",
+		"İ" + strings.Repeat("a ", 20) + "SMTP " + strings.Repeat("x ", 200) + "Ⱥ",
+		strings.Repeat("界", 40) + " SMTP " + strings.Repeat("界", 130),
+		strings.Repeat("a ", 20) + "SMTP-" + strings.Repeat("x", 400),
+	} {
+		text := excerpt(body, parseQueryTerms("smtp"))
+		require.NotEmpty(t, text, "body=%q", body)
+		require.True(t, utf8.ValidString(text), "%q", text)
+		require.Contains(t, text, "SMTP", "snapping must preserve a complete query hit and source case")
+		require.LessOrEqual(t, len(text), excerptLength+2*len("..."))
+		if strings.Contains(body, "API_KEY") {
+			require.Contains(t, text, "API_KEY=VALUE")
+		}
+	}
+	require.Empty(t, excerpt("namespace access", parseQueryTerms("spaces")))
+	// A very long token is not a complete keyword match.
+	require.Empty(t, excerpt(strings.Repeat("a ", 20)+"SMTP"+strings.Repeat("x", 400), parseQueryTerms("smtp")))
+}
+
+func waitFor[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+	select {
+	case value := <-ch:
+		return value
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for test synchronization")
+		var zero T
+		return zero
+	}
+}
+
+func TestContentExcerpts_CancellationDoesNotPoisonSharedLoads(t *testing.T) {
+	for _, blockPath := range []string{corpusManifestPath, "/support/docs-corpus.jsonl"} {
+		t.Run(blockPath, func(t *testing.T) {
+			entered, release := make(chan struct{}), make(chan struct{})
+			var releaseOnce sync.Once
+			t.Cleanup(func() { releaseOnce.Do(func() { close(release) }) })
+			var manifestHits, shardHits atomic.Int32
+			client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == corpusManifestPath {
+					manifestHits.Add(1)
+				} else {
+					shardHits.Add(1)
+				}
+				if r.URL.Path == blockPath {
+					close(entered)
+					select {
+					case <-release:
+					case <-r.Context().Done():
+						return
+					}
+				}
+				if r.URL.Path == corpusManifestPath {
+					fmt.Fprint(w, manifestLine(supportDir))
+				} else {
+					fmt.Fprint(w, shardLine(smtpURL, "SMTP body"))
+				}
+			}))
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			done := make(chan map[string]string, 1)
+			entries := []DocsEntry{{URL: smtpURL}}
+			go func() { done <- client.ContentExcerpts(ctx, entries, "smtp") }()
+			waitFor(t, entered)
+			cancel()
+			require.Empty(t, waitFor(t, done), "caller stops waiting without killing the shared load")
+			healthy := make(chan map[string]string, 1)
+			go func() { healthy <- client.ContentExcerpts(context.Background(), entries, "smtp") }()
+			releaseOnce.Do(func() { close(release) })
+			require.Contains(t, waitFor(t, healthy), smtpURL)
+			require.EqualValues(t, 1, manifestHits.Load())
+			require.EqualValues(t, 1, shardHits.Load())
+		})
+	}
+}
+
+func TestCorpusCancelledLoadsAreRetried(t *testing.T) {
+	for _, cause := range []error{context.Canceled, context.DeadlineExceeded} {
+		t.Run(cause.Error(), func(t *testing.T) {
+			client := NewDocsClient()
+			var hits atomic.Int32
+			client.httpClient.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				if hits.Add(1) == 1 {
+					return nil, cause
+				}
+				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), ContentLength: -1,
+					Body: io.NopCloser(strings.NewReader(manifestLine(supportDir))), Request: r}, nil
+			})
+			require.Nil(t, client.getCorpusManifest(context.Background()))
+			require.NotNil(t, client.getCorpusManifest(context.Background()))
+			require.EqualValues(t, 2, hits.Load())
+		})
+	}
+}
+
+func TestContentExcerpts_CoalescesConcurrentColdQueries(t *testing.T) {
+	server := newCorpusServer(t, map[string]string{"/support/": shardLine(smtpURL, "SMTP body")})
+	var wg sync.WaitGroup
+	results := make(chan map[string]string, 20)
+	start := make(chan struct{})
+	for range 20 {
+		wg.Go(func() {
+			<-start
+			results <- server.client.ContentExcerpts(context.Background(), []DocsEntry{{URL: smtpURL}}, "smtp")
+		})
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	for result := range results {
+		require.Contains(t, result, smtpURL)
+	}
+	for path, hits := range server.hits {
+		require.EqualValues(t, 1, hits.Load(), path)
+	}
+}
+
+func TestContentExcerpts_OrdersFirstWorkerBatchAndBoundsAllQueries(t *testing.T) {
+	entered := make(chan string, 12)
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	t.Cleanup(func() { releaseOnce.Do(func() { close(release) }) })
+	var active, maximum atomic.Int32
+	client := newHandlerClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		current := active.Add(1)
+		defer active.Add(-1)
+		for old := maximum.Load(); current > old && !maximum.CompareAndSwap(old, current); old = maximum.Load() {
+		}
+		entered <- r.URL.Path
+		select {
+		case <-release:
+		case <-r.Context().Done():
+			return
+		}
+		page := strings.TrimSuffix(docsBase+r.URL.Path, "docs-corpus.jsonl") + "page/"
+		fmt.Fprint(w, shardLine(page, "SMTP body"))
+	}))
+	m := &corpusManifest{shardByDir: make(map[string]string)}
+	var entries []DocsEntry
+	for i := range 12 {
+		dir := fmt.Sprintf("%s/p%d/", docsBase, i)
+		m.shardByDir[dir] = dir + "docs-corpus.jsonl"
+		entries = append(entries, DocsEntry{URL: dir + "page/"})
+	}
+	client.cache.set("corpusManifest", m, indexCacheTTL)
+	first := make(chan map[string]string, 1)
+	go func() { first <- client.ContentExcerpts(context.Background(), entries[:8], "smtp") }()
+	batch := make(map[string]bool)
+	for range shardConcurrency {
+		batch[waitFor(t, entered)] = true
+	}
+	for i := range shardConcurrency {
+		require.True(t, batch[fmt.Sprintf("/p%d/docs-corpus.jsonl", i)], "top-ranked shard must start in the first batch")
+	}
+	var wg sync.WaitGroup
+	for _, entry := range entries[8:] {
+		wg.Go(func() { client.ContentExcerpts(context.Background(), []DocsEntry{entry}, "smtp") })
+	}
+	releaseOnce.Do(func() { close(release) })
+	require.Len(t, waitFor(t, first), 8)
+	wg.Wait()
+	require.EqualValues(t, shardConcurrency, maximum.Load(), "bound is shared across simultaneous queries")
+}
+
+func TestCorpusRepeatedTimeoutsAreNegativeCached(t *testing.T) {
+	client := NewDocsClient()
+	var hits atomic.Int32
+	client.httpClient.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+		hits.Add(1)
+		return nil, context.DeadlineExceeded
+	})
+	for range maxConsecutiveTimeouts {
+		require.Nil(t, client.getCorpusManifest(context.Background()))
+	}
+	require.EqualValues(t, maxConsecutiveTimeouts, hits.Load())
+	require.Nil(t, client.getCorpusManifest(context.Background()))
+	require.EqualValues(t, maxConsecutiveTimeouts, hits.Load(), "a persistently slow origin is negative-cached")
+
+	_, cached := client.cache.get("corpusManifest")
+	require.True(t, cached)
+}
+
+func TestCorpusSuccessResetsTimeoutCount(t *testing.T) {
+	client := NewDocsClient()
+	var hits atomic.Int32
+	client.httpClient.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if hits.Add(1)%2 == 1 {
+			return nil, context.DeadlineExceeded
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), ContentLength: -1,
+			Body: io.NopCloser(strings.NewReader(manifestLine(supportDir))), Request: r}, nil
+	})
+	for range maxConsecutiveTimeouts + 1 {
+		require.Nil(t, client.getCorpusManifest(context.Background()))
+		require.NotNil(t, client.getCorpusManifest(context.Background()))
+		client.cache.set("corpusManifest", (*corpusManifest)(nil), -time.Second)
+	}
+	require.EqualValues(t, 2*(maxConsecutiveTimeouts+1), hits.Load(), "alternating stalls never trip the negative cache")
+}
+
+func TestZeroValueClientDoesNotDeadlockOnSlots(t *testing.T) {
+	client := &DocsClient{cache: newCache()}
+	client.httpClient = NewDocsClient().httpClient
+	client.httpClient.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), ContentLength: -1,
+			Body: io.NopCloser(strings.NewReader(manifestLine(supportDir))), Request: r}, nil
+	})
+	done := make(chan *corpusManifest, 1)
+	go func() { done <- client.getCorpusManifest(context.Background()) }()
+	select {
+	case m := <-done:
+		require.NotNil(t, m)
+	case <-time.After(time.Second):
+		t.Fatal("corpus load blocked on an uninitialised slot channel")
+	}
 }
 
 func TestFetchDocPagePrefersMarkdownURL(t *testing.T) {

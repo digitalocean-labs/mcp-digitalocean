@@ -55,6 +55,48 @@ func TestDocsSearch(t *testing.T) {
 		t.Logf("Search with limit returned: %.200s...", text)
 	})
 
+	t.Run("with product filter", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-search",
+				Arguments: map[string]interface{}{
+					"Query":   "peering",
+					"Product": "vpc",
+					"Limit":   2,
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, `pages in "vpc"`)
+		require.Contains(t, text, "/products/networking/vpc/")
+		require.NotContains(t, text, "/products/droplets/")
+		t.Logf("Search with Product returned: %.200s...", text)
+	})
+
+	t.Run("unknown product", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-search",
+				Arguments: map[string]interface{}{
+					"Query":   "droplet",
+					"Product": "nonexistent-product-xyz",
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, `No docs pages match Product "nonexistent-product-xyz"`)
+	})
+
 	t.Run("missing query", func(t *testing.T) {
 		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
@@ -113,6 +155,49 @@ func TestDocsGetPage(t *testing.T) {
 
 		text := resp.Content[0].(mcp.TextContent).Text
 		require.Contains(t, text, "Droplet")
+	})
+
+	t.Run("with max length", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-get-page",
+				Arguments: map[string]interface{}{
+					"URL":       "/products/droplets/how-to/resize/",
+					"MaxLength": 400,
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.Contains(t, text, "StartIndex=400")
+		require.Contains(t, text, "[Truncated:")
+		require.Less(t, len(text), 20000, "windowed read should not return the whole page")
+		t.Logf("Windowed page: %.200s...", text)
+	})
+
+	t.Run("with start index", func(t *testing.T) {
+		resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "docs-get-page",
+				Arguments: map[string]interface{}{
+					"URL":        "/products/droplets/how-to/resize/",
+					"MaxLength":  400,
+					"StartIndex": 400,
+				},
+			},
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.False(t, resp.IsError, "Tool call returned error: %v", resp.Content)
+
+		text := resp.Content[0].(mcp.TextContent).Text
+		require.NotContains(t, text, "URL is required")
+		require.NotEmpty(t, text)
 	})
 
 	t.Run("invalid URL", func(t *testing.T) {
@@ -203,7 +288,7 @@ func TestDocsFindForService(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		// Should not error — returns a helpful fallback message
+		// Should not error - returns a helpful fallback message
 		require.False(t, resp.IsError)
 
 		text := resp.Content[0].(mcp.TextContent).Text
@@ -264,7 +349,7 @@ func TestDocsGetQuickstart(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		// Should not error — returns a helpful fallback message
+		// Should not error - returns a helpful fallback message
 		require.False(t, resp.IsError)
 
 		text := resp.Content[0].(mcp.TextContent).Text

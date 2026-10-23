@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -151,6 +152,9 @@ type DocsService interface {
 	FindQuickstart(service string) (string, string, error)
 	FindTroubleshootPage(symptom string) ([]DocsEntry, error)
 	ExtractRelatedLinks(url string) ([]RelatedLink, error)
+	// ContentExcerpts returns a query-focused excerpt of the page body for
+	// each entry it can resolve, keyed by canonical URL. Best effort.
+	ContentExcerpts(ctx context.Context, entries []DocsEntry, query string) map[string]string
 }
 
 // DocsClient fetches and searches DigitalOcean documentation.
@@ -158,8 +162,16 @@ type DocsClient struct {
 	httpClient *http.Client
 	cache      *cache
 
-	indexGroup singleflight.Group
-	fetchGroup singleflight.Group
+	indexGroup  singleflight.Group
+	fetchGroup  singleflight.Group
+	corpusGroup singleflight.Group
+
+	// corpusSlots bounds concurrent corpus loads across the client; see slots().
+	corpusSlots     chan struct{}
+	corpusSlotsOnce sync.Once
+	// timeouts counts consecutive deadline failures per corpus key.
+	timeoutMu sync.Mutex
+	timeouts  map[string]int
 
 	// maxResponseSize is the accepted-body cap; tests lower it.
 	maxResponseSize int64
@@ -181,6 +193,7 @@ func NewDocsClient() *DocsClient {
 			},
 		},
 		cache:           newCache(),
+		corpusSlots:     make(chan struct{}, shardConcurrency),
 		maxResponseSize: maxResponseSize,
 	}
 }
@@ -271,7 +284,11 @@ func (d *DocsClient) fetch(url string) (string, error) {
 // Index loading uses it directly because the parsed index is cached
 // separately and the raw body would only duplicate memory.
 func (d *DocsClient) fetchUncached(url string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	return d.fetchUncachedContext(context.Background(), url)
+}
+
+func (d *DocsClient) fetchUncachedContext(ctx context.Context, url string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -525,6 +542,7 @@ func (d *DocsClient) FetchDocPage(url string) (string, error) {
 		return cached.(string), nil
 	}
 
+	// Try index.html.md for raw markdown
 	mdURL := pageURL
 	if strings.HasSuffix(mdURL, "index.html.md") {
 		// Already correct
@@ -679,6 +697,8 @@ func lightStem(token string) string {
 	return token
 }
 
+var wordTokenRe = regexp.MustCompile(`[\p{L}\p{N}]+`)
+
 var tokenSplitRe = regexp.MustCompile(`[^\p{L}\p{N}]+`)
 
 // maxQueryTerms bounds per-query work (each term is matched against every
@@ -740,6 +760,58 @@ func rankEntries(results []scoredEntry) []DocsEntry {
 		entries[i] = r.entry
 	}
 	return entries
+}
+
+// filterByProduct prefers exact product names, aliases, and URL slugs.
+// Token matches are used only when no exact identity matches.
+func filterByProduct(index *DocsIndex, product string) *DocsIndex {
+	want := normalizeFacet(product)
+	if want == "" {
+		return index
+	}
+	service := resolveServiceSlug(product)
+	alias := normalizeFacet(service)
+	slug := "/" + service + "/"
+	exact := make([]bool, len(index.Entries))
+	hasExact := false
+	for i, entry := range index.Entries {
+		section := normalizeFacet(entry.Section)
+		exact[i] = section == want || section == alias || strings.Contains(urlPathLower(entry.URL), slug)
+		hasExact = hasExact || exact[i]
+	}
+	terms := fieldTerms(want)
+
+	filtered := &DocsIndex{Source: index.Source, FetchedAt: index.FetchedAt}
+	sectionSet := make(map[string]struct{})
+	for i, entry := range index.Entries {
+		matches := exact[i]
+		if !hasExact {
+			matches = true
+			for _, term := range terms {
+				if !term.matchesTokens(index.entryTokensAt(i).section) {
+					matches = false
+					break
+				}
+			}
+		}
+		if !matches {
+			continue
+		}
+		filtered.Entries = append(filtered.Entries, entry)
+		filtered.tokens = append(filtered.tokens, index.entryTokensAt(i))
+		if _, seen := sectionSet[entry.Section]; !seen {
+			sectionSet[entry.Section] = struct{}{}
+			filtered.Sections = append(filtered.Sections, entry.Section)
+		}
+	}
+	sort.Strings(filtered.Sections)
+	return filtered
+}
+
+// normalizeFacet lowercases and collapses punctuation so "App-Platform",
+// "app platform" and "App Platform" compare equal.
+func normalizeFacet(s string) string {
+	return strings.Join(strings.Fields(tokenSplitRe.ReplaceAllString(strings.ToLower(s), " ")), " ")
 }
 
 // SearchIndex ranks index entries against a query by keyword matching over
