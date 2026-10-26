@@ -411,8 +411,14 @@ func (t *Tool) commitWorkspaceUpload(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultError("TransferID is required"), nil
 	}
 
+	sha256, _ := args["SHA256"].(string)
+	body := map[string]any{}
+	if sha256 != "" {
+		body["sha256"] = sha256
+	}
+
 	path := workspaceTransfersPath(sessionID) + "/" + transferID + "/commit"
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
@@ -583,6 +589,7 @@ func (t *Tool) workspaceTools() []server.ServerTool {
 				mcp.WithDescription("Finalize a multipart workspace upload. Call after all parts have been PUT to their presigned URLs. The platform assembles the parts and writes the result into the workspace. Returns transfer_id, status, and size_bytes."),
 				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID")),
 				mcp.WithString("TransferID", mcp.Required(), mcp.Description("The transfer id to commit")),
+				mcp.WithString("SHA256", mcp.Description("Optional lowercase hex SHA-256 of the full payload. Must match the value supplied at create when both are set.")),
 			),
 		},
 		{
