@@ -86,6 +86,19 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-cancel-workspace-transfer",
 		"harness-runtime-commit-workspace-upload",
 		"harness-runtime-create-workspace-part-urls",
+		"harness-runtime-list-triggers",
+		"harness-runtime-create-trigger",
+		"harness-runtime-get-trigger",
+		"harness-runtime-update-trigger",
+		"harness-runtime-delete-trigger",
+		"harness-runtime-pause-trigger",
+		"harness-runtime-resume-trigger",
+		"harness-runtime-rotate-trigger-secret",
+		"harness-runtime-list-trigger-executions",
+		"harness-runtime-get-trigger-execution",
+		"harness-runtime-cancel-execution",
+		"harness-runtime-get-trigger-by-session",
+		"harness-runtime-list-reusable-sessions",
 	}, names)
 }
 

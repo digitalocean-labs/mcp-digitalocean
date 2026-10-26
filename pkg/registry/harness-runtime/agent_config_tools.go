@@ -350,5 +350,6 @@ func (t *Tool) Tools() []server.ServerTool {
 	tools = append(tools, t.sandboxTools()...)
 	tools = append(tools, t.templateTools()...)
 	tools = append(tools, t.workspaceTools()...)
+	tools = append(tools, t.triggerTools()...)
 	return tools
 }
