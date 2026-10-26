@@ -395,7 +395,7 @@ func (t *Tool) updateTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
 	}
 
-	apiReq, err := client.NewRequest(ctx, http.MethodPut, triggersPath+"/"+triggerID, nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodPatch, triggersPath+"/"+triggerID, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
@@ -436,40 +436,36 @@ func (t *Tool) deleteTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	return mcp.NewToolResultText(fmt.Sprintf("Trigger %s deleted successfully.", triggerID)), nil
 }
 
-// pauseTrigger pauses an active trigger.
-func (t *Tool) pauseTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// setTriggerStatus sets a trigger's status via PUT (used by pause and resume).
+func (t *Tool) setTriggerStatus(ctx context.Context, triggerID, status, action string) (*mcp.CallToolResult, error) {
 	client, err := t.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	triggerID, _ := req.GetArguments()["TriggerID"].(string)
-	if triggerID == "" {
-		return mcp.NewToolResultError("TriggerID is required"), nil
-	}
-	if _, err := uuid.Parse(triggerID); err != nil {
-		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
+	body := map[string]any{"status": status}
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to encode request body", err), nil
 	}
 
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, triggersPath+"/"+triggerID+"/pause", nil)
+	apiReq, err := client.NewRequest(ctx, http.MethodPatch, triggersPath+"/"+triggerID, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
+	apiReq.Header.Set("Content-Type", "application/json")
+	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
+	apiReq.ContentLength = int64(len(encoded))
 
 	var out TriggerResponse
 	if _, err := client.Do(ctx, apiReq, &out); err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to pause trigger", err), nil
+		return mcp.NewToolResultErrorFromErr(fmt.Sprintf("Failed to %s trigger", action), err), nil
 	}
 	return triggerOut.Result(out)
 }
 
-// resumeTrigger resumes a paused trigger.
-func (t *Tool) resumeTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	client, err := t.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
+// pauseTrigger pauses an active trigger by setting status=paused.
+func (t *Tool) pauseTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	triggerID, _ := req.GetArguments()["TriggerID"].(string)
 	if triggerID == "" {
 		return mcp.NewToolResultError("TriggerID is required"), nil
@@ -477,17 +473,19 @@ func (t *Tool) resumeTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if _, err := uuid.Parse(triggerID); err != nil {
 		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
 	}
+	return t.setTriggerStatus(ctx, triggerID, "paused", "pause")
+}
 
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, triggersPath+"/"+triggerID+"/resume", nil)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+// resumeTrigger resumes a paused trigger by setting status=active.
+func (t *Tool) resumeTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	triggerID, _ := req.GetArguments()["TriggerID"].(string)
+	if triggerID == "" {
+		return mcp.NewToolResultError("TriggerID is required"), nil
 	}
-
-	var out TriggerResponse
-	if _, err := client.Do(ctx, apiReq, &out); err != nil {
-		return mcp.NewToolResultErrorFromErr("Failed to resume trigger", err), nil
+	if _, err := uuid.Parse(triggerID); err != nil {
+		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
 	}
-	return triggerOut.Result(out)
+	return t.setTriggerStatus(ctx, triggerID, "active", "resume")
 }
 
 // rotateTriggerSecret rotates the webhook secret for a trigger.

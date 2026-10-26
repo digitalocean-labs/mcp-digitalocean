@@ -366,7 +366,7 @@ func TestUpdateTrigger(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Equal(t, "/v2/agents/triggers/"+testTriggerID, gotPath)
-	require.Equal(t, http.MethodPut, gotMethod)
+	require.Equal(t, http.MethodPatch, gotMethod)
 	require.Equal(t, "updated-trigger", gotBody["name"])
 
 	cronObj, ok := gotBody["cron"].(map[string]any)
@@ -508,9 +508,11 @@ func TestDeleteTriggerAPIError(t *testing.T) {
 
 func TestPauseTrigger(t *testing.T) {
 	var gotPath, gotMethod string
+	var gotBody map[string]any
 	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"trigger":` + triggerJSON(testTriggerID, "my-trigger", "cron", "paused") + `}`))
 	})
@@ -518,8 +520,9 @@ func TestPauseTrigger(t *testing.T) {
 	res, err := tool.pauseTrigger(context.Background(), request(map[string]any{"TriggerID": testTriggerID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/triggers/"+testTriggerID+"/pause", gotPath)
-	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, "/v2/agents/triggers/"+testTriggerID, gotPath)
+	require.Equal(t, http.MethodPatch, gotMethod)
+	require.Equal(t, "paused", gotBody["status"])
 	text := callText(t, res)
 	require.Contains(t, text, testTriggerID)
 	require.Contains(t, text, "paused")
@@ -559,9 +562,11 @@ func TestPauseTriggerAPIError(t *testing.T) {
 
 func TestResumeTrigger(t *testing.T) {
 	var gotPath, gotMethod string
+	var gotBody map[string]any
 	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotMethod = r.Method
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"trigger":` + triggerJSON(testTriggerID, "my-trigger", "cron", "active") + `}`))
 	})
@@ -569,8 +574,9 @@ func TestResumeTrigger(t *testing.T) {
 	res, err := tool.resumeTrigger(context.Background(), request(map[string]any{"TriggerID": testTriggerID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/triggers/"+testTriggerID+"/resume", gotPath)
-	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, "/v2/agents/triggers/"+testTriggerID, gotPath)
+	require.Equal(t, http.MethodPatch, gotMethod)
+	require.Equal(t, "active", gotBody["status"])
 	text := callText(t, res)
 	require.Contains(t, text, testTriggerID)
 	require.Contains(t, text, "active")
