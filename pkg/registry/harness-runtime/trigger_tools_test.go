@@ -20,7 +20,7 @@ func triggerJSON(id, name, kind, status string) string {
 }
 
 func executionJSON(id, triggerID, status string) string {
-	return `{"id":"` + id + `","trigger_id":"` + triggerID + `","session_id":"` + testSessionID + `","status":"` + status + `","started_at":"2026-08-01T12:00:00Z"}`
+	return `{"execution_id":"` + id + `","trigger_id":"` + triggerID + `","session_id":"` + testSessionID + `","status":"` + status + `","created_at":"2026-08-01T12:00:00Z"}`
 }
 
 // ---- ListTriggers ----
@@ -749,10 +749,13 @@ func TestGetTriggerExecution(t *testing.T) {
 		_, _ = w.Write([]byte(`{"execution":` + executionJSON(testExecutionID, testTriggerID, "running") + `}`))
 	})
 
-	res, err := tool.getTriggerExecution(context.Background(), request(map[string]any{"ExecutionID": testExecutionID}))
+	res, err := tool.getTriggerExecution(context.Background(), request(map[string]any{
+		"TriggerID":   testTriggerID,
+		"ExecutionID": testExecutionID,
+	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/triggers/executions/"+testExecutionID, gotPath)
+	require.Equal(t, "/v2/agents/triggers/"+testTriggerID+"/executions/"+testExecutionID, gotPath)
 	text := callText(t, res)
 	require.Contains(t, text, testExecutionID)
 	require.Contains(t, text, "running")
@@ -764,9 +767,11 @@ func TestGetTriggerExecutionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing":   {},
-		"not uuid":  {"ExecutionID": "my-execution"},
-		"traversal": {"ExecutionID": "../triggers"},
+		"missing both":         {},
+		"missing trigger id":   {"ExecutionID": testExecutionID},
+		"missing execution id": {"TriggerID": testTriggerID},
+		"invalid trigger id":   {"TriggerID": "not-uuid", "ExecutionID": testExecutionID},
+		"invalid execution id": {"TriggerID": testTriggerID, "ExecutionID": "not-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.getTriggerExecution(context.Background(), request(args))
@@ -783,7 +788,10 @@ func TestGetTriggerExecutionNotFound(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":"not_found","message":"execution not found"}`))
 	})
 
-	res, err := tool.getTriggerExecution(context.Background(), request(map[string]any{"ExecutionID": testExecutionID}))
+	res, err := tool.getTriggerExecution(context.Background(), request(map[string]any{
+		"TriggerID":   testTriggerID,
+		"ExecutionID": testExecutionID,
+	}))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to get trigger execution")
@@ -800,10 +808,13 @@ func TestCancelExecution(t *testing.T) {
 		_, _ = w.Write([]byte(`{"execution":` + executionJSON(testExecutionID, testTriggerID, "cancelled") + `}`))
 	})
 
-	res, err := tool.cancelExecution(context.Background(), request(map[string]any{"ExecutionID": testExecutionID}))
+	res, err := tool.cancelExecution(context.Background(), request(map[string]any{
+		"TriggerID":   testTriggerID,
+		"ExecutionID": testExecutionID,
+	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/triggers/executions/"+testExecutionID+"/cancel", gotPath)
+	require.Equal(t, "/v2/agents/triggers/"+testTriggerID+"/executions/"+testExecutionID+"/cancel", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	text := callText(t, res)
 	require.Contains(t, text, testExecutionID)
@@ -816,8 +827,11 @@ func TestCancelExecutionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing":  {},
-		"not uuid": {"ExecutionID": "my-execution"},
+		"missing both":         {},
+		"missing trigger id":   {"ExecutionID": testExecutionID},
+		"missing execution id": {"TriggerID": testTriggerID},
+		"invalid trigger id":   {"TriggerID": "not-uuid", "ExecutionID": testExecutionID},
+		"invalid execution id": {"TriggerID": testTriggerID, "ExecutionID": "not-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.cancelExecution(context.Background(), request(args))
@@ -834,7 +848,10 @@ func TestCancelExecutionAPIError(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":"conflict","message":"execution is not running"}`))
 	})
 
-	res, err := tool.cancelExecution(context.Background(), request(map[string]any{"ExecutionID": testExecutionID}))
+	res, err := tool.cancelExecution(context.Background(), request(map[string]any{
+		"TriggerID":   testTriggerID,
+		"ExecutionID": testExecutionID,
+	}))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to cancel execution")
@@ -903,13 +920,12 @@ func TestListReusableSessions(t *testing.T) {
 	})
 
 	res, err := tool.listReusableSessions(context.Background(), request(map[string]any{
-		"TriggerID": testTriggerID,
 		"PageSize":  float64(5),
 		"PageToken": "tok1",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/triggers/"+testTriggerID+"/reusable-sessions", gotPath)
+	require.Equal(t, "/v2/agents/triggers/reusable-sessions", gotPath)
 	require.Equal(t, "5", gotQuery.Get("page_size"))
 	require.Equal(t, "tok1", gotQuery.Get("page_token"))
 	text := callText(t, res)
@@ -926,9 +942,7 @@ func TestListReusableSessionsNoQueryParams(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	res, err := tool.listReusableSessions(context.Background(), request(map[string]any{
-		"TriggerID": testTriggerID,
-	}))
+	res, err := tool.listReusableSessions(context.Background(), request(nil))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Empty(t, gotRawQuery)
@@ -941,11 +955,9 @@ func TestListReusableSessionsValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing trigger id":  {},
-		"not uuid":            {"TriggerID": "my-trigger"},
-		"page size too small": {"TriggerID": testTriggerID, "PageSize": float64(0)},
-		"page size too large": {"TriggerID": testTriggerID, "PageSize": float64(201)},
-		"page size fraction":  {"TriggerID": testTriggerID, "PageSize": 1.7},
+		"page size too small": {"PageSize": float64(0)},
+		"page size too large": {"PageSize": float64(201)},
+		"page size fraction":  {"PageSize": 1.7},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.listReusableSessions(context.Background(), request(args))
@@ -958,11 +970,11 @@ func TestListReusableSessionsValidation(t *testing.T) {
 func TestListReusableSessionsAPIError(t *testing.T) {
 	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"id":"not_found","message":"trigger not found"}`))
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"id":"server_error","message":"internal error"}`))
 	})
 
-	res, err := tool.listReusableSessions(context.Background(), request(map[string]any{"TriggerID": testTriggerID}))
+	res, err := tool.listReusableSessions(context.Background(), request(nil))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to list reusable sessions")

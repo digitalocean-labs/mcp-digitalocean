@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	triggersPath   = "v2/agents/triggers"
-	executionsPath = "v2/agents/triggers/executions"
+	triggersPath         = "v2/agents/triggers"
+	reusableSessionsPath = "v2/agents/triggers/reusable-sessions"
 )
 
 // TriggerOutput configures what happens with the trigger's output (none, email, slack).
@@ -87,13 +87,13 @@ type RotateTriggerSecretResponse struct {
 
 // TriggerExecution is the user-facing record of a single trigger execution.
 type TriggerExecution struct {
-	ID          string     `json:"id"`
-	TriggerID   string     `json:"trigger_id,omitempty"`
-	SessionID   string     `json:"session_id,omitempty"`
-	Status      string     `json:"status,omitempty"`
-	StartedAt   *time.Time `json:"started_at,omitempty"`
-	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	Error       string     `json:"error,omitempty"`
+	ExecutionID   string     `json:"execution_id"`
+	TriggerID     string     `json:"trigger_id,omitempty"`
+	SessionID     string     `json:"session_id,omitempty"`
+	Status        string     `json:"status,omitempty"`
+	FailureReason string     `json:"failure_reason,omitempty"`
+	CreatedAt     *time.Time `json:"created_at,omitempty"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
 // TriggerExecutionResponse is the response of a single-execution endpoint.
@@ -569,7 +569,16 @@ func (t *Tool) getTriggerExecution(ctx context.Context, req mcp.CallToolRequest)
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	executionID, _ := req.GetArguments()["ExecutionID"].(string)
+	args := req.GetArguments()
+	triggerID, _ := args["TriggerID"].(string)
+	if triggerID == "" {
+		return mcp.NewToolResultError("TriggerID is required"), nil
+	}
+	if _, err := uuid.Parse(triggerID); err != nil {
+		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
+	}
+
+	executionID, _ := args["ExecutionID"].(string)
 	if executionID == "" {
 		return mcp.NewToolResultError("ExecutionID is required"), nil
 	}
@@ -577,7 +586,8 @@ func (t *Tool) getTriggerExecution(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultError("ExecutionID must be a UUID"), nil
 	}
 
-	apiReq, err := client.NewRequest(ctx, http.MethodGet, executionsPath+"/"+executionID, nil)
+	path := triggersPath + "/" + triggerID + "/executions/" + executionID
+	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
@@ -596,7 +606,16 @@ func (t *Tool) cancelExecution(ctx context.Context, req mcp.CallToolRequest) (*m
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	executionID, _ := req.GetArguments()["ExecutionID"].(string)
+	args := req.GetArguments()
+	triggerID, _ := args["TriggerID"].(string)
+	if triggerID == "" {
+		return mcp.NewToolResultError("TriggerID is required"), nil
+	}
+	if _, err := uuid.Parse(triggerID); err != nil {
+		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
+	}
+
+	executionID, _ := args["ExecutionID"].(string)
 	if executionID == "" {
 		return mcp.NewToolResultError("ExecutionID is required"), nil
 	}
@@ -604,7 +623,8 @@ func (t *Tool) cancelExecution(ctx context.Context, req mcp.CallToolRequest) (*m
 		return mcp.NewToolResultError("ExecutionID must be a UUID"), nil
 	}
 
-	apiReq, err := client.NewRequest(ctx, http.MethodPost, executionsPath+"/"+executionID+"/cancel", nil)
+	path := triggersPath + "/" + triggerID + "/executions/" + executionID + "/cancel"
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, nil)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
 	}
@@ -643,7 +663,7 @@ func (t *Tool) getTriggerBySession(ctx context.Context, req mcp.CallToolRequest)
 	return triggerOut.Result(out)
 }
 
-// listReusableSessions lists sessions that a trigger can reuse.
+// listReusableSessions lists paused sessions available for reuse binding.
 func (t *Tool) listReusableSessions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.client(ctx)
 	if err != nil {
@@ -651,14 +671,6 @@ func (t *Tool) listReusableSessions(ctx context.Context, req mcp.CallToolRequest
 	}
 
 	args := req.GetArguments()
-	triggerID, _ := args["TriggerID"].(string)
-	if triggerID == "" {
-		return mcp.NewToolResultError("TriggerID is required"), nil
-	}
-	if _, err := uuid.Parse(triggerID); err != nil {
-		return mcp.NewToolResultError("TriggerID must be a UUID"), nil
-	}
-
 	query := url.Values{}
 	if v, ok := args["PageSize"].(float64); ok {
 		if v != math.Trunc(v) || v < 1 || v > maxPageSize {
@@ -670,7 +682,7 @@ func (t *Tool) listReusableSessions(ctx context.Context, req mcp.CallToolRequest
 		query.Set("page_token", v)
 	}
 
-	path := triggersPath + "/" + triggerID + "/reusable-sessions"
+	path := reusableSessionsPath
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}
@@ -813,6 +825,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithRisk(common.RiskLow),
 				triggerExecutionOut.Schema(),
 				mcp.WithDescription("Get a single trigger execution by its UUID, including its status, associated session, timing, and any error details."),
+				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID that owns this execution")),
 				mcp.WithString("ExecutionID", mcp.Required(), mcp.Description("The execution UUID")),
 			),
 		},
@@ -823,6 +836,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithRisk(common.RiskMedium),
 				cancelExecutionOut.Schema(),
 				mcp.WithDescription("Cancel a running trigger execution. The associated session may be destroyed or returned to the reusable pool depending on the trigger's session mode. Returns the updated execution."),
+				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID that owns this execution")),
 				mcp.WithString("ExecutionID", mcp.Required(), mcp.Description("The execution UUID to cancel")),
 			),
 		},
@@ -842,8 +856,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				reusableSessionListOut.Schema(),
-				mcp.WithDescription("List sessions eligible for reuse by a trigger. Only relevant for triggers with session_mode='reuse'. Returns sessions that are idle and can be claimed by the next trigger execution."),
-				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID whose reusable sessions to list")),
+				mcp.WithDescription("List paused sessions available for reuse binding. These are team-wide paused sessions that can be bound to a trigger with session_mode='reuse'. Results are keyset-paginated."),
 				mcp.WithNumber("PageSize", mcp.Description("Page size (1-200, default 50)")),
 				mcp.WithString("PageToken", mcp.Description("Opaque cursor from the previous response's next_page_token")),
 			),
