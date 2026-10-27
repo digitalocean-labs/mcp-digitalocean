@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	workspacesPath = "v2/agents/workspaces"
+	workspacesPath = "v2/harness-runtime/workspaces"
 )
 
 // Workspace is the user-facing record of a persistent workspace volume.
@@ -38,17 +38,17 @@ type Workspace struct {
 	UpdatedBy         string     `json:"updated_by"`
 }
 
-// CreateWorkspaceResponse is the response of POST /v2/agents/workspaces.
+// CreateWorkspaceResponse is the response of POST /v2/harness-runtime/workspaces.
 type CreateWorkspaceResponse struct {
 	Workspace Workspace `json:"workspace"`
 }
 
-// GetWorkspaceResponse is the response of GET /v2/agents/workspaces/{id}.
+// GetWorkspaceResponse is the response of GET /v2/harness-runtime/workspaces/{id}.
 type GetWorkspaceResponse struct {
 	Workspace Workspace `json:"workspace"`
 }
 
-// ListWorkspacesResponse is the response of GET /v2/agents/workspaces.
+// ListWorkspacesResponse is the response of GET /v2/harness-runtime/workspaces.
 type ListWorkspacesResponse struct {
 	Workspaces    []Workspace `json:"workspaces"`
 	NextPageToken string      `json:"next_page_token,omitempty"`

@@ -86,6 +86,19 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-cancel-workspace-transfer",
 		"harness-runtime-commit-workspace-upload",
 		"harness-runtime-create-workspace-part-urls",
+		"harness-runtime-list-triggers",
+		"harness-runtime-create-trigger",
+		"harness-runtime-get-trigger",
+		"harness-runtime-update-trigger",
+		"harness-runtime-delete-trigger",
+		"harness-runtime-pause-trigger",
+		"harness-runtime-resume-trigger",
+		"harness-runtime-rotate-trigger-secret",
+		"harness-runtime-list-trigger-executions",
+		"harness-runtime-get-trigger-execution",
+		"harness-runtime-cancel-execution",
+		"harness-runtime-get-trigger-by-session",
+		"harness-runtime-list-reusable-sessions",
 	}, names)
 }
 
@@ -106,7 +119,7 @@ func TestListAgentConfigs(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs", gotPath)
+	require.Equal(t, "/v2/harness-runtime/configs", gotPath)
 	require.Equal(t, "10", gotQuery.Get("page_size"))
 	require.Equal(t, "tok1", gotQuery.Get("page_token"))
 	require.Equal(t, "support", gotQuery.Get("search"))
@@ -188,7 +201,7 @@ func TestGetAgentConfig(t *testing.T) {
 	res, err := tool.getAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs/"+testConfigID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/configs/"+testConfigID, gotPath)
 	text := callText(t, res)
 	require.Contains(t, text, "support-agent")
 	require.Contains(t, text, "python")
@@ -259,7 +272,7 @@ func TestCreateAgentConfig(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs", gotPath)
+	require.Equal(t, "/v2/harness-runtime/configs", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Contains(t, gotContentType, "application/json")
 
@@ -342,7 +355,7 @@ func TestDeleteAgentConfig(t *testing.T) {
 	res, err := tool.deleteAgentConfig(context.Background(), request(map[string]any{"ConfigID": testConfigID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs/"+testConfigID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/configs/"+testConfigID, gotPath)
 	require.Equal(t, http.MethodDelete, gotMethod)
 	require.Contains(t, callText(t, res), testConfigID)
 	require.Contains(t, callText(t, res), "deleted")
@@ -398,7 +411,7 @@ func TestListConfigSessions(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/configs/"+testConfigID+"/sessions", gotPath)
+	require.Equal(t, "/v2/harness-runtime/configs/"+testConfigID+"/sessions", gotPath)
 	require.Contains(t, gotRawQuery, "page_size=5")
 	require.Contains(t, gotRawQuery, "page_token=tok1")
 	require.Contains(t, gotRawQuery, "status=SESSION_STATUS_READY")

@@ -36,7 +36,7 @@ func TestListCheckpoints(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/checkpoints", gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/"+testSessionID+"/checkpoints", gotPath)
 	require.Equal(t, http.MethodGet, gotMethod)
 
 	text := callText(t, res)
@@ -115,7 +115,7 @@ func TestGetCheckpoint(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID, gotPath)
 
 	text := callText(t, res)
 	require.Contains(t, text, testCheckpointID)
@@ -175,7 +175,7 @@ func TestCreateCheckpoint(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/checkpoints", gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/"+testSessionID+"/checkpoints", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Equal(t, "before-refactor", gotBody["label"])
 
@@ -252,7 +252,7 @@ func TestDeleteCheckpoint(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID, gotPath)
 	require.Equal(t, http.MethodDelete, gotMethod)
 
 	text := callText(t, res)
@@ -296,7 +296,7 @@ func TestRollbackToCheckpoint(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID+"/rollback", gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/"+testSessionID+"/checkpoints/"+testCheckpointID+"/rollback", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 
 	text := callText(t, res)

@@ -24,7 +24,7 @@ func TestListSandboxSizes(t *testing.T) {
 	res, err := tool.listSandboxSizes(context.Background(), request(nil))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/sandbox/sizes", gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/sandbox/sizes", gotPath)
 	require.Equal(t, http.MethodGet, gotMethod)
 
 	text := callText(t, res)
@@ -86,7 +86,7 @@ func TestValidatePolicy(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/sessions/policy/validate", gotPath)
+	require.Equal(t, "/v2/harness-runtime/sessions/policy/validate", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Contains(t, gotContentType, "application/x-yaml")
 	require.Contains(t, gotBody, "codex")

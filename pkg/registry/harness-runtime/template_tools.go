@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	templatesPath = "v2/agents/templates"
+	templatesPath = "v2/harness-runtime/templates"
 )
 
 // SandboxTemplateImageSource describes the OCI image that backs a template.
@@ -47,23 +47,23 @@ type SandboxTemplate struct {
 	UpdatedAt  time.Time            `json:"updated_at"`
 }
 
-// ListTemplatesResponse is the response of GET /v2/agents/templates.
+// ListTemplatesResponse is the response of GET /v2/harness-runtime/templates.
 type ListTemplatesResponse struct {
 	Templates     []SandboxTemplate `json:"templates"`
 	NextPageToken string            `json:"next_page_token,omitempty"`
 }
 
-// CreateTemplateResponse is the response of POST /v2/agents/templates and PUT .../templates/{id}.
+// CreateTemplateResponse is the response of POST /v2/harness-runtime/templates and PUT .../templates/{id}.
 type CreateTemplateResponse struct {
 	Template SandboxTemplate `json:"template"`
 }
 
-// GetTemplateResponse is the response of GET /v2/agents/templates/{id}.
+// GetTemplateResponse is the response of GET /v2/harness-runtime/templates/{id}.
 type GetTemplateResponse struct {
 	Template SandboxTemplate `json:"template"`
 }
 
-// DeleteTemplateResponse is the response of DELETE /v2/agents/templates/{id}.
+// DeleteTemplateResponse is the response of DELETE /v2/harness-runtime/templates/{id}.
 type DeleteTemplateResponse struct {
 	TemplateID string `json:"template_id"`
 	Deleted    bool   `json:"deleted"`

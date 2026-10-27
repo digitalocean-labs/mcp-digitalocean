@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	sessionsPath = "v2/agents/sessions"
+	sessionsPath = "v2/harness-runtime/sessions"
 )
 
 // Session is the user-facing record of a managed agent + sandbox pair.
@@ -49,23 +49,23 @@ type Session struct {
 	OpenAIEnvironmentID  string     `json:"openai_environment_id,omitempty"`
 }
 
-// CreateSessionResponse is the response of POST /v2/agents/sessions.
+// CreateSessionResponse is the response of POST /v2/harness-runtime/sessions.
 type CreateSessionResponse struct {
 	Session Session `json:"session"`
 }
 
-// GetSessionResponse is the response of GET /v2/agents/sessions/{id}.
+// GetSessionResponse is the response of GET /v2/harness-runtime/sessions/{id}.
 type GetSessionResponse struct {
 	Session Session `json:"session"`
 }
 
-// ListSessionsResponse is the response of GET /v2/agents/sessions.
+// ListSessionsResponse is the response of GET /v2/harness-runtime/sessions.
 type ListSessionsResponse struct {
 	Sessions      []Session `json:"sessions"`
 	NextPageToken string    `json:"next_page_token,omitempty"`
 }
 
-// SendInputResponse is the response of POST /v2/agents/sessions/{id}/input.
+// SendInputResponse is the response of POST /v2/harness-runtime/sessions/{id}/input.
 type SendInputResponse struct {
 	RunID string `json:"run_id,omitempty"`
 }
