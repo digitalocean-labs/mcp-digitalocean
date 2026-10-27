@@ -4,6 +4,7 @@ package docs
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -129,4 +130,27 @@ func TestLiveContentExcerpts(t *testing.T) {
 	// Latency is reported, not asserted against the exact context deadline:
 	// supported timeout fallback necessarily includes scheduling/cleanup time.
 	// Deterministic cancellation tests enforce the fallback behavior offline.
+}
+
+// TestLiveServiceAliasTargets checks that every slug in serviceAliases is a
+// path the site serves markdown for. Superseded product paths stay reachable
+// as HTML 302 aliases, but the redirect is not applied to the index.html.md
+// variant, so a stale slug leaves docs-get-quickstart with nothing to return
+// while docs-get-page silently degrades to the rendered HTML.
+func TestLiveServiceAliasTargets(t *testing.T) {
+	client := NewDocsClient()
+
+	targets := make(map[string][]string)
+	for alias, slug := range serviceAliases {
+		targets[slug] = append(targets[slug], alias)
+	}
+
+	for slug, aliases := range targets {
+		t.Run(slug, func(t *testing.T) {
+			sort.Strings(aliases)
+			url := docsBase + "/products/" + slug + "/index.html.md"
+			_, err := client.fetch(url)
+			require.NoErrorf(t, err, "%s serves no markdown; aliases %v resolve to it", url, aliases)
+		})
+	}
 }

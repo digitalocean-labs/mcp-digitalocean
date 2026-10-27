@@ -1170,15 +1170,158 @@ func categorizeDocLink(url string) string {
 var entryRe = regexp.MustCompile(`^-\s+\[([^\]]+)\]\(([^)]+)\)(?::\s*(.+))?$`)
 var mdLinkRe = regexp.MustCompile(`\[([^\]]+)\]\((https://docs\.digitalocean\.com[^)]+)\)`)
 var excessiveNewlines = regexp.MustCompile(`\n{3,}`)
-var htmlTags = regexp.MustCompile(`<[^>]+>`)
 
-func cleanMarkdown(md string) string {
-	md = excessiveNewlines.ReplaceAllString(md, "\n\n")
-	md = htmlTags.ReplaceAllString(md, "")
-	return strings.TrimSpace(md)
+// htmlTags matches an HTML tag: a name, optional attributes, optional self
+// closing slash. Requiring a letter after the angle bracket and a name made
+// only of letters and digits keeps command placeholders (<droplet-id|name>),
+// comparisons (a < b && c > d) and autolinks (<https://example.com>) intact,
+// since none of those are HTML and all of them carry meaning. The attribute
+// class excludes angle brackets but not newlines, so a tag whose attributes
+// wrap onto the next line still matches.
+var htmlTags = regexp.MustCompile(`</?[A-Za-z][A-Za-z0-9]*(\s[^<>]*)?/?>`)
+
+// htmlComments and htmlDoctype cover the two non-tag constructs that reach this
+// function when FetchDocPage falls back to an HTML page. Comments may span
+// lines, hence the s flag.
+var htmlComments = regexp.MustCompile(`(?s)<!--.*?-->`)
+var htmlDoctype = regexp.MustCompile(`(?i)<!doctype[^<>]*>`)
+
+// codeFenceOpen matches a fence opening, allowing the three leading spaces
+// CommonMark permits and an info string. codeFenceClose is stricter: CommonMark
+// allows no info string on a closing fence, so a line like ```python inside a
+// block opens nothing and closes nothing.
+var codeFenceOpen = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})")
+var codeFenceClose = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})[ \t]*$")
+
+// mdSegment is a run of lines that is either a fenced code block or the prose
+// between blocks.
+type mdSegment struct {
+	text string
+	code bool
 }
 
-// serviceAliases maps common service name aliases to URL slugs.
+// cleanMarkdown collapses runs of blank lines and strips HTML from prose,
+// leaving fenced code blocks exactly as served. Markdown served to an agent is
+// often copied and run, so a tag-shaped fragment inside a code block is
+// content, not markup: stripping it silently turns a working example into a
+// broken one, and collapsing its blank lines reflows it.
+func cleanMarkdown(md string) string {
+	segments := splitFencedCode(md)
+	parts := make([]string, len(segments))
+	for i, seg := range segments {
+		if seg.code {
+			parts[i] = seg.text
+			continue
+		}
+		text := excessiveNewlines.ReplaceAllString(seg.text, "\n\n")
+		text = stripHTMLOutsideCodeSpans(text)
+		parts[i] = capBoundaryBlanks(text, i > 0, i < len(segments)-1)
+	}
+	return strings.TrimSpace(strings.Join(parts, "\n"))
+}
+
+// splitFencedCode divides a document into alternating prose and fenced code
+// segments. Joining their text with a newline reproduces the input. An unclosed
+// fence runs to the end of the document: treating the remainder as code keeps
+// content rather than stripping it.
+func splitFencedCode(md string) []mdSegment {
+	var segments []mdSegment
+	var cur []string
+	fence := ""
+
+	flush := func(code bool) {
+		if len(cur) == 0 {
+			return
+		}
+		segments = append(segments, mdSegment{text: strings.Join(cur, "\n"), code: code})
+		cur = nil
+	}
+
+	for _, line := range strings.Split(md, "\n") {
+		if fence == "" {
+			if m := codeFenceOpen.FindStringSubmatch(line); m != nil {
+				flush(false)
+				fence = m[1]
+			}
+			cur = append(cur, line)
+			continue
+		}
+		cur = append(cur, line)
+		if m := codeFenceClose.FindStringSubmatch(line); m != nil &&
+			m[1][0] == fence[0] && len(m[1]) >= len(fence) {
+			flush(true)
+			fence = ""
+		}
+	}
+	flush(fence != "")
+	return segments
+}
+
+// capBoundaryBlanks limits the blank lines a prose segment contributes at a
+// seam with a neighbouring code block, since joining the segments adds a
+// newline of its own. Without this a blank line next to a fence survives the
+// collapse that the rest of the prose gets.
+func capBoundaryBlanks(s string, leading, trailing bool) string {
+	if leading {
+		if t := strings.TrimLeft(s, "\n"); len(t) < len(s) {
+			s = "\n" + t
+		}
+	}
+	if trailing {
+		if t := strings.TrimRight(s, "\n"); len(t) < len(s) {
+			s = t + "\n"
+		}
+	}
+	return s
+}
+
+// stripHTMLOutsideCodeSpans strips HTML, skipping inline code spans. A backtick
+// run opens a span that only a run of the same length closes, so the backticks
+// in a span such as `<div>` protect what they wrap. A span may wrap onto the
+// next line but not across a blank line, which ends the paragraph.
+func stripHTMLOutsideCodeSpans(s string) string {
+	var out strings.Builder
+	for i := 0; i < len(s); {
+		if s[i] != '`' {
+			next := strings.IndexByte(s[i:], '`')
+			if next < 0 {
+				out.WriteString(stripHTMLFragment(s[i:]))
+				break
+			}
+			out.WriteString(stripHTMLFragment(s[i : i+next]))
+			i += next
+			continue
+		}
+		run := 1
+		for i+run < len(s) && s[i+run] == '`' {
+			run++
+		}
+		marker := s[i : i+run]
+		rest := s[i+run:]
+		if end := strings.Index(rest, marker); end >= 0 && !strings.Contains(rest[:end], "\n\n") {
+			out.WriteString(s[i : i+run+end+run])
+			i += run + end + run
+			continue
+		}
+		// An unclosed run is literal backticks, not a span.
+		out.WriteString(marker)
+		i += run
+	}
+	return out.String()
+}
+
+func stripHTMLFragment(s string) string {
+	s = htmlComments.ReplaceAllString(s, "")
+	s = htmlDoctype.ReplaceAllString(s, "")
+	return htmlTags.ReplaceAllString(s, "")
+}
+
+// serviceAliases maps common service name aliases to URL slugs. A slug has to
+// be one the site serves markdown for. Superseded product paths such as
+// inference-hub, ai-platform, images/snapshots and network-file-storage are
+// HTML-only 302 aliases: the redirect is not applied to the index.html.md
+// variant, so it 404s, FetchDocPage falls back to the rendered page and
+// FindQuickstart finds nothing.
 var serviceAliases = map[string]string{
 	"kubernetes":           "kubernetes",
 	"k8s":                  "kubernetes",
@@ -1211,22 +1354,24 @@ var serviceAliases = map[string]string{
 	"docr":                 "container-registry",
 	"volumes":              "volumes",
 	"block storage":        "volumes",
-	"snapshots":            "images/snapshots",
-	"backups":              "images/backups",
+	"snapshots":            "snapshots",
+	"backups":              "backups",
 	"marketplace":          "marketplace",
-	"gradient":             "gradient",
-	"gradient ai":          "gradient",
-	"dedicated inference":  "ai-platform",
-	"dedicated-inference":  "ai-platform",
+	"serverless inference": "inference",
+	"genai":                "inference",
+	"gradient":             "inference",
+	"gradient ai":          "inference",
+	"dedicated inference":  "inference",
+	"dedicated-inference":  "inference",
 	"gpu":                  "bare-metal-gpus",
 	"bare metal":           "bare-metal-gpus",
 	"gpu droplets":         "bare-metal-gpus",
-	"inference":            "inference-hub",
-	"inference hub":        "inference-hub",
+	"inference":            "inference",
+	"inference hub":        "inference",
 	"cspm":                 "cspm",
 	"cloud security":       "cspm",
-	"nfs":                  "network-file-storage",
-	"network file storage": "network-file-storage",
+	"nfs":                  "nfs",
+	"network file storage": "nfs",
 }
 
 func resolveServiceSlug(service string) string {

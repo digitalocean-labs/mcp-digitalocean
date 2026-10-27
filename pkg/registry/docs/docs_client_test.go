@@ -163,9 +163,19 @@ func TestResolveServiceSlug(t *testing.T) {
 		{"serverless", "functions"},
 		{"unknown service", "unknown-service"},
 		{"  droplets  ", "droplets"},
-		{"dedicated inference", "ai-platform"},
-		{"dedicated-inference", "ai-platform"},
-		{"Dedicated Inference", "ai-platform"},
+		{"dedicated inference", "inference"},
+		{"dedicated-inference", "inference"},
+		{"Dedicated Inference", "inference"},
+		{"serverless inference", "inference"},
+		{"genai", "inference"},
+		{"Gradient AI", "inference"},
+		{"gradient", "inference"},
+		{"inference", "inference"},
+		{"inference hub", "inference"},
+		{"nfs", "nfs"},
+		{"network file storage", "nfs"},
+		{"snapshots", "snapshots"},
+		{"backups", "backups"},
 	}
 
 	for _, tc := range tests {
@@ -306,6 +316,94 @@ func TestCleanMarkdown(t *testing.T) {
 			name:     "preserves normal markdown",
 			input:    "# Title\n\n- Item 1\n- Item 2",
 			expected: "# Title\n\n- Item 1\n- Item 2",
+		},
+		{
+			name:     "keeps placeholders in a fenced code block",
+			input:    "Run it:\n\n```shell\ndoctl compute ssh <droplet-id|name> [flags]\n```",
+			expected: "Run it:\n\n```shell\ndoctl compute ssh <droplet-id|name> [flags]\n```",
+		},
+		{
+			name:     "keeps HTML inside a fenced code block",
+			input:    "Example:\n\n```html\n<div class=\"app\">hello</div>\n```",
+			expected: "Example:\n\n```html\n<div class=\"app\">hello</div>\n```",
+		},
+		{
+			name:     "keeps tilde fences and nested backticks",
+			input:    "~~~html\n<span>a</span>\n```\n~~~",
+			expected: "~~~html\n<span>a</span>\n```\n~~~",
+		},
+		{
+			name:     "keeps HTML inside an inline code span",
+			input:    "Use `<your-token>` here, not <b>bold</b>.",
+			expected: "Use `<your-token>` here, not bold.",
+		},
+		{
+			name:     "keeps a double-backtick span containing a backtick",
+			input:    "``a `<i>` b`` and <i>x</i>",
+			expected: "``a `<i>` b`` and x",
+		},
+		{
+			name:     "keeps comparisons and autolinks in prose",
+			input:    "Use when a < b && c > d, see <https://example.com>.",
+			expected: "Use when a < b && c > d, see <https://example.com>.",
+		},
+		{
+			name:     "still strips tags with attributes and self-closing tags",
+			input:    `Hi <a href="/x" target="_blank">there</a><br/> you`,
+			expected: "Hi there you",
+		},
+		{
+			name:     "strips HTML comments in prose only",
+			input:    "a <!-- hidden --> b\n\n```\n<!-- kept -->\n```",
+			expected: "a  b\n\n```\n<!-- kept -->\n```",
+		},
+		{
+			name:     "an unclosed code fence protects the rest of the document",
+			input:    "intro\n\n```\n<div>raw</div>",
+			expected: "intro\n\n```\n<div>raw</div>",
+		},
+		{
+			name:     "a fence with an info string does not close the block",
+			input:    "```\n<x>\n```python\n<div>kept</div>\n```",
+			expected: "```\n<x>\n```python\n<div>kept</div>\n```",
+		},
+		{
+			name:     "leaves blank lines inside a code block alone",
+			input:    "```python\ndef a():\n    pass\n\n\ndef b():\n    pass\n```",
+			expected: "```python\ndef a():\n    pass\n\n\ndef b():\n    pass\n```",
+		},
+		{
+			name:     "collapses blank lines across a code block boundary",
+			input:    "intro\n\n\n\n```\ncode\n```\n\n\n\noutro",
+			expected: "intro\n\n```\ncode\n```\n\noutro",
+		},
+		{
+			name:     "strips a doctype declaration",
+			input:    "<!doctype html>\n<div>hi</div>",
+			expected: "hi",
+		},
+		{
+			name:     "strips a comment that spans lines",
+			input:    "a <!-- one\ntwo --> b",
+			expected: "a  b",
+		},
+		{
+			name:     "strips a tag whose attributes wrap onto the next line",
+			input:    "<div\n  class=\"x\">hi</div>",
+			expected: "hi",
+		},
+		{
+			// A bare placeholder is indistinguishable from a tag, so prose
+			// still loses it. Pages put placeholders in backticks, which the
+			// case above covers.
+			name:     "a prose placeholder with no backticks is still stripped",
+			input:    "Replace <token> with yours",
+			expected: "Replace  with yours",
+		},
+		{
+			name:     "an unspaced comparison in prose is still stripped",
+			input:    "true when a<b && c>d",
+			expected: "true when ad",
 		},
 	}
 
