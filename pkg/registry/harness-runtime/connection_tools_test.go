@@ -163,10 +163,10 @@ func TestCreateConnectionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing provider":  {},
-		"missing actor":     {"Provider": testProvider},
-		"invalid provider":  {"Provider": "bitbucket", "ActorID": "actor-1"},
-		"empty actor":       {"Provider": testProvider, "ActorID": ""},
+		"missing provider": {},
+		"missing actor":    {"Provider": testProvider},
+		"invalid provider": {"Provider": "bitbucket", "ActorID": "actor-1"},
+		"empty actor":      {"Provider": testProvider, "ActorID": ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.createConnection(context.Background(), request(args))

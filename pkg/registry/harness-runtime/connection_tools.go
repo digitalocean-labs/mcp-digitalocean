@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	providerAuthPath    = "v2/harness-runtime/auth"
+	providerAuthPath     = "v2/harness-runtime/auth"
 	webhookProvidersPath = "v2/harness-runtime/webhook-providers"
 )
 
@@ -33,15 +33,15 @@ type ConnectionOAuth struct {
 
 // Connection is one external-provider connection as returned by the API.
 type Connection struct {
-	ID                  string          `json:"id"`
-	Provider            string          `json:"provider"`
-	ProviderDisplayName string          `json:"provider_display_name,omitempty"`
-	ActorID             string          `json:"user_id"`
-	Status              string          `json:"status"`
-	OwningUserID        string          `json:"owning_user_id,omitempty"`
-	DeletionProtected   bool            `json:"deletion_protected"`
-	CreatedAt           *time.Time      `json:"created_at,omitempty"`
-	UpdatedAt           *time.Time      `json:"updated_at,omitempty"`
+	ID                  string           `json:"id"`
+	Provider            string           `json:"provider"`
+	ProviderDisplayName string           `json:"provider_display_name,omitempty"`
+	ActorID             string           `json:"user_id"`
+	Status              string           `json:"status"`
+	OwningUserID        string           `json:"owning_user_id,omitempty"`
+	DeletionProtected   bool             `json:"deletion_protected"`
+	CreatedAt           *time.Time       `json:"created_at,omitempty"`
+	UpdatedAt           *time.Time       `json:"updated_at,omitempty"`
 	OAuth               *ConnectionOAuth `json:"oauth,omitempty"`
 }
 
