@@ -99,6 +99,12 @@ func TestModelEvaluationToolListParamSchemas(t *testing.T) {
 	require.Contains(t, listDatasetsProps, "dataset_paradigm")
 	require.Contains(t, listDatasetsProps, "has_ground_truth")
 
+	listMetricsProps := byName["genai-model-eval-list-metrics"]
+	require.Contains(t, listMetricsProps, "turn_type")
+
+	createCustomMetricProps := byName["genai-model-eval-create-custom-metric"]
+	require.Contains(t, createCustomMetricProps, "turn_type")
+
 	createDatasetProps := byName["genai-model-eval-create-dataset"]
 	require.Contains(t, createDatasetProps, "dataset_paradigm")
 	require.Contains(t, createDatasetProps, "file_content")
