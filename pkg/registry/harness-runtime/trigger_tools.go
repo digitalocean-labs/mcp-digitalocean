@@ -25,9 +25,11 @@ const (
 )
 
 // TriggerOutput configures what happens with the trigger's output (none, email, slack).
+// On reads the API returns email_configured/slack_configured booleans (write-only destinations).
 type TriggerOutput struct {
-	Mode   string `json:"mode,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
+	Mode            string `json:"mode,omitempty"`
+	EmailConfigured bool   `json:"email_configured,omitempty"`
+	SlackConfigured bool   `json:"slack_configured,omitempty"`
 }
 
 // TriggerWebhook holds webhook-specific trigger configuration.
@@ -177,14 +179,6 @@ func (t *Tool) createTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 	args := req.GetArguments()
 
-	configID, _ := args["ConfigID"].(string)
-	if configID == "" {
-		return mcp.NewToolResultError("ConfigID is required"), nil
-	}
-	if _, err := uuid.Parse(configID); err != nil {
-		return mcp.NewToolResultError("ConfigID must be a UUID"), nil
-	}
-
 	name, _ := args["Name"].(string)
 	if name == "" {
 		return mcp.NewToolResultError("Name is required"), nil
@@ -206,6 +200,11 @@ func (t *Tool) createTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultError("SessionMode must be one of: fresh, reuse"), nil
 	}
 
+	promptTemplate, _ := args["PromptTemplate"].(string)
+	if promptTemplate == "" {
+		return mcp.NewToolResultError("PromptTemplate is required"), nil
+	}
+
 	outputMode, _ := args["OutputMode"].(string)
 	if outputMode == "" {
 		outputMode = "none"
@@ -214,12 +213,28 @@ func (t *Tool) createTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultError("OutputMode must be one of: none, email, slack"), nil
 	}
 
+	outputObj := map[string]any{"mode": outputMode}
+	if outputMode == "email" {
+		email, _ := args["Email"].(string)
+		if email == "" {
+			return mcp.NewToolResultError("Email is required when OutputMode is 'email'"), nil
+		}
+		outputObj["email"] = email
+	}
+	if outputMode == "slack" {
+		slackWebhookURL, _ := args["SlackWebhookURL"].(string)
+		if slackWebhookURL == "" {
+			return mcp.NewToolResultError("SlackWebhookURL is required when OutputMode is 'slack'"), nil
+		}
+		outputObj["slack"] = map[string]any{"webhook_url": slackWebhookURL}
+	}
+
 	body := map[string]any{
-		"config_id":    configID,
-		"name":         name,
-		"kind":         kind,
-		"session_mode": sessionMode,
-		"output":       map[string]any{"mode": outputMode},
+		"name":            name,
+		"kind":            kind,
+		"session_mode":    sessionMode,
+		"prompt_template": promptTemplate,
+		"output":          outputObj,
 	}
 
 	if kind == "cron" {
@@ -258,11 +273,6 @@ func (t *Tool) createTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 			return mcp.NewToolResultError("BoundSessionID must be a UUID"), nil
 		}
 		body["bound_session_id"] = boundID
-	}
-
-	if v, _ := args["Prompt"].(string); v != "" {
-		output := body["output"].(map[string]any)
-		output["prompt"] = v
 	}
 
 	if v, ok := args["MaxConcurrency"].(float64); ok {
@@ -336,12 +346,6 @@ func (t *Tool) updateTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if v, _ := args["Name"].(string); v != "" {
 		body["name"] = v
 	}
-	if v, _ := args["ConfigID"].(string); v != "" {
-		if _, err := uuid.Parse(v); err != nil {
-			return mcp.NewToolResultError("ConfigID must be a UUID"), nil
-		}
-		body["config_id"] = v
-	}
 	if v, _ := args["SessionMode"].(string); v != "" {
 		body["session_mode"] = v
 	}
@@ -354,20 +358,24 @@ func (t *Tool) updateTrigger(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		}
 		body["bound_session_id"] = v
 	}
-	if v, ok := args["MaxConcurrency"].(float64); ok {
-		body["max_concurrency"] = int(v)
+	if v, _ := args["PromptTemplate"].(string); v != "" {
+		body["prompt_template"] = v
 	}
 
 	// Build output sub-object if any output fields are provided.
 	outputMode, hasOutputMode := args["OutputMode"].(string)
-	prompt, hasPrompt := args["Prompt"].(string)
-	if (hasOutputMode && outputMode != "") || (hasPrompt && prompt != "") {
+	email, hasEmail := args["Email"].(string)
+	slackURL, hasSlack := args["SlackWebhookURL"].(string)
+	if (hasOutputMode && outputMode != "") || (hasEmail && email != "") || (hasSlack && slackURL != "") {
 		out := map[string]any{}
 		if hasOutputMode && outputMode != "" {
 			out["mode"] = outputMode
 		}
-		if hasPrompt && prompt != "" {
-			out["prompt"] = prompt
+		if hasEmail && email != "" {
+			out["email"] = email
+		}
+		if hasSlack && slackURL != "" {
+			out["slack"] = map[string]any{"webhook_url": slackURL}
 		}
 		body["output"] = out
 	}
@@ -723,17 +731,18 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				createTriggerOut.Schema(),
-				mcp.WithDescription("Create a new trigger that automates agent session launches. A trigger references an agent config and fires on a schedule (cron) or via webhook. For webhook triggers, returns the webhook URL and signing secret. SessionMode controls whether each execution gets a fresh session (requires SessionTemplate with an agentspec YAML manifest including permissions.default set to allow or deny) or reuses an existing session (requires BoundSessionID)."),
-				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("Agent Config UUID the trigger will use")),
+				mcp.WithDescription("Create a new trigger that automates agent session launches. A trigger fires on a schedule (cron) or via webhook. For webhook triggers, returns the webhook URL and signing secret. SessionMode controls whether each execution gets a fresh session (requires SessionTemplate with an agentspec YAML manifest including permissions.default set to allow or deny) or reuses an existing session (requires BoundSessionID)."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Trigger name (must be unique among the team's triggers)")),
 				mcp.WithString("Kind", mcp.Required(), mcp.Description("Trigger kind: 'webhook' or 'cron'")),
 				mcp.WithString("SessionMode", mcp.Required(), mcp.Description("Session lifecycle: 'fresh' (new session per execution, requires SessionTemplate) or 'reuse' (reuses existing session, requires BoundSessionID)")),
+				mcp.WithString("PromptTemplate", mcp.Required(), mcp.Description("Prompt text sent to the agent when the trigger fires")),
 				mcp.WithString("SessionTemplate", mcp.Description("YAML agentspec manifest for fresh sessions. Must include permissions.default set to 'allow' or 'deny'. Example: 'size: mars-2vcpu-4gb\\nagent: codex\\npermissions:\\n  default: allow\\n'")),
 				mcp.WithString("BoundSessionID", mcp.Description("UUID of the session to reuse when SessionMode is 'reuse'")),
 				mcp.WithString("CronExpr", mcp.Description("Cron expression for cron triggers (e.g. '0 0 * * *' for daily at midnight). Required when Kind is 'cron'.")),
 				mcp.WithString("Timezone", mcp.Description("Timezone for cron triggers (e.g. 'UTC', 'America/New_York'). Defaults to 'UTC'. Only used when Kind is 'cron'.")),
-				mcp.WithString("OutputMode", mcp.Description("Output delivery mode: 'none' (default), 'email', or 'slack'")),
-				mcp.WithString("Prompt", mcp.Description("Prompt template to send to the agent when the trigger fires")),
+				mcp.WithString("OutputMode", mcp.Description("Output delivery mode: 'none' (default), 'email', or 'slack'. When 'email', Email is required. When 'slack', SlackWebhookURL is required.")),
+				mcp.WithString("Email", mcp.Description("Email address for output delivery. Required when OutputMode is 'email'.")),
+				mcp.WithString("SlackWebhookURL", mcp.Description("Slack incoming webhook URL for output delivery. Required when OutputMode is 'slack'.")),
 				mcp.WithNumber("MaxConcurrency", mcp.Description("Maximum number of concurrent executions (default 1)")),
 			),
 		},
@@ -756,15 +765,15 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				mcp.WithDescription("Update a trigger's mutable fields. At least one field must be provided. Returns the updated trigger."),
 				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID to update")),
 				mcp.WithString("Name", mcp.Description("New trigger name")),
-				mcp.WithString("ConfigID", mcp.Description("New agent config UUID")),
 				mcp.WithString("SessionMode", mcp.Description("New session mode: 'fresh' or 'reuse'")),
 				mcp.WithString("SessionTemplate", mcp.Description("New YAML agentspec manifest for fresh sessions")),
 				mcp.WithString("BoundSessionID", mcp.Description("New bound session UUID for reuse mode")),
+				mcp.WithString("PromptTemplate", mcp.Description("New prompt text sent to the agent")),
 				mcp.WithString("CronExpr", mcp.Description("New cron expression")),
 				mcp.WithString("Timezone", mcp.Description("New timezone for cron triggers")),
-				mcp.WithString("OutputMode", mcp.Description("New output mode: 'none', 'email', or 'slack'")),
-				mcp.WithString("Prompt", mcp.Description("New prompt template")),
-				mcp.WithNumber("MaxConcurrency", mcp.Description("New maximum concurrent executions")),
+				mcp.WithString("OutputMode", mcp.Description("New output mode: 'none', 'email', or 'slack'. When 'email', provide Email. When 'slack', provide SlackWebhookURL.")),
+				mcp.WithString("Email", mcp.Description("New email address for output delivery (when OutputMode is 'email')")),
+				mcp.WithString("SlackWebhookURL", mcp.Description("New Slack incoming webhook URL (when OutputMode is 'slack')")),
 			),
 		},
 		{

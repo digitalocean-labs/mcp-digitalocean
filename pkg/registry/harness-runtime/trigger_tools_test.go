@@ -114,28 +114,27 @@ func TestCreateTriggerWebhook(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":        testConfigID,
 		"Name":            "my-webhook",
 		"Kind":            "webhook",
 		"SessionMode":     "fresh",
 		"SessionTemplate": "size: mars-2vcpu-4gb\nagent: codex\npermissions:\n  default: allow\n",
-		"Prompt":          "Run nightly evaluation",
+		"PromptTemplate":  "Run nightly evaluation",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Equal(t, "/v2/agents/triggers", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Contains(t, gotContentType, "application/json")
-	require.Equal(t, testConfigID, gotBody["config_id"])
+	require.Nil(t, gotBody["config_id"])
 	require.Equal(t, "my-webhook", gotBody["name"])
 	require.Equal(t, "webhook", gotBody["kind"])
 	require.Equal(t, "fresh", gotBody["session_mode"])
+	require.Equal(t, "Run nightly evaluation", gotBody["prompt_template"])
 	require.NotNil(t, gotBody["webhook"])
 
 	output, ok := gotBody["output"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "none", output["mode"])
-	require.Equal(t, "Run nightly evaluation", output["prompt"])
 
 	text := callText(t, res)
 	require.Contains(t, text, testTriggerID)
@@ -153,11 +152,11 @@ func TestCreateTriggerCron(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":        testConfigID,
 		"Name":            "daily-cron",
 		"Kind":            "cron",
 		"SessionMode":     "fresh",
 		"SessionTemplate": "size: mars-2vcpu-4gb\nagent: codex\npermissions:\n  default: allow\n",
+		"PromptTemplate":  "Run daily evaluation",
 		"CronExpr":        "0 0 * * *",
 		"Timezone":        "America/New_York",
 	}))
@@ -181,11 +180,11 @@ func TestCreateTriggerCronDefaultTimezone(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":        testConfigID,
 		"Name":            "daily-utc",
 		"Kind":            "cron",
 		"SessionMode":     "fresh",
 		"SessionTemplate": "size: mars-2vcpu-4gb\nagent: codex\npermissions:\n  default: allow\n",
+		"PromptTemplate":  "Run daily evaluation",
 		"CronExpr":        "0 0 * * *",
 	}))
 	require.NoError(t, err)
@@ -207,12 +206,13 @@ func TestCreateTriggerReuseMode(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":       testConfigID,
 		"Name":           "reuse-trigger",
 		"Kind":           "webhook",
 		"SessionMode":    "reuse",
 		"BoundSessionID": boundSessionID,
+		"PromptTemplate": "Run reuse evaluation",
 		"OutputMode":     "email",
+		"Email":          "test@example.com",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
@@ -222,6 +222,7 @@ func TestCreateTriggerReuseMode(t *testing.T) {
 	output, ok := gotBody["output"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "email", output["mode"])
+	require.Equal(t, "test@example.com", output["email"])
 }
 
 func TestCreateTriggerWithMaxConcurrency(t *testing.T) {
@@ -234,11 +235,11 @@ func TestCreateTriggerWithMaxConcurrency(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":        testConfigID,
 		"Name":            "conc-trigger",
 		"Kind":            "webhook",
 		"SessionMode":     "fresh",
 		"SessionTemplate": "size: mars-2vcpu-4gb\nagent: codex\npermissions:\n  default: allow\n",
+		"PromptTemplate":  "Run concurrent evaluation",
 		"MaxConcurrency":  float64(5),
 	}))
 	require.NoError(t, err)
@@ -252,18 +253,19 @@ func TestCreateTriggerValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing config id":           {"Name": "test", "Kind": "cron", "SessionMode": "fresh", "SessionTemplate": "size: s\n", "CronExpr": "0 0 * * *"},
-		"invalid config id":           {"ConfigID": "not-a-uuid", "Name": "test", "Kind": "cron", "SessionMode": "fresh", "SessionTemplate": "size: s\n", "CronExpr": "0 0 * * *"},
-		"missing name":                {"ConfigID": testConfigID, "Kind": "cron", "SessionMode": "fresh", "SessionTemplate": "size: s\n", "CronExpr": "0 0 * * *"},
-		"missing kind":                {"ConfigID": testConfigID, "Name": "test", "SessionMode": "fresh", "SessionTemplate": "size: s\n"},
-		"invalid kind":                {"ConfigID": testConfigID, "Name": "test", "Kind": "manual", "SessionMode": "fresh", "SessionTemplate": "size: s\n"},
-		"missing session mode":        {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook"},
-		"invalid session mode":        {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook", "SessionMode": "something"},
-		"fresh missing template":      {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook", "SessionMode": "fresh"},
-		"reuse missing bound session": {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook", "SessionMode": "reuse"},
-		"reuse invalid bound session": {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook", "SessionMode": "reuse", "BoundSessionID": "not-uuid"},
-		"cron missing cron expr":      {"ConfigID": testConfigID, "Name": "test", "Kind": "cron", "SessionMode": "fresh", "SessionTemplate": "size: s\n"},
-		"invalid output mode":         {"ConfigID": testConfigID, "Name": "test", "Kind": "webhook", "SessionMode": "fresh", "SessionTemplate": "size: s\n", "OutputMode": "invalid"},
+		"missing name":                {"Kind": "cron", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n", "CronExpr": "0 0 * * *"},
+		"missing kind":                {"Name": "test", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n"},
+		"invalid kind":                {"Name": "test", "Kind": "manual", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n"},
+		"missing session mode":        {"Name": "test", "Kind": "webhook", "PromptTemplate": "test"},
+		"invalid session mode":        {"Name": "test", "Kind": "webhook", "PromptTemplate": "test", "SessionMode": "something"},
+		"missing prompt template":     {"Name": "test", "Kind": "webhook", "SessionMode": "fresh", "SessionTemplate": "size: s\n"},
+		"fresh missing template":      {"Name": "test", "Kind": "webhook", "SessionMode": "fresh", "PromptTemplate": "test"},
+		"reuse missing bound session": {"Name": "test", "Kind": "webhook", "SessionMode": "reuse", "PromptTemplate": "test"},
+		"reuse invalid bound session": {"Name": "test", "Kind": "webhook", "SessionMode": "reuse", "PromptTemplate": "test", "BoundSessionID": "not-uuid"},
+		"cron missing cron expr":      {"Name": "test", "Kind": "cron", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n"},
+		"invalid output mode":         {"Name": "test", "Kind": "webhook", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n", "OutputMode": "invalid"},
+		"email missing address":       {"Name": "test", "Kind": "webhook", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n", "OutputMode": "email"},
+		"slack missing webhook url":   {"Name": "test", "Kind": "webhook", "SessionMode": "fresh", "PromptTemplate": "test", "SessionTemplate": "size: s\n", "OutputMode": "slack"},
 		"missing all":                 {},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -282,10 +284,10 @@ func TestCreateTriggerAPIError(t *testing.T) {
 	})
 
 	res, err := tool.createTrigger(context.Background(), request(map[string]any{
-		"ConfigID":        testConfigID,
 		"Name":            "existing-trigger",
 		"Kind":            "webhook",
 		"SessionMode":     "fresh",
+		"PromptTemplate":  "Run evaluation",
 		"SessionTemplate": "size: mars-2vcpu-4gb\nagent: codex\npermissions:\n  default: allow\n",
 	}))
 	require.NoError(t, err)
@@ -377,9 +379,8 @@ func TestUpdateTrigger(t *testing.T) {
 	require.Contains(t, text, "updated-trigger")
 }
 
-func TestUpdateTriggerWithConfigID(t *testing.T) {
+func TestUpdateTriggerWithPromptTemplate(t *testing.T) {
 	var gotBody map[string]any
-	newConfigID := "069fb39c-14d9-7080-933e-b9b90e25acdc"
 
 	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&gotBody)
@@ -388,12 +389,12 @@ func TestUpdateTriggerWithConfigID(t *testing.T) {
 	})
 
 	res, err := tool.updateTrigger(context.Background(), request(map[string]any{
-		"TriggerID": testTriggerID,
-		"ConfigID":  newConfigID,
+		"TriggerID":      testTriggerID,
+		"PromptTemplate": "Updated prompt template",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, newConfigID, gotBody["config_id"])
+	require.Equal(t, "Updated prompt template", gotBody["prompt_template"])
 }
 
 func TestUpdateTriggerOutput(t *testing.T) {
@@ -406,9 +407,9 @@ func TestUpdateTriggerOutput(t *testing.T) {
 	})
 
 	res, err := tool.updateTrigger(context.Background(), request(map[string]any{
-		"TriggerID":  testTriggerID,
-		"OutputMode": "slack",
-		"Prompt":     "Updated prompt",
+		"TriggerID":       testTriggerID,
+		"OutputMode":      "slack",
+		"SlackWebhookURL": "https://hooks.slack.com/services/T00/B00/xxx",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
@@ -416,7 +417,9 @@ func TestUpdateTriggerOutput(t *testing.T) {
 	output, ok := gotBody["output"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "slack", output["mode"])
-	require.Equal(t, "Updated prompt", output["prompt"])
+	slack, ok := output["slack"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "https://hooks.slack.com/services/T00/B00/xxx", slack["webhook_url"])
 }
 
 func TestUpdateTriggerValidation(t *testing.T) {
@@ -428,7 +431,6 @@ func TestUpdateTriggerValidation(t *testing.T) {
 		"missing trigger id":    {"Name": "updated"},
 		"invalid trigger id":    {"TriggerID": "not-a-uuid", "Name": "updated"},
 		"no updatable fields":   {"TriggerID": testTriggerID},
-		"invalid config id":     {"TriggerID": testTriggerID, "ConfigID": "not-a-uuid"},
 		"invalid bound session": {"TriggerID": testTriggerID, "BoundSessionID": "not-a-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
