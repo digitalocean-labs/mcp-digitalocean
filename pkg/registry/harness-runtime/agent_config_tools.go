@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	agentConfigsPath = "v2/agents/configs"
+	agentConfigsPath = "v2/harness-runtime/configs"
 	maxPageSize      = 200
 	maxSearchLen     = 64
 )
@@ -40,7 +40,7 @@ type AgentConfigSummary struct {
 	UpdatedAt              time.Time `json:"updated_at"`
 }
 
-// ListAgentConfigsResponse is the response of GET /v2/agents/configs.
+// ListAgentConfigsResponse is the response of GET /v2/harness-runtime/configs.
 type ListAgentConfigsResponse struct {
 	Configs       []AgentConfigSummary `json:"configs"`
 	NextPageToken string               `json:"next_page_token,omitempty"`
@@ -63,7 +63,7 @@ type AgentConfig struct {
 	Credentials []AgentConfigCredentialSlot `json:"credentials,omitempty"`
 }
 
-// AgentConfigResponse is the response of GET /v2/agents/configs/{config_id}.
+// AgentConfigResponse is the response of GET /v2/harness-runtime/configs/{config_id}.
 type AgentConfigResponse struct {
 	Config AgentConfig `json:"config"`
 }

@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	triggersPath         = "v2/agents/triggers"
-	reusableSessionsPath = "v2/agents/triggers/reusable-sessions"
+	triggersPath         = "v2/harness-runtime/triggers"
+	reusableSessionsPath = "v2/harness-runtime/triggers/reusable-sessions"
 )
 
 // TriggerOutput configures what happens with the trigger's output (none, email, slack).
@@ -69,14 +69,14 @@ type TriggerResponse struct {
 	Trigger Trigger `json:"trigger"`
 }
 
-// CreateTriggerResponse is the response of POST /v2/agents/triggers.
+// CreateTriggerResponse is the response of POST /v2/harness-runtime/triggers.
 // It includes the webhook_secret returned only at creation time.
 type CreateTriggerResponse struct {
 	Trigger       Trigger `json:"trigger"`
 	WebhookSecret string  `json:"webhook_secret,omitempty"`
 }
 
-// ListTriggersResponse is the response of GET /v2/agents/triggers.
+// ListTriggersResponse is the response of GET /v2/harness-runtime/triggers.
 type ListTriggersResponse struct {
 	Triggers      []Trigger `json:"triggers"`
 	NextPageToken string    `json:"next_page_token,omitempty"`

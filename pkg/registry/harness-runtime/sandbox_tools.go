@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	sandboxSizesPath = "v2/agents/sessions/sandbox/sizes"
+	sandboxSizesPath = "v2/harness-runtime/sessions/sandbox/sizes"
 )
 
 // SandboxSize describes the compute resources available for a sandbox.
@@ -27,7 +27,7 @@ type SandboxSize struct {
 	PricePerMonthUSD float64 `json:"price_per_month_usd,omitempty"`
 }
 
-// ListSandboxSizesResponse is the response of GET /v2/agents/sessions/sandbox/sizes.
+// ListSandboxSizesResponse is the response of GET /v2/harness-runtime/sessions/sandbox/sizes.
 type ListSandboxSizesResponse struct {
 	Sizes []SandboxSize `json:"sizes"`
 }
@@ -39,7 +39,7 @@ type RuleVerdict struct {
 	Reason  string `json:"reason,omitempty"`
 }
 
-// ValidatePolicyResponse is the response of POST /v2/agents/sessions/policy/validate.
+// ValidatePolicyResponse is the response of POST /v2/harness-runtime/sessions/policy/validate.
 type ValidatePolicyResponse struct {
 	Agent                 string        `json:"agent,omitempty"`
 	Version               string        `json:"version,omitempty"`

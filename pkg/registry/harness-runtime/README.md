@@ -1,6 +1,6 @@
 ## Harness Runtime MCP Tools
 
-Tools for discovering and managing Hosted Agents (Harness Runtime), backed by the public `/v2/agents/*` API.
+Tools for discovering and managing Hosted Agents (Harness Runtime), backed by the public `/v2/harness-runtime/*` API.
 
 Enable these tools with service name **`harness-runtime`**. Hosted URL: `https://harness-runtime.mcp.digitalocean.com/mcp`.
 

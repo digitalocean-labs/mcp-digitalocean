@@ -42,7 +42,7 @@ func TestListTemplates(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates", gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates", gotPath)
 	require.Equal(t, "10", gotQuery.Get("page_size"))
 	require.Equal(t, "tok1", gotQuery.Get("page_token"))
 
@@ -112,7 +112,7 @@ func TestGetTemplate(t *testing.T) {
 	res, err := tool.getTemplate(context.Background(), request(map[string]any{"TemplateID": testTemplateID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates/"+testTemplateID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates/"+testTemplateID, gotPath)
 
 	text := callText(t, res)
 	require.Contains(t, text, "my-template")
@@ -172,7 +172,7 @@ func TestCreateTemplate(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates", gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Contains(t, gotContentType, "application/json")
 	require.Equal(t, "my-template", gotBody["name"])
@@ -244,7 +244,7 @@ func TestUpdateTemplate(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates/"+testTemplateID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates/"+testTemplateID, gotPath)
 	require.Equal(t, http.MethodPut, gotMethod)
 	require.Equal(t, "registry.example.com/my-image:v2", gotBody["source_oci_ref"])
 	require.Equal(t, "opencode-base", gotBody["base_template"])
@@ -322,7 +322,7 @@ func TestDeleteTemplate(t *testing.T) {
 	res, err := tool.deleteTemplate(context.Background(), request(map[string]any{"TemplateID": testTemplateID}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates/"+testTemplateID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates/"+testTemplateID, gotPath)
 	require.Equal(t, http.MethodDelete, gotMethod)
 
 	text := callText(t, res)
@@ -380,7 +380,7 @@ func TestListTemplateBuilds(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates/"+testTemplateID+"/builds", gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates/"+testTemplateID+"/builds", gotPath)
 	require.Equal(t, "5", gotQuery.Get("page_size"))
 	require.Equal(t, "tok1", gotQuery.Get("page_token"))
 
@@ -457,7 +457,7 @@ func TestGetTemplateBuild(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Equal(t, "/v2/agents/templates/"+testTemplateID+"/builds/"+testBuildID, gotPath)
+	require.Equal(t, "/v2/harness-runtime/templates/"+testTemplateID+"/builds/"+testBuildID, gotPath)
 
 	text := callText(t, res)
 	require.Contains(t, text, testBuildID)
