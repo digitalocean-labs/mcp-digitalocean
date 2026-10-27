@@ -99,14 +99,37 @@ func NewModelEvaluationTool(client func(ctx context.Context) (*godo.Client, erro
 	}
 }
 
-// listMetrics lists all available model evaluation metrics.
+const evaluationMetricTurnTypePrefix = "EVALUATION_METRIC_TURN_TYPE_"
+
+// modelEvalEnumValue expands a tool argument shorthand into the enum value the
+// API expects, so both "multi_turn" and "EVALUATION_METRIC_TURN_TYPE_MULTI_TURN"
+// are accepted (same convention as doctl).
+func modelEvalEnumValue(prefix, value string) string {
+	normalized := strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(value), "-", "_"))
+	if normalized == "" {
+		return ""
+	}
+	if strings.HasPrefix(normalized, prefix) {
+		return normalized
+	}
+	return prefix + normalized
+}
+
+// listMetrics lists available model evaluation metrics, optionally filtered by turn_type.
 func (met *ModelEvaluationTool) listMetrics(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := met.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	output, _, err := client.AgentPlatform.ListModelEvaluationMetrics(ctx)
+	var opt *godo.ModelEvaluationMetricListOptions
+	if raw := strings.TrimSpace(stringArg(req.GetArguments(), "turn_type")); raw != "" {
+		opt = &godo.ModelEvaluationMetricListOptions{
+			TurnType: godo.EvaluationMetricTurnType(modelEvalEnumValue(evaluationMetricTurnTypePrefix, raw)),
+		}
+	}
+
+	output, _, err := client.AgentPlatform.ListModelEvaluationMetricsWithOptions(ctx, opt)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to list model evaluation metrics", err), nil
 	}
@@ -678,6 +701,14 @@ func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.
 
 	requiresGroundTruth, _ := args["requires_ground_truth"].(bool)
 
+	config := &godo.CustomEvaluationMetricConfig{
+		ScoringPrompt:       scoringPrompt,
+		RequiresGroundTruth: requiresGroundTruth,
+	}
+	if rawTurnType := strings.TrimSpace(stringArg(args, "turn_type")); rawTurnType != "" {
+		config.TurnType = godo.EvaluationMetricTurnType(modelEvalEnumValue(evaluationMetricTurnTypePrefix, rawTurnType))
+	}
+
 	client, err := met.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
@@ -686,10 +717,7 @@ func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.
 	metric, resp, err := client.AgentPlatform.CreateCustomEvaluationMetric(ctx, &godo.CreateCustomEvaluationMetricRequest{
 		MetricName:  metricName,
 		Description: strings.TrimSpace(stringArg(args, "description")),
-		Config: &godo.CustomEvaluationMetricConfig{
-			ScoringPrompt:       scoringPrompt,
-			RequiresGroundTruth: requiresGroundTruth,
-		},
+		Config:      config,
 	})
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to create custom evaluation metric", err), nil
@@ -964,7 +992,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				modelEvalMetricListOut.Schema(),
-				mcp.WithDescription("List all available model evaluation metrics."),
+				mcp.WithDescription("List available model evaluation metrics. Each metric includes turn_type (SINGLE_TURN or MULTI_TURN). Optionally filter with turn_type."),
+				mcp.WithString("turn_type", mcp.Description("Optional filter by turn type. Accepts single_turn / multi_turn or the full enums EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN.")),
 			),
 		},
 		{
@@ -1156,11 +1185,12 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
 				modelEvalCustomMetricOut.Schema(),
-				mcp.WithDescription("Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the scoring_prompt. The created metric appears in genai-model-eval-list-metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) and its metric_uuid can be used in evaluation runs and presets."),
+				mcp.WithDescription("Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the scoring_prompt. When turn_type is omitted, the metric defaults to single_turn. multi_turn cannot be combined with requires_ground_truth. The created metric appears in genai-model-eval-list-metrics (source EVALUATION_METRIC_SOURCE_CUSTOM) and its metric_uuid can be used in evaluation runs and presets."),
 				mcp.WithString("metric_name", mcp.Required(), mcp.Description("Display name for the custom metric")),
 				mcp.WithString("scoring_prompt", mcp.Required(), mcp.Description("LLM-as-judge scoring prompt describing how the judge model should score a response")),
 				mcp.WithString("description", mcp.Description("Human-readable description of what the metric measures")),
 				mcp.WithBoolean("requires_ground_truth", mcp.Description("Whether scoring this metric requires a ground_truth column in the evaluation dataset (default: false)")),
+				mcp.WithString("turn_type", mcp.Description("Whether the metric applies to single-turn or multi-turn inputs. Accepts single_turn / multi_turn or EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Defaults to single_turn when omitted. Immutable after create.")),
 			),
 		},
 		{

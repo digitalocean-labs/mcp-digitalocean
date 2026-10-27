@@ -365,9 +365,10 @@ These tools evaluate raw models directly (not full agent deployments). They use 
 ### Atomic Tools
 
 #### `genai-model-eval-list-metrics`
-List all available model evaluation metrics.
+List available model evaluation metrics. Each metric includes `turn_type` (`EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` or `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`).
 
-**Arguments:** None
+**Arguments:**
+- `turn_type` (string, optional): Filter by turn type. Accepts `single_turn` / `multi_turn` or the full enums `EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` / `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`.
 
 **Returns:** JSON object with array of metrics and count
 
@@ -377,7 +378,8 @@ List all available model evaluation metrics.
     {
       "metric_uuid": "...",
       "metric_name": "correctness",
-      "category": "METRIC_CATEGORY_CORRECTNESS"
+      "category": "METRIC_CATEGORY_CORRECTNESS",
+      "turn_type": "EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN"
     }
   ],
   "count": 5
@@ -540,13 +542,14 @@ Delete an evaluation dataset by UUID. Works for both model and agent evaluation 
 **Returns:** JSON object confirming the deletion.
 
 #### `genai-model-eval-create-custom-metric`
-Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the `scoring_prompt`. The created metric appears in `genai-model-eval-list-metrics` (source `EVALUATION_METRIC_SOURCE_CUSTOM`) and its `metric_uuid` can be used in evaluation runs and presets.
+Create a custom (LLM-as-judge) model evaluation metric. The judge model scores each response against the `scoring_prompt`. When `turn_type` is omitted, the metric defaults to `single_turn`. `multi_turn` cannot be combined with `requires_ground_truth`. The created metric appears in `genai-model-eval-list-metrics` (source `EVALUATION_METRIC_SOURCE_CUSTOM`) and its `metric_uuid` can be used in evaluation runs and presets.
 
 **Arguments:**
 - `metric_name` (string, required): Display name for the custom metric
 - `scoring_prompt` (string, required): LLM-as-judge scoring prompt describing how the judge model should score a response
 - `description` (string, optional): Human-readable description of what the metric measures
 - `requires_ground_truth` (boolean, optional): Whether scoring this metric requires a `ground_truth` column in the evaluation dataset (default: false)
+- `turn_type` (string, optional): `single_turn` / `multi_turn` (or full `EVALUATION_METRIC_TURN_TYPE_*` enums). Defaults to `single_turn` when omitted. Immutable after create.
 
 **Returns:** JSON object with the created metric, including its `metric_uuid`.
 
@@ -556,9 +559,11 @@ Create a custom (LLM-as-judge) model evaluation metric. The judge model scores e
   "metric_name": "helpfulness",
   "description": "How helpful the response is",
   "source": "EVALUATION_METRIC_SOURCE_CUSTOM",
+  "turn_type": "EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN",
   "custom_eval_config": {
     "scoring_prompt": "Score the response for helpfulness...",
-    "requires_ground_truth": false
+    "requires_ground_truth": false,
+    "turn_type": "EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN"
   }
 }
 ```
