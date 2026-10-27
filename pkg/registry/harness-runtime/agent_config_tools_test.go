@@ -99,6 +99,13 @@ func TestToolsRegistered(t *testing.T) {
 		"harness-runtime-cancel-execution",
 		"harness-runtime-get-trigger-by-session",
 		"harness-runtime-list-reusable-sessions",
+		"harness-runtime-list-connections",
+		"harness-runtime-create-connection",
+		"harness-runtime-get-connection",
+		"harness-runtime-delete-connection",
+		"harness-runtime-start-provider-auth",
+		"harness-runtime-poll-provider-auth",
+		"harness-runtime-list-webhook-providers",
 	}, names)
 }
 

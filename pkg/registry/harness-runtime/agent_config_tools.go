@@ -316,7 +316,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				agentConfigOut.Schema(),
-				mcp.WithDescription("Create a new hosted agent config from a name and an agents.yaml manifest. The manifest can be provided as a YAML string or a JSON object (which will be converted to YAML). Configs are immutable after creation; create a new config to change content. Returns the created config including its assigned UUID. SECURITY WARNING: if the manifest's top-level `secrets` map declares any credentials (e.g. API keys), those values are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files or source control, and avoid passing them through a terminal that logs history; prefer environment variables or the DO Console."),
+				mcp.WithDescription("Create a new hosted agent config (also known as an Environment) from a name and an agents.yaml manifest. The manifest can be provided as a YAML string or a JSON object (which will be converted to YAML). Configs are immutable after creation; create a new config to change content. Returns the created config including its assigned UUID. SECURITY WARNING: if the manifest's top-level `secrets` map declares any credentials (e.g. API keys), those values are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files or source control, and avoid passing them through a terminal that logs history; prefer environment variables or the DO Console."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Config name (1-64 chars, alphanumeric/dots/hyphens/underscores, unique among the team's active configs)")),
 				mcp.WithObject("Manifest", mcp.Required(), mcp.Description("The agent manifest as a JSON object (e.g. {\"agent\":\"codex\",\"size\":\"mars-2vcpu-4gb\",\"env\":{...},\"secrets\":{...}}) — will be serialized to YAML for the API. Alternatively pass a pre-formatted YAML string. Any values under `secrets` are treated as sensitive write-only credentials (see security warning above).")),
 				mcp.WithBoolean("ManageModelAccessKey", mcp.Description("Ask the platform to provision a DO serverless-inference key for the agent (default false)")),
@@ -327,7 +327,7 @@ func (t *Tool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("harness-runtime-delete-agent-config",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
-				mcp.WithDescription("Permanently delete a hosted agent config by id. Any sessions that reference this config will remain. Returns 204 on success."),
+				mcp.WithDescription("Permanently delete a hosted agent config (Environment) by id. Any sessions that reference this config will remain. Returns 204 on success."),
 				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID to delete")),
 			),
 		},
@@ -337,7 +337,7 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				sessionListOut.Schema(),
-				mcp.WithDescription("List all sessions that were created from a specific agent config. Results are keyset-paginated; pass next_page_token back as PageToken for the next page."),
+				mcp.WithDescription("List all sessions that were created from a specific agent config (Environment). Results are keyset-paginated; pass next_page_token back as PageToken for the next page."),
 				mcp.WithString("ConfigID", mcp.Required(), mcp.Description("The agent config UUID whose sessions to list")),
 				mcp.WithNumber("PageSize", mcp.Description("Page size (1-200, default 50)")),
 				mcp.WithString("PageToken", mcp.Description("Opaque cursor from the previous response's next_page_token")),
@@ -351,5 +351,6 @@ func (t *Tool) Tools() []server.ServerTool {
 	tools = append(tools, t.templateTools()...)
 	tools = append(tools, t.workspaceTools()...)
 	tools = append(tools, t.triggerTools()...)
+	tools = append(tools, t.connectionTools()...)
 	return tools
 }
