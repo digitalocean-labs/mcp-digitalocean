@@ -279,6 +279,7 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				alertPolicyOut.Schema(),
+				withDisplayTitle(titleAlertPolicyGetV1),
 				mcp.WithDescription(descAlertPolicyGetV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to retrieve (format: 00000000-0000-0000-0000-000000000000)")),
 			),
@@ -289,6 +290,7 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				alertPoliciesOut.Schema(),
+				withDisplayTitle(titleAlertPolicyListV1),
 				mcp.WithDescription(descAlertPolicyListV1),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultAlertPoliciesPage), mcp.Description("Page number for pagination (starts from 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultAlertPoliciesPageSize), mcp.Description("Number of items per page (1-200, default 20)")),
@@ -300,6 +302,7 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
 				alertPolicyOut.Schema(),
+				withDisplayTitle(titleAlertPolicyCreateV1),
 				mcp.WithDescription(descAlertPolicyCreateV1),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
 Droplet metrics:
@@ -364,6 +367,7 @@ Database metrics:
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
 				alertPolicyOut.Schema(),
+				withDisplayTitle(titleAlertPolicyUpdateV1),
 				mcp.WithDescription(descAlertPolicyUpdateV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to update")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
@@ -428,6 +432,7 @@ Database metrics:
 			Tool: mcp.NewTool("alert-policy-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
+				withDisplayTitle(titleAlertPolicyDeleteV1),
 				mcp.WithDescription(descAlertPolicyDeleteV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to delete (format: 00000000-0000-0000-0000-000000000000)")),
 			),
