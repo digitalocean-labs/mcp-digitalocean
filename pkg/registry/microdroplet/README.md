@@ -50,7 +50,7 @@ from the checkpoint when restoring).
 | `http_port`      | number  | no       | Ingress / auto-resume probe port           |
 | `ports`          | int[]   | no       | Guest ports (max 5; include `http_port`)   |
 | `http_protocol`  | string  | no       | `http` or `http2`                          |
-| `auto_pause`     | object  | no       | `{ "enabled", "idle_timeout" }`            |
+| `auto_pause`     | object  | no       | `{ "idle_timeout" }` only — `enabled: false` is rejected (auto-pause cannot be turned off) |
 | `auto_resume`    | boolean | no       | Default true                               |
 | `environment`    | object  | no       | Key/value env at boot                      |
 | `tags`           | string[]| no       |                                            |
@@ -123,8 +123,9 @@ Response fields: `stdout`, `stderr`, `exit_code`, optional `truncated` /
 | `microvm-checkpoint-delete`   | `id` (checkpoint UUID)                         |
 
 Checkpoint create is async — poll `microvm-checkpoint-get` until status is
-available or failed. Do not delete the MicroVM while a checkpoint is still
-being captured.
+`CHECKPOINT_AVAILABLE` or `CHECKPOINT_FAILED`. Deleting a checkpoint while
+capture is still in progress returns **400** (that restriction is on the
+checkpoint delete, not on deleting the MicroVM).
 
 ---
 
