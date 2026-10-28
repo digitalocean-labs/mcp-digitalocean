@@ -8,13 +8,15 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 
 ## Supported Tools
 
-### Agent Configs
+### Agent Configs (Environments)
 
-- **`harness-runtime-list-agent-configs`** — List the active agent configs for the team (id, name, content hash, creator, timestamps). Supports `PageSize` (1-200, default 50), `PageToken` (cursor from `next_page_token`) and `Search` (case-insensitive name substring, max 64 chars). Manifests are not returned.
-- **`harness-runtime-get-agent-config`** — Get one agent config by `ConfigID` (UUID), including its sanitized manifest and redacted credential slot metadata. Secret values are never returned.
-- **`harness-runtime-create-agent-config`** — Create a new agent config from a `Name` (required, 1-64 chars) and `Manifest` (required, JSON object or YAML string with the agent environment spec — e.g. `agent`, `size`, `env`, `permissions`, `egress`, `secrets`). Optionally set `ManageModelAccessKey` to have the platform provision a serverless-inference key. Configs are immutable after creation. Returns the created config with its assigned UUID. **SECURITY:** any values under the manifest's top-level `secrets` map are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files/source control; prefer environment variables or the DO Console over pasting them into a terminal that logs history.
-- **`harness-runtime-delete-agent-config`** — Permanently delete an agent config by `ConfigID` (UUID). **Destructive.** Existing sessions that reference this config are retained.
-- **`harness-runtime-list-config-sessions`** — List all sessions created from a specific agent config by `ConfigID`. Supports `PageSize`, `PageToken`, and `Status` filter.
+> **Product name:** In the DigitalOcean Console and documentation, Agent Configs are called **Environments**. The API path and field names still use "config", but the concepts are identical — an "Environment" *is* an Agent Config. All five tools below work for both names interchangeably.
+
+- **`harness-runtime-list-agent-configs`** — List the active agent configs (Environments) for the team (id, name, content hash, creator, timestamps). Supports `PageSize` (1-200, default 50), `PageToken` (cursor from `next_page_token`) and `Search` (case-insensitive name substring, max 64 chars). Manifests are not returned.
+- **`harness-runtime-get-agent-config`** — Get one agent config (Environment) by `ConfigID` (UUID), including its sanitized manifest and redacted credential slot metadata. Secret values are never returned.
+- **`harness-runtime-create-agent-config`** — Create a new agent config (Environment) from a `Name` (required, 1-64 chars) and `Manifest` (required, JSON object or YAML string with the agent environment spec — e.g. `agent`, `size`, `env`, `permissions`, `egress`, `secrets`). Optionally set `ManageModelAccessKey` to have the platform provision a serverless-inference key. Configs are immutable after creation. Returns the created config with its assigned UUID. **SECURITY:** any values under the manifest's top-level `secrets` map are write-only — extracted into Secrets Manager and never persisted or echoed back by this or any other tool. Never commit real secret values to files/source control; prefer environment variables or the DO Console over pasting them into a terminal that logs history.
+- **`harness-runtime-delete-agent-config`** — Permanently delete an agent config (Environment) by `ConfigID` (UUID). **Destructive.** Existing sessions that reference this config are retained.
+- **`harness-runtime-list-config-sessions`** — List all sessions created from a specific agent config (Environment) by `ConfigID`. Supports `PageSize`, `PageToken`, and `Status` filter.
 
 ### Sessions
 
@@ -76,6 +78,44 @@ Bulk file transfer to/from a session's attached workspace via multipart upload o
 - **`harness-runtime-commit-workspace-upload`** — Finalize a multipart upload after all parts are PUT. Returns `size_bytes`.
 - **`harness-runtime-create-workspace-part-urls`** — Get presigned PUT URLs for a set of part numbers. `PartNumbers` (array of positive integers) required. URLs expire at `expires_at`.
 
+### Connections
+
+Connections link external provider accounts (GitHub, GitLab) to the team so agents can access repos.
+
+- **`harness-runtime-list-connections`** — List the team's connections for an external provider. `Provider` (`github` or `gitlab`) required. Supports `ActorID`, `Status`, `Page`, and `PerPage` (1-100, default 20).
+- **`harness-runtime-create-connection`** — Create (or resume) a connection binding an actor to an external provider. `Provider` and `ActorID` required. A still-pending connection comes back with an Authorization the user must complete in a browser. Optional: `Scopes` (omit for the provider's full configured scope set).
+- **`harness-runtime-get-connection`** — Get one connection by `Provider` and `ConnectionID`, including its status and any pending authorization.
+- **`harness-runtime-delete-connection`** — Revoke and delete one connection by `Provider` and `ConnectionID`. **Destructive.** Connections with `deletion_protected=true` (referenced by an active environment) will be refused.
+
+### Provider Auth
+
+OAuth device-flow to connect the team to an external provider. The user opens the `connect_url` in a browser, enters the `verification_code`, and polls until the authorization is complete.
+
+- **`harness-runtime-start-provider-auth`** — Begin (or resume) the OAuth device-flow connect for an external provider. `Provider` (`github` or `gitlab`) required. Returns `connect_url`, `verification_code`, and `poll_url`. Status is `pending` when the user must still authorize, or `success` when already connected.
+- **`harness-runtime-poll-provider-auth`** — Check whether a pending provider authorization has been completed. `Provider` and `PollURL` (from `start-provider-auth`) required. Call repeatedly until status is `success`.
+
+### Triggers
+
+Triggers automate agent session launches on a schedule (cron) or via webhook.
+
+- **`harness-runtime-list-triggers`** — List the team's triggers. Supports `PageSize`, `PageToken`, and optional `ConfigID` filter.
+- **`harness-runtime-create-trigger`** — Create a new trigger. `Name`, `Kind` (`webhook` or `cron`), `SessionMode` (`fresh` or `reuse`), and `PromptTemplate` required. Webhook triggers return a webhook URL and signing secret. Fresh mode requires `SessionTemplate`; reuse mode requires `BoundSessionID`. Optional: `CronExpr`, `Timezone`, `OutputMode` (`none`/`email`/`slack`), `MaxConcurrency`.
+- **`harness-runtime-get-trigger`** — Get a trigger by `TriggerID` (UUID).
+- **`harness-runtime-update-trigger`** — Update a trigger's mutable fields (name, prompt, session mode, schedule, output, etc.). At least one field required. Returns the updated trigger.
+- **`harness-runtime-delete-trigger`** — Permanently delete a trigger. **Destructive.**
+- **`harness-runtime-pause-trigger`** — Pause an active trigger. In-flight executions continue to completion.
+- **`harness-runtime-resume-trigger`** — Resume a paused trigger.
+- **`harness-runtime-rotate-trigger-secret`** — Rotate the webhook signing secret for a webhook trigger. The old secret is immediately invalidated.
+- **`harness-runtime-list-trigger-executions`** — List executions for a trigger. Supports `PageSize` and `PageToken`.
+- **`harness-runtime-get-trigger-execution`** — Get a single execution by `TriggerID` and `ExecutionID`.
+- **`harness-runtime-cancel-execution`** — Cancel a running trigger execution. `TriggerID` and `ExecutionID` required.
+- **`harness-runtime-get-trigger-by-session`** — Look up the trigger associated with a given session by `SessionID`.
+- **`harness-runtime-list-reusable-sessions`** — List paused sessions available for reuse binding. Supports `PageSize` and `PageToken`.
+
+### Webhook Providers
+
+- **`harness-runtime-list-webhook-providers`** — List the supported webhook providers for trigger creation. Returns a static catalog (e.g. GitHub, GitLab, Custom) with display names, documentation URLs, paste hints, and signature verification schemes. No pagination.
+
 Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_session:create` / `agent_harness_session:delete` (write tools).
 
 ---
@@ -124,3 +164,21 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - Get upload URLs for parts 1, 2, and 3 of transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - Commit transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - Cancel transfer xfer-abc123 on session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- List my GitHub connections.
+- Create a GitHub connection for actor user-123.
+- Show connection conn-abc123 for GitHub.
+- Delete GitLab connection conn-abc123.
+- Connect my team to GitHub (start the OAuth device flow).
+- Check if the GitHub authorization is complete (poll the auth flow).
+- What webhook providers are supported for triggers?
+- List my triggers.
+- Create a webhook trigger named "pr-review" that sends "Review this PR" to a fresh codex session.
+- Create a cron trigger that runs daily at 9 AM Eastern.
+- Pause trigger 079fb39c-14d9-7080-933e-b9b90e25acdf.
+- Resume trigger 079fb39c-14d9-7080-933e-b9b90e25acdf.
+- Rotate the webhook secret for trigger 079fb39c-14d9-7080-933e-b9b90e25acdf.
+- List executions for trigger 079fb39c-14d9-7080-933e-b9b90e25acdf.
+- Cancel execution 089fb39c-14d9-7080-933e-b9b90e25ace0 on trigger 079fb39c-14d9-7080-933e-b9b90e25acdf.
+- Which trigger launched session 029ab39c-14d9-7080-933e-b9b90e25acda?
+- List reusable sessions I can bind to a trigger.
+- List my environments (agent configs).
