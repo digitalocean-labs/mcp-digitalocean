@@ -220,10 +220,11 @@ func TestGetConnectionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing provider":      {},
-		"invalid provider":      {"Provider": "bitbucket", "ConnectionID": testConnectionID},
-		"missing connection id": {"Provider": testProvider},
-		"empty connection id":   {"Provider": testProvider, "ConnectionID": ""},
+		"missing provider":        {},
+		"invalid provider":        {"Provider": "bitbucket", "ConnectionID": testConnectionID},
+		"missing connection id":   {"Provider": testProvider},
+		"empty connection id":     {"Provider": testProvider, "ConnectionID": ""},
+		"invalid connection uuid": {"Provider": testProvider, "ConnectionID": "not-a-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.getConnection(context.Background(), request(args))
@@ -279,9 +280,10 @@ func TestDeleteConnectionValidation(t *testing.T) {
 	})
 
 	for name, args := range map[string]map[string]any{
-		"missing provider":      {},
-		"invalid provider":      {"Provider": "bitbucket", "ConnectionID": testConnectionID},
-		"missing connection id": {"Provider": testProvider},
+		"missing provider":        {},
+		"invalid provider":        {"Provider": "bitbucket", "ConnectionID": testConnectionID},
+		"missing connection id":   {"Provider": testProvider},
+		"invalid connection uuid": {"Provider": testProvider, "ConnectionID": "not-a-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.deleteConnection(context.Background(), request(args))

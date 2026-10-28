@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
@@ -268,6 +269,9 @@ func (t *Tool) getConnection(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if connectionID == "" {
 		return mcp.NewToolResultError("ConnectionID is required"), nil
 	}
+	if _, err := uuid.Parse(connectionID); err != nil {
+		return mcp.NewToolResultError("ConnectionID must be a UUID"), nil
+	}
 
 	path := providerAuthPath + "/" + provider + "/connections/" + connectionID
 	apiReq, err := client.NewRequest(ctx, http.MethodGet, path, nil)
@@ -301,6 +305,9 @@ func (t *Tool) deleteConnection(ctx context.Context, req mcp.CallToolRequest) (*
 	connectionID, _ := args["ConnectionID"].(string)
 	if connectionID == "" {
 		return mcp.NewToolResultError("ConnectionID is required"), nil
+	}
+	if _, err := uuid.Parse(connectionID); err != nil {
+		return mcp.NewToolResultError("ConnectionID must be a UUID"), nil
 	}
 
 	path := providerAuthPath + "/" + provider + "/connections/" + connectionID
