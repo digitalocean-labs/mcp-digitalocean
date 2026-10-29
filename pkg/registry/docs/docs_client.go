@@ -604,6 +604,7 @@ func (d *DocsClient) cachedMarkdownURL(pageURL string) string {
 type queryTerm struct {
 	text string
 	stem string
+	alts []queryTerm
 }
 
 // minPrefixLen is the shortest query term allowed to match a longer token by
@@ -617,7 +618,15 @@ func (q queryTerm) matchesToken(token queryTerm) bool {
 	if token.text == q.text || token.stem == q.stem {
 		return true
 	}
-	return len(q.text) >= minPrefixLen && strings.HasPrefix(token.text, q.text)
+	if len(q.text) >= minPrefixLen && strings.HasPrefix(token.text, q.text) {
+		return true
+	}
+	for _, alt := range q.alts {
+		if token.text == alt.text || token.stem == alt.stem {
+			return true
+		}
+	}
+	return false
 }
 
 func (q queryTerm) matches(field string) bool {
@@ -729,7 +738,7 @@ func parseQueryTerms(query string) []queryTerm {
 
 	terms := make([]queryTerm, len(kept))
 	for i, tok := range kept {
-		terms[i] = queryTerm{text: tok, stem: lightStem(tok)}
+		terms[i] = queryTerm{text: tok, stem: lightStem(tok), alts: synonymsFor(tok)}
 	}
 	return terms
 }
@@ -832,6 +841,7 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 		return nil
 	}
 
+	profile := profileQuery(query)
 	matches, weights := matchTerms(index, terms)
 	var results []scoredEntry
 
@@ -869,6 +879,23 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 		// Boost entries that match all query terms
 		if len(terms) > 1 && matchedTerms == len(terms) {
 			score += allTermsBoost
+		}
+
+		if !requireAllTerms && score > 0 {
+			tk := index.entryTokensAt(i)
+			covers := len(terms) > 0
+			for _, term := range terms {
+				if !term.matchesTokens(tk.title) {
+					covers = false
+					break
+				}
+			}
+			path := urlPathLower(entry.URL)
+			slug := fieldTerms(path[strings.LastIndex(strings.TrimSuffix(path, "/"), "/")+1:])
+			factor := priorFactor(path, profile, covers) *
+				coverageFactor(terms, tk.title, slug) *
+				termCoverageFactor(matchedTerms, len(terms))
+			score = int(float64(score) * factor)
 		}
 
 		if score > 0 {
