@@ -892,7 +892,9 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 			}
 			path := urlPathLower(entry.URL)
 			slug := fieldTerms(path[strings.LastIndex(strings.TrimSuffix(path, "/"), "/")+1:])
-			factor := priorFactor(path, profile, covers) * coverageFactor(terms, tk.title, slug)
+			factor := priorFactor(path, profile, covers) *
+				coverageFactor(terms, tk.title, slug) *
+				termCoverageFactor(matchedTerms, len(terms))
 			score = int(float64(score) * factor)
 		}
 

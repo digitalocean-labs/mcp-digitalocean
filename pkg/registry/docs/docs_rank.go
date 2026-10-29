@@ -123,12 +123,16 @@ func priorFactor(path string, p queryProfile, titleCoversQuery bool) float64 {
 // explained by the query, so "create a VPC network" prefers .../how-to/create/
 // over .../how-to/create-peering/. Range 0.85 to 1.5.
 func coverageFactor(terms []queryTerm, title, slug []queryTerm) float64 {
+	// Stop words are skipped: "How to Create Functions" is wholly explained by
+	// "create a serverless function", and counting "how" and "to" against it
+	// would rate it below a page with a longer, less relevant title.
 	cover := func(tokens []queryTerm) float64 {
-		if len(tokens) == 0 {
-			return 0
-		}
-		hit := 0
+		hit, total := 0, 0
 		for _, tok := range tokens {
+			if _, skip := stopWords[tok.text]; skip {
+				continue
+			}
+			total++
 			for _, term := range terms {
 				if term.matchesToken(tok) {
 					hit++
@@ -136,9 +140,23 @@ func coverageFactor(terms []queryTerm, title, slug []queryTerm) float64 {
 				}
 			}
 		}
-		return float64(hit) / float64(len(tokens))
+		if total == 0 {
+			return 0
+		}
+		return float64(hit) / float64(total)
 	}
 	return 0.85 + 0.3*cover(title) + 0.35*cover(slug)
+}
+
+// termCoverageFactor discounts a page that explains only part of the query.
+// allTermsBoost rewards complete coverage as a step; this is its smooth
+// counterpart, so a page matching two of seven terms stops competing with one
+// matching six.
+func termCoverageFactor(matched, total int) float64 {
+	if total == 0 {
+		return 1.0
+	}
+	return 0.6 + 0.4*float64(matched)/float64(total)
 }
 
 // synonyms maps a query word to other words the docs use for the same idea,
@@ -155,6 +173,8 @@ var synonyms = map[string][]string{
 	"cross": {"cors"}, "origin": {"cors"},
 	"teammate": {"member", "membership"}, "teammates": {"member", "membership"}, "colleague": {"member", "membership"},
 	"datacenter": {"region"}, "datacenters": {"region"},
+	"add": {"create"}, "create": {"add"}, "make": {"create"},
+	"list": {"retrieve"}, "see": {"view"}, "show": {"view"},
 }
 
 func synonymsFor(token string) []queryTerm {

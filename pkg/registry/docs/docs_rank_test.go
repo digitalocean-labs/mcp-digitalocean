@@ -62,3 +62,15 @@ func TestSearchIndexDemotesGeneratedReference(t *testing.T) {
 	results = SearchIndex(index, "doctl create vpc")
 	require.Equal(t, docsBase+"/reference/doctl/reference/compute/vpc/create/", results[0].URL)
 }
+
+func TestCoverageFactorIgnoresStopWords(t *testing.T) {
+	terms := parseQueryTerms("create a serverless function")
+	guide := coverageFactor(terms, fieldTerms("how to create functions"), fieldTerms("create-functions"))
+	require.Equal(t, 1.5, guide)
+}
+
+func TestTermCoverageFactorFavorsFullerMatches(t *testing.T) {
+	require.Equal(t, 1.0, termCoverageFactor(7, 7))
+	require.Less(t, termCoverageFactor(2, 7), termCoverageFactor(6, 7))
+	require.Equal(t, 1.0, termCoverageFactor(0, 0))
+}
