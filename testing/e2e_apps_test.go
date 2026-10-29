@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
@@ -29,9 +30,9 @@ func TestCreateApp(t *testing.T) {
 			Services: []*godo.AppServiceSpec{
 				{
 					Name: "sample-golang",
-					GitHub: &godo.GitHubSourceSpec{
-						Repo:   "digitalocean/sample-golang",
-						Branch: "main",
+					Git: &godo.GitSourceSpec{
+						RepoCloneURL: "https://github.com/digitalocean/sample-golang.git",
+						Branch:       "main",
 					},
 				},
 			},
@@ -47,7 +48,7 @@ func TestCreateApp(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.False(t, resp.IsError)
+	require.False(t, resp.IsError, "apps-create-app-from-spec returned an error: %s", toolResultText(resp))
 
 	var app godo.App
 	appJSON := resp.Content[0].(mcp.TextContent).Text
@@ -68,7 +69,7 @@ func TestCreateApp(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, status)
-	require.False(t, status.IsError)
+	require.False(t, status.IsError, "apps-get-deployment-status returned an error: %s", toolResultText(status))
 
 	// unmarshall the response to an app deployment
 	var deployment apps.DeploymentStatus
@@ -88,7 +89,25 @@ func TestCreateApp(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	require.False(t, resp.IsError)
+	require.False(t, resp.IsError, "apps-delete returned an error: %s", toolResultText(resp))
 
 	t.Logf("deleted app: %v", app.ID)
+}
+
+// toolResultText concatenates the text content of an MCP tool result, so a
+// failing assertion on IsError can surface the actual tool/API error body.
+func toolResultText(resp *mcp.CallToolResult) string {
+	if resp == nil {
+		return "<nil response>"
+	}
+	var b strings.Builder
+	for _, content := range resp.Content {
+		if tc, ok := content.(mcp.TextContent); ok {
+			b.WriteString(tc.Text)
+		}
+	}
+	if b.Len() == 0 {
+		return "<no text content>"
+	}
+	return b.String()
 }
