@@ -30,9 +30,9 @@ func NewGarbageCollectionTool(client func(ctx context.Context) (*godo.Client, er
 
 // startGarbageCollection starts a garbage collection for a container registry
 func (g *GarbageCollectionTool) startGarbageCollection(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	var gcReq *godo.StartGarbageCollectionRequest
@@ -57,9 +57,9 @@ func (g *GarbageCollectionTool) startGarbageCollection(ctx context.Context, req 
 
 // getGarbageCollection gets the active garbage collection for a container registry
 func (g *GarbageCollectionTool) getGarbageCollection(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := g.client(ctx)
@@ -77,9 +77,9 @@ func (g *GarbageCollectionTool) getGarbageCollection(ctx context.Context, req mc
 
 // listGarbageCollections lists garbage collections for a container registry
 func (g *GarbageCollectionTool) listGarbageCollections(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultGCPage
@@ -112,9 +112,9 @@ func (g *GarbageCollectionTool) listGarbageCollections(ctx context.Context, req 
 
 // updateGarbageCollection updates a garbage collection (e.g., to cancel it)
 func (g *GarbageCollectionTool) updateGarbageCollection(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	gcUUID, ok := req.GetArguments()["GarbageCollectionUUID"].(string)
