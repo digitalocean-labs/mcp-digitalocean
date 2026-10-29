@@ -196,7 +196,7 @@ These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Au
 | databases              | https://databases.mcp.digitalocean.com/mcp              | Provision, manage, and monitor managed database clusters (Postgres, MySQL, Redis, etc.).                            |
 | doks                   | https://doks.mcp.digitalocean.com/mcp                   | Manage DigitalOcean Kubernetes clusters and node pools.                                                             |
 | droplets               | https://droplets.mcp.digitalocean.com/mcp               | Create, manage, resize, snapshot, and monitor droplets (virtual machines) on DigitalOcean.                          |
-| microvms               | https://microvms.mcp.digitalocean.com/mcp               | Create, list, get, pause, resume, exec, checkpoint, and delete DigitalOcean MicroVMs. See [MicroVM Service](pkg/registry/microdroplet/README.md). |
+| microvms               | https://microvms.mcp.digitalocean.com/mcp               | Create, list, get, pause, resume, exec, read/write files, checkpoint, and delete DigitalOcean MicroVMs. See [MicroVM Service](pkg/registry/microdroplet/README.md). |
 | docr                   | https://docr.mcp.digitalocean.com/mcp                   | Manage DigitalOcean Container Registry repositories, tags, manifests, and garbage collection.                       |
 | genai-batchinference   | https://genai-batchinference.mcp.digitalocean.com/mcp   | Create, manage, and monitor batch inference jobs for asynchronous bulk AI processing.                               |
 | signals                | https://signals.mcp.digitalocean.com/mcp                | Investigate Gradient agent and serverless inference sessions, segments, and consent for DigitalOcean Signals.       |
@@ -707,6 +707,7 @@ Each service provides a detailed README describing all available tools, resource
 - Deploy an app from a GitHub repo: `create-app-from-spec`
 - Resize a droplet: `droplet-resize`
 - Run a command in a MicroVM: `microvm-exec`
+- Write a file into a MicroVM: `microvm-file-write`
 - Add a new SSH key: `key-create`
 - Create a new domain: `domain-create`
 - Enable backups on a droplet: `droplet-enable-backups`
