@@ -72,9 +72,9 @@ func (r *RepositoryTool) listRepositoryTags(ctx context.Context, req mcp.CallToo
 		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -112,14 +112,14 @@ func (r *RepositoryTool) deleteTag(ctx context.Context, req mcp.CallToolRequest)
 		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	tag, ok := req.GetArguments()["Tag"].(string)
-	if !ok || tag == "" {
-		return mcp.NewToolResultError("Tag is required"), nil
+	tag, errResult := tagArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -142,9 +142,9 @@ func (r *RepositoryTool) listRepositoryManifests(ctx context.Context, req mcp.Ca
 		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -182,14 +182,14 @@ func (r *RepositoryTool) deleteManifest(ctx context.Context, req mcp.CallToolReq
 		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	digest, ok := req.GetArguments()["Digest"].(string)
-	if !ok || digest == "" {
-		return mcp.NewToolResultError("Digest is required"), nil
+	digest, errResult := digestArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)

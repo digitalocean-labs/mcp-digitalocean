@@ -117,9 +117,9 @@ func (g *GarbageCollectionTool) updateGarbageCollection(ctx context.Context, req
 		return errResult, nil
 	}
 
-	gcUUID, ok := req.GetArguments()["GarbageCollectionUUID"].(string)
-	if !ok || gcUUID == "" {
-		return mcp.NewToolResultError("GarbageCollectionUUID is required"), nil
+	gcUUID, errResult := garbageCollectionUUIDArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	cancel, _ := req.GetArguments()["Cancel"].(bool)
