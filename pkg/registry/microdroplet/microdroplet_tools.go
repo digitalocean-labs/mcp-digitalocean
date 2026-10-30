@@ -580,7 +580,7 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskHigh),
 				execOut.Schema(),
-				mcp.WithDescription("Run a one-shot non-PTY command in a MicroVM (POST /v2/microvms/{id}/exec). Requires the exec_pty feature gate. Returns stdout, stderr, and exit_code; non-zero exit is success for the tool. Commands over ~50s may time out. Interactive console WebSocket is not exposed as an MCP tool."),
+				mcp.WithDescription("Run a one-shot non-interactive command in a MicroVM. Requires the exec_pty feature gate. Returns stdout, stderr, and exit_code; non-zero exit is still a successful tool call. Commands over about 50 seconds may time out. Interactive console sessions are not available as an MCP tool."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
 				mcp.WithArray("argv", mcp.Required(), mcp.Description("Command and arguments (e.g. [\"echo\", \"hi\"]). Must be non-empty."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("cwd", mcp.Description("Optional working directory.")),
