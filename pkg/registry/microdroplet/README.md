@@ -21,6 +21,8 @@ Tool names use the `microvm-*` prefix (service flag is `microvms`).
 | `microvm-pause`             | `POST /v2/microvms/{id}/pause`         | Sync, idempotent                                                      |
 | `microvm-resume`            | `POST /v2/microvms/{id}/resume`        | Sync, idempotent                                                      |
 | `microvm-exec`              | `POST /v2/microvms/{id}/exec`          | One-shot non-PTY; needs team `exec_pty` feature; see below            |
+| `microvm-file-write`        | `PUT /v2/microvms/{id}/files`          | Replaces target; needs team `file_transfer` feature; see below        |
+| `microvm-file-read`         | `GET /v2/microvms/{id}/files`          | Max 4 MiB inline; needs team `file_transfer` feature; see below       |
 | `microvm-checkpoint-create` | `POST /v2/microvms/{id}/checkpoints`   | Async; poll get/list                                                  |
 | `microvm-checkpoint-list`   | `GET /v2/microvms/checkpoints`         | Optional `microvm_id` filter                                          |
 | `microvm-checkpoint-get`    | `GET /v2/microvms/checkpoints/{id}`    |                                                                       |
@@ -112,6 +114,50 @@ Example:
 
 Response fields: `stdout`, `stderr`, `exit_code`, optional `truncated` /
 `output_encoding`.
+
+### `microvm-file-write`
+
+Write a single file into the MicroVM's workload container, replacing any
+existing file at `path`. The parent directory must exist. Requires the team
+feature gate **`file_transfer`**. A paused MicroVM is auto-resumed. The tool
+sends the SHA-256 of the content, so the API verifies the body before it
+replaces the target; a corrupted upload returns **422** and leaves the existing
+file untouched.
+
+| Argument   | Type    | Required | Notes                                              |
+| ---------- | ------- | -------- | -------------------------------------------------- |
+| `id`       | string  | yes      | MicroVM UUID                                       |
+| `path`     | string  | yes      | Absolute path inside the container                 |
+| `content`  | string  | yes      | File content; text, or base64 when `encoding` set  |
+| `encoding` | string  | no       | `utf-8` (default) or `base64` for binary           |
+| `mode`     | string  | no       | Octal permission such as `0600` (default `0644`)   |
+| `uid`      | integer | no       | Owner user ID; set together with `gid`             |
+| `gid`      | integer | no       | Owner group ID; set together with `uid`            |
+
+Example:
+
+```json
+{ "id": "microvm-uuid", "path": "/app/config.json", "content": "{\"debug\":true}", "mode": "0600" }
+```
+
+Response fields: `path`, `size_bytes`, `sha256`, `mode`, `uid`, `gid`.
+
+### `microvm-file-read`
+
+Read a single regular file from the MicroVM's workload container. Requires the
+team feature gate **`file_transfer`**. A paused MicroVM is auto-resumed. The
+content is verified against the server's SHA-256. Files above **4 MiB** are
+refused; use `doctl compute microvm download`, which streams up to the API's
+64 MiB cap.
+
+| Argument   | Type   | Required | Notes                                                        |
+| ---------- | ------ | -------- | ------------------------------------------------------------ |
+| `id`       | string | yes      | MicroVM UUID                                                 |
+| `path`     | string | yes      | Absolute path inside the container                           |
+| `encoding` | string | no       | `utf-8` (default) or `base64`; non-UTF-8 bytes always base64 |
+
+Response fields: `path`, `size_bytes`, `sha256`, `encoding`, `content`. Check
+`encoding` before treating `content` as text.
 
 ### Checkpoint tools
 

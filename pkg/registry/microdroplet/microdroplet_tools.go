@@ -1,12 +1,18 @@
 package microdroplet
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -193,6 +199,112 @@ func (t *MicroDropletTool) exec(ctx context.Context, req mcp.CallToolRequest) (*
 		return mcp.NewToolResultErrorFromErr("microvm exec", err), nil
 	}
 	return toolResultJSON(execOut, out)
+}
+
+// fileReadMaxBytes caps microvm-file-read so a large file cannot be pulled into
+// the model's context. The API itself allows 64 MiB; doctl covers that range.
+const fileReadMaxBytes = 4 << 20
+
+func (t *MicroDropletTool) fileWrite(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	id, errMsg := requiredUUID(args, "id")
+	if errMsg != "" {
+		return mcp.NewToolResultError(errMsg), nil
+	}
+	path := strings.TrimSpace(argString(args["path"]))
+	if path == "" {
+		return mcp.NewToolResultError("path is required"), nil
+	}
+
+	content, _ := args["content"].(string)
+	data := []byte(content)
+	switch enc := argString(args["encoding"]); enc {
+	case "", "utf-8":
+	case "base64":
+		var err error
+		if data, err = base64.StdEncoding.DecodeString(content); err != nil {
+			return mcp.NewToolResultError("content is not valid base64: " + err.Error()), nil
+		}
+	default:
+		return mcp.NewToolResultError("encoding must be utf-8 or base64"), nil
+	}
+
+	uid, hasUID := intArg(args["uid"])
+	gid, hasGID := intArg(args["gid"])
+	if hasUID != hasGID {
+		return mcp.NewToolResultError("uid and gid must be set together"), nil
+	}
+	if hasUID && (uid < 0 || gid < 0) {
+		return mcp.NewToolResultError("uid and gid must not be negative"), nil
+	}
+
+	sum := sha256.Sum256(data)
+	upload := &godo.MicroVMFileUploadRequest{
+		Path:   path,
+		Body:   bytes.NewReader(data),
+		Size:   int64(len(data)),
+		Mode:   argString(args["mode"]),
+		SHA256: hex.EncodeToString(sum[:]),
+	}
+	if hasUID {
+		u, g := uint32(uid), uint32(gid)
+		upload.UID, upload.GID = &u, &g
+	}
+
+	c, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	info, _, err := c.MicroVMs.UploadFile(ctx, id, upload)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("microvm file write", err), nil
+	}
+	return fileInfoOut.Result(info)
+}
+
+func (t *MicroDropletTool) fileRead(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	id, errMsg := requiredUUID(args, "id")
+	if errMsg != "" {
+		return mcp.NewToolResultError(errMsg), nil
+	}
+	path := strings.TrimSpace(argString(args["path"]))
+	if path == "" {
+		return mcp.NewToolResultError("path is required"), nil
+	}
+	enc := argString(args["encoding"])
+	if enc != "" && enc != "utf-8" && enc != "base64" {
+		return mcp.NewToolResultError("encoding must be utf-8 or base64"), nil
+	}
+
+	c, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+	dl, _, err := c.MicroVMs.DownloadFile(ctx, id, path)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("microvm file read", err), nil
+	}
+	defer dl.Body.Close()
+
+	if dl.SizeBytes > fileReadMaxBytes {
+		return mcp.NewToolResultError(fmt.Sprintf("%s is %d bytes; microvm-file-read returns at most %d bytes inline. Use `doctl compute microvm download` for larger files.", path, dl.SizeBytes, fileReadMaxBytes)), nil
+	}
+	// dl.Body verifies the announced SHA-256 at EOF, so a short or corrupted
+	// transfer surfaces here as an error rather than as wrong content.
+	data, err := io.ReadAll(io.LimitReader(dl.Body, fileReadMaxBytes+1))
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("microvm file read", err), nil
+	}
+	if len(data) > fileReadMaxBytes {
+		return mcp.NewToolResultError(fmt.Sprintf("%s exceeds the %d byte inline limit. Use `doctl compute microvm download` for larger files.", path, fileReadMaxBytes)), nil
+	}
+
+	out := fileReadResponse{Path: path, SizeBytes: len(data), SHA256: dl.SHA256, Encoding: "utf-8", Content: string(data)}
+	if enc == "base64" || !utf8.Valid(data) {
+		out.Encoding, out.Content = "base64", base64.StdEncoding.EncodeToString(data)
+	}
+	return fileReadOut.Result(out)
 }
 
 func (t *MicroDropletTool) checkpointCreate(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -585,6 +697,34 @@ func (t *MicroDropletTool) Tools() []server.ServerTool {
 				mcp.WithArray("argv", mcp.Required(), mcp.Description("Command and arguments (e.g. [\"echo\", \"hi\"]). Must be non-empty."), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithString("cwd", mcp.Description("Optional working directory.")),
 				mcp.WithString("output_encoding", mcp.Enum("utf-8", "base64"), mcp.Description("How stdout/stderr are encoded (default utf-8). Use base64 for binary output.")),
+			),
+		},
+		{
+			Handler: t.fileWrite,
+			Tool: mcp.NewTool("microvm-file-write",
+				common.WithHints(common.HintsReplace),
+				common.WithRisk(common.RiskHigh),
+				fileInfoOut.Schema(),
+				mcp.WithDescription("Write a single file into a MicroVM's workload container (PUT /v2/microvms/{id}/files). Replaces any existing file at path; the parent directory must exist. Requires the file_transfer feature gate. A paused MicroVM is auto-resumed. Content is sent with its SHA-256 so the API verifies it before replacing the target. Max 64 MiB; for large or binary files prefer `doctl compute microvm upload`."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
+				mcp.WithString("path", mcp.Required(), mcp.Description("Absolute destination path inside the workload container, e.g. /app/config.json.")),
+				mcp.WithString("content", mcp.Required(), mcp.Description("File content. Text by default; set encoding to base64 for binary.")),
+				mcp.WithString("encoding", mcp.Enum("utf-8", "base64"), mcp.Description("How content is encoded (default utf-8).")),
+				mcp.WithString("mode", mcp.Description("Octal permission mode such as 0600 (default 0644).")),
+				mcp.WithNumber("uid", mcp.Description("Owner user ID. Set together with gid; defaults to the container's user.")),
+				mcp.WithNumber("gid", mcp.Description("Owner group ID. Set together with uid; defaults to the container's group.")),
+			),
+		},
+		{
+			Handler: t.fileRead,
+			Tool: mcp.NewTool("microvm-file-read",
+				common.WithHints(common.HintsRead),
+				common.WithRisk(common.RiskLow),
+				fileReadOut.Schema(),
+				mcp.WithDescription("Read a single regular file from a MicroVM's workload container (GET /v2/microvms/{id}/files). Requires the file_transfer feature gate. A paused MicroVM is auto-resumed. Content is verified against the server's SHA-256. Returns at most 4 MiB inline; larger files error and should be fetched with `doctl compute microvm download`. Non-UTF-8 content is returned as base64 with encoding set accordingly."),
+				mcp.WithString("id", mcp.Required(), mcp.Description("MicroVM UUID.")),
+				mcp.WithString("path", mcp.Required(), mcp.Description("Absolute path of the file inside the workload container.")),
+				mcp.WithString("encoding", mcp.Enum("utf-8", "base64"), mcp.Description("Requested content encoding (default utf-8; falls back to base64 for binary content).")),
 			),
 		},
 		{
