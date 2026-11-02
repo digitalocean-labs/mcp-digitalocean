@@ -62,6 +62,39 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 
 `TestLiveRegressionSet` (build tag `integration`, not run in standard CI) runs the set against the live index and requires Recall@5 >= 0.9, MRR >= 0.75, and under 50 ms per query of ranking time; measured 28/28, 0.875, 11 ms. `TestLiveContentExcerpts` reports excerpt coverage and shard-fetch latency with a fresh corpus cache per query; measured 136/140 results and 28/28 top-1 results with a body excerpt, cold avg 267 ms / max 535 ms, warm 3 ms. Add a judged row before changing ranking.
 
+### HTTP search endpoint (preview)
+
+For clients that do not speak MCP, a remote deployment started with `--allow-anonymous --services docs --docs-search-api` also serves `GET /v1/search`. It uses the same client, index, ranker, and excerpt layer as `docs-search`, so the two return the same pages and share caches and the corpus load budget. The server refuses to start with `--docs-search-api` unless anonymous access is enabled, which already requires the docs-only service set.
+
+| Parameter | Required | Notes |
+| --- | --- | --- |
+| `q` | yes | Search keywords, up to 256 bytes |
+| `limit` | no | 1 to 50, default 10 |
+| `product` | no | Same filter as the tool's `Product` argument, up to 64 bytes |
+
+Unknown or repeated parameters return 400, so each distinct URL is a distinct search and cannot be used to bypass a CDN cache. Only `GET` (and CORS preflight `OPTIONS`) is accepted.
+
+```
+curl 'https://<host>/v1/search?q=deploy+from+container+image&limit=3'
+```
+
+The response is `{"results": [...], "meta": {...}}`. Each result has `title`, `url`, `markdown_url`, `product`, `page_type`, `last_modified`, and `excerpt`; `meta` carries `query`, `product`, `total`, `pages_searched`, and `stability` (`preview`). Errors use the public API shape `{"id", "message"}` (`bad_request`, `method_not_allowed`, `too_many_requests`, `service_unavailable`) with `Cache-Control: no-store`. Successful responses send `Access-Control-Allow-Origin: *` (no credentials are involved) and `Cache-Control: public, max-age=300`. Query text is not logged; the request log records term count, result count, zero-result flag, and duration.
+
+Rate limiting is a per-client token bucket (IPv6 grouped by /64), sharded so memory and eviction cost stay bounded:
+
+| Flag / env | Default | Meaning |
+| --- | --- | --- |
+| `--docs-search-rate-limit-mode` / `DOCS_SEARCH_RATE_LIMIT_MODE` | `shadow` | `off`, `shadow` (serve everything, log clients that would be limited), or `enforce` (429 with `Retry-After`) |
+| `--docs-search-rate-limit-rps` / `DOCS_SEARCH_RATE_LIMIT_RPS` | `10` | Sustained requests per second per client; must be finite and positive |
+| `--docs-search-rate-limit-burst` / `DOCS_SEARCH_RATE_LIMIT_BURST` | `30` | Requests a client may make at once |
+| `--docs-search-client-ip-header` / `DOCS_SEARCH_CLIENT_IP_HEADER` | empty | Header with the client IP set by the trusted edge, such as `CF-Connecting-IP`; the rightmost entry is used. Required for `enforce` |
+
+- Without a trusted header the limiter keys on the connection address, which behind an edge is the edge itself, so `enforce` refuses to start without one and `shadow` logs a warning.
+- With a trusted header, requests that lack a usable value did not come through the edge; they share a single bucket rather than going unlimited.
+- `RateLimit-Policy` is sent on every response while the limiter is on, because it is the same for all clients. Per-client values (`RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`) are sent only on 429, which is never cached, so a CDN cannot serve one client's budget to another.
+- The limiter is per instance, so the effective ceiling scales with instance count; it is abuse protection, not a quota. Bulk consumers should read `docs-corpus.jsonl` instead of paging through search, and the 429 body says so.
+- A client is logged once when it first goes over its limit, with its IP or /64, so abusive sources can be blocked at the edge.
+
 ---
 
 ## Example Usage

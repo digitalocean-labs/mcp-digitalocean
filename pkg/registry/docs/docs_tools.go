@@ -41,7 +41,7 @@ type DocsTool struct {
 
 // NewDocsTool creates a new DocsTool instance.
 func NewDocsTool() *DocsTool {
-	return &DocsTool{client: NewDocsClient()}
+	return &DocsTool{client: sharedDocsClient()}
 }
 
 // writeEntry renders one result with the metadata an agent needs to cite it:

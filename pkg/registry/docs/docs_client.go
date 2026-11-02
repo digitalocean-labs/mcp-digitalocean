@@ -200,6 +200,11 @@ func NewDocsClient() *DocsClient {
 
 // validateDocsURL confines requests, including redirects, to the public HTTPS
 // docs origin.
+// sharedDocsClient is the process-wide client used by the MCP tools and the
+// HTTP search endpoint, so both draw on one set of caches and one corpus
+// load budget instead of doubling origin traffic.
+var sharedDocsClient = sync.OnceValue(NewDocsClient)
+
 func validateDocsURL(u *neturl.URL) error {
 	if u.Scheme != "https" || u.Host != "docs.digitalocean.com" || u.User != nil {
 		return fmt.Errorf("refusing to fetch %s: only %s pages are supported", u, docsBase)
