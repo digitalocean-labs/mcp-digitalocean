@@ -30,9 +30,9 @@ func NewRepositoryTool(client func(ctx context.Context) (*godo.Client, error)) *
 
 // listRepositories lists repositories in a container registry
 func (r *RepositoryTool) listRepositories(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -67,14 +67,14 @@ func (r *RepositoryTool) listRepositories(ctx context.Context, req mcp.CallToolR
 
 // listRepositoryTags lists tags for a repository
 func (r *RepositoryTool) listRepositoryTags(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -107,19 +107,19 @@ func (r *RepositoryTool) listRepositoryTags(ctx context.Context, req mcp.CallToo
 
 // deleteTag deletes a tag from a repository
 func (r *RepositoryTool) deleteTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	tag, ok := req.GetArguments()["Tag"].(string)
-	if !ok || tag == "" {
-		return mcp.NewToolResultError("Tag is required"), nil
+	tag, errResult := tagArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -137,14 +137,14 @@ func (r *RepositoryTool) deleteTag(ctx context.Context, req mcp.CallToolRequest)
 
 // listRepositoryManifests lists manifests for a repository
 func (r *RepositoryTool) listRepositoryManifests(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -177,19 +177,19 @@ func (r *RepositoryTool) listRepositoryManifests(ctx context.Context, req mcp.Ca
 
 // deleteManifest deletes a manifest from a repository
 func (r *RepositoryTool) deleteManifest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	digest, ok := req.GetArguments()["Digest"].(string)
-	if !ok || digest == "" {
-		return mcp.NewToolResultError("Digest is required"), nil
+	digest, errResult := digestArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
