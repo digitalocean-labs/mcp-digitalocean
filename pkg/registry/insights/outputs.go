@@ -23,6 +23,16 @@ import (
 // uptimecheck-delete, uptimecheck-alert-delete and alert-policy-delete stay
 // text-only: each returns a fixed success message rather than a resource, so an
 // output schema would describe nothing.
+//
+// Dashboards: godo.Dashboard carries its Perses document in Spec, tagged
+// `json:"-"` and emitted by a custom MarshalJSON as the JSON-encoded string the
+// API uses on the wire. The reflector therefore omits "spec" from the schema;
+// the payload still validates because additional properties are allowed, and
+// the tool descriptions say spec is a string. dashboardsOut publishes
+// godo.DashboardList as-is because it already pairs the collection with its
+// pagination. dashboardSchemaOut is map[string]any rather than json.RawMessage:
+// RawMessage is a []byte and would reflect to a base64 string, while the
+// handler passes the upstream JSON Schema through verbatim with ResultRaw.
 var (
 	uptimeCheckOut          = common.NewOutput[*godo.UptimeCheck]("check")
 	uptimeChecksOut         = common.NewOutput[[]godo.UptimeCheck]("checks")
@@ -47,4 +57,7 @@ var (
 	traceOut                = common.NewOutput[*godo.Trace]("trace")
 	resourceOut             = common.NewOutput[*godo.InsightsResource]("resource")
 	resourcesOut            = common.NewOutput[*godo.InsightsResourceList]("resources")
+	dashboardOut            = common.NewOutput[*godo.Dashboard]("dashboard")
+	dashboardsOut           = common.NewObjectOutput[*godo.DashboardList]()
+	dashboardSchemaOut      = common.NewOutput[map[string]any]("schema")
 )
