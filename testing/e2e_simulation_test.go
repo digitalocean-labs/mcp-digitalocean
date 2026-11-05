@@ -3,8 +3,10 @@
 package testing
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,22 +29,71 @@ func TestSimulationListScenarioSets(t *testing.T) {
 	t.Logf("listed %d scenario set(s)", out.Count)
 }
 
-// TestSimulationListRuns calls genai-simulation-list-runs against the live API.
-func TestSimulationListRuns(t *testing.T) {
+// TestSimulationRemovedRunToolsAbsent asserts SimulationRun list/get/update/cancel/delete
+// tools are no longer registered, while create-run and model-eval lifecycle tools remain.
+func TestSimulationRemovedRunToolsAbsent(t *testing.T) {
 	t.Parallel()
 
-	type simulationRun struct {
-		RunUUID string `json:"run_uuid"`
-		Name    string `json:"name"`
-		Status  string `json:"status"`
-	}
-	type listResponse struct {
-		SimulationRuns []simulationRun `json:"simulation_runs"`
-		Count          int             `json:"count"`
+	ctx, c := getTestClient(t)
+	tools, err := c.ListTools(ctx, mcp.ListToolsRequest{})
+	require.NoError(t, err)
+
+	byName := make(map[string]bool, len(tools.Tools))
+	for _, tool := range tools.Tools {
+		byName[tool.Name] = true
 	}
 
-	out := callTool[listResponse](t, "genai-simulation-list-runs", map[string]any{})
-	require.GreaterOrEqual(t, out.Count, 0)
-	require.Len(t, out.SimulationRuns, out.Count)
-	t.Logf("listed %d simulation run(s)", out.Count)
+	removed := []string{
+		"genai-simulation-list-runs",
+		"genai-simulation-get-run",
+		"genai-simulation-update-run",
+		"genai-simulation-cancel-run",
+		"genai-simulation-delete-run",
+	}
+	for _, name := range removed {
+		require.False(t, byName[name], "removed tool still registered: %s", name)
+		t.Logf("OK absent: %s", name)
+	}
+
+	kept := []string{
+		"genai-simulation-create-run",
+		"genai-simulation-list-scenario-sets",
+		"genai-model-eval-list-runs",
+		"genai-model-eval-get-run",
+		"genai-model-eval-update-run",
+		"genai-model-eval-cancel-run",
+		"genai-model-eval-delete-run",
+	}
+	for _, name := range kept {
+		require.True(t, byName[name], "expected tool missing: %s", name)
+		t.Logf("OK present: %s", name)
+	}
+}
+
+// TestSimulationCreateRunRequiresMetrics asserts create-run rejects calls without metric_uuids
+// before hitting the API (sim+eval always requires metrics).
+func TestSimulationCreateRunRequiresMetrics(t *testing.T) {
+	t.Parallel()
+
+	ctx, c := getTestClient(t)
+	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "genai-simulation-create-run",
+			Arguments: map[string]any{
+				"scenario_set_uuid": "00000000-0000-0000-0000-000000000001",
+				"agent_uuid":        "00000000-0000-0000-0000-000000000002",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, resp.IsError, "expected error when metric_uuids is omitted")
+
+	var errText string
+	if len(resp.Content) > 0 {
+		if tc, ok := resp.Content[0].(mcp.TextContent); ok {
+			errText = tc.Text
+		}
+	}
+	require.True(t, strings.Contains(errText, "metric_uuids"), "error should mention metric_uuids, got: %s", errText)
+	t.Logf("OK create-run rejected missing metrics: %s", errText)
 }
