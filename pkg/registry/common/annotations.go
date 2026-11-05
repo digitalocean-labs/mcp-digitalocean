@@ -99,13 +99,16 @@ func WithRisk(r Risk) mcp.ToolOption {
 	}
 }
 
-// Hint profiles. Every tool in this package falls into one of six
+// Hint profiles. Every tool in this package falls into one of seven
 // categories. openWorld is false on every profile.
 //
 // Delete is destructive AND idempotent: repeating a delete on an
 // already-removed resource returns not-found with no additional side
 // effect. Replace (rebuild, restore) is destructive but non-idempotent
 // because each call kicks off a fresh action that replaces droplet state.
+// Overwrite (a full-body PUT) is destructive AND idempotent: it converges on
+// the target state, so repeating it is safe, but whatever the resource held
+// before is discarded rather than added to.
 //
 // parallelizable and streamingSafe are false on every profile today; they
 // live on the struct so they are explicit and can diverge later.
@@ -133,4 +136,8 @@ var (
 
 	// HintsReplace — destructive AND non-idempotent (see package note above).
 	HintsReplace = hints{destructive: true, operation: OpUpdate}
+
+	// HintsOverwrite — destructive AND idempotent update that replaces a
+	// resource's content wholesale (see package note above).
+	HintsOverwrite = hints{destructive: true, idempotent: true, operation: OpUpdate}
 )

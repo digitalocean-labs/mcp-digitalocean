@@ -211,6 +211,26 @@ func TestDashboardTool_getSchema(t *testing.T) {
 	require.Equal(t, string(raw), string(structured["schema"]), "upstream bytes pass through verbatim")
 }
 
+// update is a full-body PUT: safe to repeat, but it discards the previous spec,
+// so it must advertise itself as both idempotent and destructive.
+func TestDashboardUpdateAdvertisesDestructiveIdempotent(t *testing.T) {
+	_, tool := setupDashboardTool(t)
+	for _, st := range tool.Tools() {
+		if st.Tool.Name != "insights-dashboard-update" {
+			continue
+		}
+		a := st.Tool.Annotations
+		require.NotNil(t, a.DestructiveHint)
+		require.True(t, *a.DestructiveHint, "update replaces the spec wholesale")
+		require.NotNil(t, a.IdempotentHint)
+		require.True(t, *a.IdempotentHint, "the same spec twice converges on the same state")
+		require.NotNil(t, a.ReadOnlyHint)
+		require.False(t, *a.ReadOnlyHint)
+		return
+	}
+	t.Fatal("insights-dashboard-update not registered")
+}
+
 // The advertised schema must describe spec, which godo hides from reflection
 // behind json:"-" and a custom MarshalJSON. A client typing results off the
 // outputSchema would otherwise never see the one field that matters.

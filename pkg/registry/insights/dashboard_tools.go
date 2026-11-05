@@ -169,9 +169,10 @@ func (t *DashboardTool) Tools() []server.ServerTool {
 			specArg,
 		)},
 		{Handler: t.update, Tool: mcp.NewTool("insights-dashboard-update",
-			// Idempotent PUT, so HintsToggle; but a full replace of a user-authored
-			// document with no server-side history, so the risk sits with delete.
-			common.WithHints(common.HintsToggle), common.WithRisk(common.RiskMedium), dashboardOut.Schema(),
+			// A full-body PUT: idempotent, but it discards the previous spec of a
+			// user-authored document with no server-side history, so it is
+			// destructive and the risk sits with delete.
+			common.WithHints(common.HintsOverwrite), common.WithRisk(common.RiskMedium), dashboardOut.Schema(),
 			mcp.WithDescription("PREFERRED — Replace an Insights dashboard's spec in full (PUT /v2/insights/dashboards/{uuid}). name and description are recomputed from the new spec. "+
 				"409 when the new spec.display.name is already used by another dashboard in the team."),
 			mcp.WithString("UUID", mcp.Required(), mcp.Description("Dashboard UUID")),
