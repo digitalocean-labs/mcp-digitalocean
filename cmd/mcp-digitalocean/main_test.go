@@ -149,3 +149,24 @@ func TestRegisterRoutes(t *testing.T) {
 		}
 	})
 }
+
+func TestDocsEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		services []string
+		want     bool
+	}{
+		{name: "all services", services: nil, want: true},
+		{name: "docs only", services: []string{"docs"}, want: true},
+		{name: "docs among others", services: []string{"droplets", "docs"}, want: true},
+		{name: "no docs", services: []string{"droplets", "apps"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := docsEnabled(tt.services); got != tt.want {
+				t.Errorf("docsEnabled(%q) = %v, want %v", tt.services, got, tt.want)
+			}
+		})
+	}
+}

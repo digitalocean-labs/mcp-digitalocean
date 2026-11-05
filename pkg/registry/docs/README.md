@@ -55,6 +55,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 - Uses `markdown_url` from the cached page index when available, including the last good index during refresh failures. Falls back to the `index.html.md` endpoint and then the original page URL without loading the index for a page read; only `docs.digitalocean.com` URLs are fetched. All requests and redirects must stay on the HTTPS `docs.digitalocean.com` origin. Each HTTP request has a 15 s timeout; oversized bodies are rejected even without a reliable `Content-Length` (10 MB accepted-body cap). Page windows do not bypass this response cap.
 - In-memory caching (30 min for pages, 1 hour for indexes); concurrent cold loads of the index share one fetch
 - Supports common service name aliases (e.g., "k8s" → "kubernetes", "gpu" → "bare-metal-gpus")
+- When the docs service is enabled, the server's `initialize` response carries instructions noting that prior knowledge of DigitalOcean products may be out of date and pointing to these tools. MCP clients load server instructions into the model's context at connect time.
 
 ### Ranking regression set
 

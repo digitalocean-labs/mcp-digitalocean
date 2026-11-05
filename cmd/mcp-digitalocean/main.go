@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -71,6 +72,12 @@ func checkAnonymousServices(services []string) error {
 		return fmt.Errorf("--allow-anonymous supports only public-content services (docs), got %s", strings.Join(rejected, ", "))
 	}
 	return nil
+}
+
+// docsEnabled reports whether the docs service is registered. An empty set
+// registers every service, docs included.
+func docsEnabled(services []string) bool {
+	return len(services) == 0 || slices.Contains(services, "docs")
 }
 
 // getEnv retrieves the value of the environment variable named by the key.
@@ -267,6 +274,9 @@ func main() {
 
 	var opts []server.ServerOption
 	opts = append(opts, server.WithPromptCapabilities(true))
+	if docsEnabled(services) {
+		opts = append(opts, server.WithInstructions(docs.ServerInstructions))
+	}
 	if *enableToolErrorLogging {
 		toolLoggingMiddleware := middleware.ToolLoggingMiddleware{Logger: logger}
 		opts = append(opts, server.WithToolHandlerMiddleware(toolLoggingMiddleware.ToolMiddleware))
