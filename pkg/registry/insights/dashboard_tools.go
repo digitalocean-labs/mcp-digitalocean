@@ -50,7 +50,7 @@ func (t *DashboardTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return dashboardOut.Result(out)
+	return dashboardOut.Result(dashboardFromGodo(out))
 }
 
 func (t *DashboardTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -68,7 +68,7 @@ func (t *DashboardTool) list(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return dashboardsOut.Result(out)
+	return dashboardsOut.Result(dashboardListFromGodo(out))
 }
 
 func (t *DashboardTool) create(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -84,7 +84,7 @@ func (t *DashboardTool) create(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return dashboardOut.Result(out)
+	return dashboardOut.Result(dashboardFromGodo(out))
 }
 
 func (t *DashboardTool) update(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -105,7 +105,7 @@ func (t *DashboardTool) update(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return dashboardOut.Result(out)
+	return dashboardOut.Result(dashboardFromGodo(out))
 }
 
 func (t *DashboardTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -169,7 +169,9 @@ func (t *DashboardTool) Tools() []server.ServerTool {
 			specArg,
 		)},
 		{Handler: t.update, Tool: mcp.NewTool("insights-dashboard-update",
-			common.WithHints(common.HintsToggle), common.WithRisk(common.RiskLow), dashboardOut.Schema(),
+			// Idempotent PUT, so HintsToggle; but a full replace of a user-authored
+			// document with no server-side history, so the risk sits with delete.
+			common.WithHints(common.HintsToggle), common.WithRisk(common.RiskMedium), dashboardOut.Schema(),
 			mcp.WithDescription("PREFERRED — Replace an Insights dashboard's spec in full (PUT /v2/insights/dashboards/{uuid}). name and description are recomputed from the new spec. "+
 				"409 when the new spec.display.name is already used by another dashboard in the team."),
 			mcp.WithString("UUID", mcp.Required(), mcp.Description("Dashboard UUID")),

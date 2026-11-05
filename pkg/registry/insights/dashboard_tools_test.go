@@ -211,6 +211,34 @@ func TestDashboardTool_getSchema(t *testing.T) {
 	require.Equal(t, string(raw), string(structured["schema"]), "upstream bytes pass through verbatim")
 }
 
+// The advertised schema must describe spec, which godo hides from reflection
+// behind json:"-" and a custom MarshalJSON. A client typing results off the
+// outputSchema would otherwise never see the one field that matters.
+func TestDashboardOutputSchemaDeclaresSpecAsString(t *testing.T) {
+	var schema struct {
+		Defs map[string]struct {
+			Properties map[string]struct {
+				Type any `json:"type"`
+			} `json:"properties"`
+		} `json:"$defs"`
+	}
+	require.NoError(t, json.Unmarshal(dashboardOut.RawSchema(), &schema))
+
+	var found bool
+	for _, def := range schema.Defs {
+		spec, ok := def.Properties["spec"]
+		if !ok {
+			continue
+		}
+		found = true
+		require.Contains(t, spec.Type, "string", "spec must be declared as a string")
+	}
+	require.True(t, found, "no $def declares a spec property: %s", dashboardOut.RawSchema())
+
+	// The list schema inlines the same dashboard shape.
+	require.Contains(t, string(dashboardsOut.RawSchema()), `"spec"`)
+}
+
 // TestDashboardStructuredOutputSatisfiesDeclaredSchema drives the two tools
 // whose payloads diverge from plain godo reflection through a validating
 // server: get (spec is a json:"-" field emitted as a string by a custom
@@ -267,8 +295,20 @@ func TestDashboardStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 	require.JSONEq(t, testDashboardSpec, dash.Spec)
 
 	got = call("insights-dashboard-list", `{}`)
-	require.Contains(t, got, "dashboards")
-	require.Contains(t, got, "pagination")
+	var list struct {
+		Dashboards []struct {
+			UUID string `json:"uuid"`
+			Spec string `json:"spec"`
+		} `json:"dashboards"`
+		Pagination struct {
+			Total int `json:"total"`
+		} `json:"pagination"`
+	}
+	require.NoError(t, json.Unmarshal(got["dashboards"], &list.Dashboards))
+	require.NoError(t, json.Unmarshal(got["pagination"], &list.Pagination))
+	require.Len(t, list.Dashboards, 1)
+	require.JSONEq(t, testDashboardSpec, list.Dashboards[0].Spec)
+	require.Equal(t, 1, list.Pagination.Total)
 
 	got = call("insights-dashboard-get-schema", `{}`)
 	var schema map[string]any
