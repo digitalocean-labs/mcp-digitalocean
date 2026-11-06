@@ -53,6 +53,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 - `Product` filtering prefers exact product names, service aliases, and URL slugs. If none match, it uses whole section tokens with light stemming and prefixes of at least four characters, so short strings do not match arbitrary substrings.
 - `docs-find-for-service` uses per-service `llms.txt` files
 - Uses `markdown_url` from the cached page index when available, including the last good index during refresh failures. Falls back to the `index.html.md` endpoint and then the original page URL without loading the index for a page read; only `docs.digitalocean.com` URLs are fetched. All requests and redirects must stay on the HTTPS `docs.digitalocean.com` origin. Each HTTP request has a 15 s timeout; oversized bodies are rejected even without a reliable `Content-Length` (10 MB accepted-body cap). Page windows do not bypass this response cap.
+- Control Panel, pricing and signup links in page prose carry `utm_source=docs-agent&utm_medium=mcp`, so a person who follows a link an agent passed on is attributed at signup. The site's markdown mirrors tag the same links with `utm_medium=md`; served pages retag those as `mcp`. Code, console API and OAuth paths, and links tagged by another source are left unchanged.
 - In-memory caching (30 min for pages, 1 hour for indexes); concurrent cold loads of the index share one fetch
 - Supports common service name aliases (e.g., "k8s" → "kubernetes", "gpu" → "bare-metal-gpus")
 

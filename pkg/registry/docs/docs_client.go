@@ -1302,7 +1302,8 @@ func capBoundaryBlanks(s string, leading, trailing bool) string {
 	return s
 }
 
-// stripHTMLOutsideCodeSpans strips HTML, skipping inline code spans. A backtick
+// stripHTMLOutsideCodeSpans strips HTML and tags console links (see
+// tagAgentLinks), skipping inline code spans. A backtick
 // run opens a span that only a run of the same length closes, so the backticks
 // in a span such as `<div>` protect what they wrap. A span may wrap onto the
 // next line but not across a blank line, which ends the paragraph.
@@ -1312,10 +1313,10 @@ func stripHTMLOutsideCodeSpans(s string) string {
 		if s[i] != '`' {
 			next := strings.IndexByte(s[i:], '`')
 			if next < 0 {
-				out.WriteString(stripHTMLFragment(s[i:]))
+				out.WriteString(tagAgentLinks(stripHTMLFragment(s[i:])))
 				break
 			}
-			out.WriteString(stripHTMLFragment(s[i : i+next]))
+			out.WriteString(tagAgentLinks(stripHTMLFragment(s[i : i+next])))
 			i += next
 			continue
 		}
