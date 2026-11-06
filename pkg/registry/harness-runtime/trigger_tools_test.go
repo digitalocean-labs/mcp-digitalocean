@@ -981,3 +981,19 @@ func TestListReusableSessionsAPIError(t *testing.T) {
 	require.True(t, res.IsError)
 	require.Contains(t, callText(t, res), "Failed to list reusable sessions")
 }
+
+func TestTriggerExecutionKeepsWaitingFields(t *testing.T) {
+	const raw = `{
+		"execution_id": "exec-wait",
+		"status": "running",
+		"run_id": "run-1",
+		"status_reason": "waiting_for_bound_session",
+		"status_message": "Waiting for the bound session to pause."
+	}`
+	var exec TriggerExecution
+	require.NoError(t, json.Unmarshal([]byte(raw), &exec))
+	require.Equal(t, "running", exec.Status)
+	require.Equal(t, "run-1", exec.RunID)
+	require.Equal(t, "waiting_for_bound_session", exec.StatusReason)
+	require.Equal(t, "Waiting for the bound session to pause.", exec.StatusMessage)
+}
