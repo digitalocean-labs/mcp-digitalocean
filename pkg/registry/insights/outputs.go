@@ -1,6 +1,8 @@
 package insights
 
 import (
+	"time"
+
 	"github.com/digitalocean/godo"
 
 	"mcp-digitalocean/pkg/registry/common"
@@ -23,6 +25,16 @@ import (
 // uptimecheck-delete, uptimecheck-alert-delete and alert-policy-delete stay
 // text-only: each returns a fixed success message rather than a resource, so an
 // output schema would describe nothing.
+//
+// Dashboards: godo.Dashboard carries its Perses document in Spec, tagged
+// `json:"-"` and emitted by a custom MarshalJSON as the JSON-encoded string the
+// API uses on the wire. Reflecting godo.Dashboard directly would therefore
+// advertise a schema with no "spec" even though every response carries one,
+// so the dashboard tools publish the local dashboard type below, which mirrors
+// godo's wire shape field for field and declares spec as a string.
+// dashboardSchemaOut is map[string]any rather than json.RawMessage: RawMessage
+// is a []byte and would reflect to a base64 string, while the handler passes
+// the upstream JSON Schema through verbatim with ResultRaw.
 var (
 	uptimeCheckOut          = common.NewOutput[*godo.UptimeCheck]("check")
 	uptimeChecksOut         = common.NewOutput[[]godo.UptimeCheck]("checks")
@@ -47,4 +59,53 @@ var (
 	traceOut                = common.NewOutput[*godo.Trace]("trace")
 	resourceOut             = common.NewOutput[*godo.InsightsResource]("resource")
 	resourcesOut            = common.NewOutput[*godo.InsightsResourceList]("resources")
+	dashboardOut            = common.NewOutput[*dashboard]("dashboard")
+	dashboardsOut           = common.NewObjectOutput[dashboardList]()
+	dashboardSchemaOut      = common.NewOutput[map[string]any]("schema")
 )
+
+// dashboard is godo.Dashboard as it appears on the wire: the same fields in
+// the same order, with spec visible to the schema reflector as the JSON-encoded
+// string the API returns.
+type dashboard struct {
+	UUID        string    `json:"uuid"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Spec        string    `json:"spec" jsonschema:"description=Perses dashboard document as a JSON-encoded string"`
+}
+
+// dashboardList is godo.DashboardList with its dashboards in the wire shape.
+type dashboardList struct {
+	Dashboards []dashboard                `json:"dashboards,omitempty"`
+	Pagination *godo.DashboardsPagination `json:"pagination,omitempty"`
+}
+
+func dashboardFromGodo(d *godo.Dashboard) *dashboard {
+	if d == nil {
+		return nil
+	}
+	return &dashboard{
+		UUID:        d.UUID,
+		Name:        d.Name,
+		Description: d.Description,
+		CreatedAt:   d.CreatedAt,
+		UpdatedAt:   d.UpdatedAt,
+		Spec:        string(d.Spec),
+	}
+}
+
+func dashboardListFromGodo(l *godo.DashboardList) dashboardList {
+	if l == nil {
+		return dashboardList{}
+	}
+	out := dashboardList{Pagination: l.Pagination}
+	if len(l.Dashboards) > 0 {
+		out.Dashboards = make([]dashboard, 0, len(l.Dashboards))
+		for i := range l.Dashboards {
+			out.Dashboards = append(out.Dashboards, *dashboardFromGodo(&l.Dashboards[i]))
+		}
+	}
+	return out
+}
