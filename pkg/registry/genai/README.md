@@ -368,7 +368,7 @@ These tools evaluate raw models directly (not full agent deployments). They use 
 List available model evaluation metrics. Each metric includes `turn_type` (`EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` or `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`).
 
 **Arguments:**
-- `turn_type` (string, optional): Filter by turn type. Accepts `single_turn` / `multi_turn` or the full enums `EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` / `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`.
+- `turn_type` (string, optional): Filter by turn type. Accepts `single_turn` / `multi_turn` or the full enums `EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` / `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`. Omit to return all metrics.
 
 **Returns:** JSON object with array of metrics and count
 

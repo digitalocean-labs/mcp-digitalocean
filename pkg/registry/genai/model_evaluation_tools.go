@@ -992,8 +992,8 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				modelEvalMetricListOut.Schema(),
-				mcp.WithDescription("List available model evaluation metrics. Each metric includes turn_type (SINGLE_TURN or MULTI_TURN). Optionally filter with turn_type."),
-				mcp.WithString("turn_type", mcp.Description("Optional filter by turn type. Accepts single_turn / multi_turn or the full enums EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN.")),
+				mcp.WithDescription("List available model evaluation metrics. Each metric includes turn_type (SINGLE_TURN or MULTI_TURN). Optionally filter with turn_type; omit to return all."),
+				mcp.WithString("turn_type", mcp.Description("Optional filter by turn type. Accepts single_turn / multi_turn or the full enums EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Omit to return all metrics.")),
 			),
 		},
 		{
