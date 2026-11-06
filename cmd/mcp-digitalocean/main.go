@@ -145,6 +145,7 @@ func main() {
 	wsLoggingURL := flag.String("ws-logging-url", getEnv("WS_LOGGING_URL", ""), "WebSocket URL for WebSocket logging (optional)")
 	wsLoggingToken := flag.String("ws-logging-token", getEnv("WS_LOGGING_TOKEN", ""), "Authentication token for WebSocket logging (optional)")
 	enableToolErrorLogging := flag.Bool("enable-tool-error-logging", getEnv("ENABLE_TOOL_ERROR_LOGGING", "false") == "true", "Enable logging of tool errors")
+	logDocsQueries := flag.Bool("log-docs-queries", getEnvBool("LOG_DOCS_QUERIES", false), "Add redacted, truncated docs-search Query and docs-troubleshoot Symptom text to tool call records. Requires --enable-tool-error-logging")
 	serverURLFlag := flag.String("mcp-resource-url", getEnv("MCP_RESOURCE_URL", ""), "This server's public base URL advertised in the OAuth protected resource metadata. When empty, it is derived from each request (remote transport only, optional)")
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
@@ -277,8 +278,11 @@ func main() {
 	if docsEnabled(services) {
 		opts = append(opts, server.WithInstructions(docs.ServerInstructions))
 	}
+	if *logDocsQueries && !*enableToolErrorLogging {
+		logger.Warn("--log-docs-queries has no effect without --enable-tool-error-logging")
+	}
 	if *enableToolErrorLogging {
-		toolLoggingMiddleware := middleware.ToolLoggingMiddleware{Logger: logger}
+		toolLoggingMiddleware := middleware.ToolLoggingMiddleware{Logger: logger, LogDocsQueries: *logDocsQueries}
 		opts = append(opts, server.WithToolHandlerMiddleware(toolLoggingMiddleware.ToolMiddleware))
 	}
 
