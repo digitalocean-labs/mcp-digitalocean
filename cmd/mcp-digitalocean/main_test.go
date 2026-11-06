@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -92,6 +94,78 @@ func TestGetEnvBool(t *testing.T) {
 			}
 			if got := getEnvBool("ALLOW_ANONYMOUS", false); got != tt.want {
 				t.Fatalf("getEnvBool(%q) = %v, want %v", tt.value, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRegisterRoutes(t *testing.T) {
+	ok := func(name string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("X-Route", name)
+		})
+	}
+	guard := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Authorization") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	serve := func(mux *http.ServeMux, method, path string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(method, path, nil))
+		return rec
+	}
+
+	t.Run("mcp stays guarded and extra routes are not", func(t *testing.T) {
+		mux := http.NewServeMux()
+		registerRoutes(mux, ok("mcp"), ok("wk").ServeHTTP, nil, guard, map[string]http.Handler{"/v1/search": ok("search")})
+
+		if rec := serve(mux, http.MethodPost, "/mcp"); rec.Code != http.StatusUnauthorized {
+			t.Fatalf("/mcp without auth = %d, want 401", rec.Code)
+		}
+		if rec := serve(mux, http.MethodGet, "/v1/search"); rec.Header().Get("X-Route") != "search" {
+			t.Fatalf("/v1/search not routed to search handler: %d", rec.Code)
+		}
+		if rec := serve(mux, http.MethodGet, "/.well-known/oauth-protected-resource"); rec.Header().Get("X-Route") != "wk" {
+			t.Fatalf("well-known route missing: %d", rec.Code)
+		}
+	})
+
+	t.Run("anonymous deployment serves mcp and search only", func(t *testing.T) {
+		mux := http.NewServeMux()
+		registerRoutes(mux, ok("mcp"), nil, nil, nil, map[string]http.Handler{"/v1/search": ok("search")})
+
+		if rec := serve(mux, http.MethodPost, "/mcp"); rec.Header().Get("X-Route") != "mcp" {
+			t.Fatalf("/mcp not routed: %d", rec.Code)
+		}
+		for _, p := range []string{"/v1/search/", "/v1/search/x", "/", "/.well-known/oauth-protected-resource"} {
+			if rec := serve(mux, http.MethodGet, p); rec.Code != http.StatusNotFound {
+				t.Fatalf("%s = %d, want 404", p, rec.Code)
+			}
+		}
+	})
+}
+
+func TestDocsEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		services []string
+		want     bool
+	}{
+		{name: "all services", services: nil, want: true},
+		{name: "docs only", services: []string{"docs"}, want: true},
+		{name: "docs among others", services: []string{"droplets", "docs"}, want: true},
+		{name: "no docs", services: []string{"droplets", "apps"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := docsEnabled(tt.services); got != tt.want {
+				t.Errorf("docsEnabled(%q) = %v, want %v", tt.services, got, tt.want)
 			}
 		})
 	}

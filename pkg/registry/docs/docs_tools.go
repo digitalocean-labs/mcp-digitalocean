@@ -23,6 +23,14 @@ const (
 	maxEmbeddedPageBytes = 16 * 1024
 )
 
+// ServerInstructions is sent in the initialize response when the docs service
+// is enabled. Clients load it into the model's context at connect time, which
+// is the only point an agent answering from training data sees it. It states
+// facts rather than commands so clients do not treat it as injection.
+const ServerInstructions = "DigitalOcean launches, renames, and retires products often, so prior knowledge of its product names, features, pricing, and limits may be out of date. " +
+	"For example, Gradient AI Platform features are now documented as Inference and Managed Agents. " +
+	"The docs tools read the current published documentation at docs.digitalocean.com: docs-search and docs-find-for-service locate pages, and docs-get-page returns a page's content with its last-modified date."
+
 func parseLimit(args map[string]any, def int) int {
 	limit, ok := args["Limit"].(float64)
 	if !ok || math.IsNaN(limit) || limit < 1 {
@@ -41,7 +49,7 @@ type DocsTool struct {
 
 // NewDocsTool creates a new DocsTool instance.
 func NewDocsTool() *DocsTool {
-	return &DocsTool{client: NewDocsClient()}
+	return &DocsTool{client: sharedDocsClient()}
 }
 
 // writeEntry renders one result with the metadata an agent needs to cite it:
