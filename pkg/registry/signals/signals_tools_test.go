@@ -58,7 +58,9 @@ func TestListConsents(t *testing.T) {
 	res, err := tool.listConsents(context.Background(), mcp.CallToolRequest{})
 	require.NoError(t, err)
 	require.False(t, res.IsError)
-	require.Contains(t, callText(res), "agent-1")
+	text := callText(res)
+	require.Contains(t, text, "agent-1")
+	require.Contains(t, text, `"environment_id": "agent-1"`)
 }
 
 func TestCreateExport(t *testing.T) {
@@ -66,7 +68,7 @@ func TestCreateExport(t *testing.T) {
 	mock := NewMockSignalsService(ctrl)
 	tool := setupToolWithMock(mock)
 
-	t.Run("missing AgentID", func(t *testing.T) {
+	t.Run("missing EnvironmentID and AgentID", func(t *testing.T) {
 		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
 			Params: mcp.CallToolParams{Arguments: map[string]any{}},
 		})
@@ -74,7 +76,7 @@ func TestCreateExport(t *testing.T) {
 		require.True(t, res.IsError)
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("EnvironmentID alone", func(t *testing.T) {
 		start := int64(1727740800)
 		mock.EXPECT().CreateExport(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ context.Context, req *godo.SignalsCreateExportRequest) (*godo.SignalsExportJob, *godo.Response, error) {
@@ -86,14 +88,62 @@ func TestCreateExport(t *testing.T) {
 		)
 		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
 			Params: mcp.CallToolParams{Arguments: map[string]any{
-				"AgentID":    "agent-1",
-				"SignalType": []any{"Looping"},
-				"StartTime":  float64(1727740800),
+				"EnvironmentID": "agent-1",
+				"SignalType":    []any{"Looping"},
+				"StartTime":     float64(1727740800),
 			}},
 		})
 		require.NoError(t, err)
 		require.False(t, res.IsError)
-		require.Contains(t, callText(res), "export-1")
+		text := callText(res)
+		require.Contains(t, text, "export-1")
+		require.Contains(t, text, `"environment_id": "agent-1"`)
+		require.False(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("AgentID alone", func(t *testing.T) {
+		mock.EXPECT().CreateExport(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, req *godo.SignalsCreateExportRequest) (*godo.SignalsExportJob, *godo.Response, error) {
+				require.Equal(t, "agent-1", req.AgentID)
+				return &godo.SignalsExportJob{ExportID: "export-2", AgentID: "agent-1", Status: "queued"}, &godo.Response{}, nil
+			},
+		)
+		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{"AgentID": "agent-1"}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		require.True(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("both equal", func(t *testing.T) {
+		mock.EXPECT().CreateExport(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, req *godo.SignalsCreateExportRequest) (*godo.SignalsExportJob, *godo.Response, error) {
+				require.Equal(t, "agent-1", req.AgentID)
+				return &godo.SignalsExportJob{ExportID: "export-3", AgentID: "agent-1", Status: "queued"}, &godo.Response{}, nil
+			},
+		)
+		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{
+				"EnvironmentID": "agent-1",
+				"AgentID":       "agent-1",
+			}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		require.True(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("both different", func(t *testing.T) {
+		res, err := tool.createExport(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{
+				"EnvironmentID": "env-1",
+				"AgentID":       "agent-1",
+			}},
+		})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+		require.Contains(t, callText(res), "must be equal")
 	})
 }
 
@@ -102,7 +152,7 @@ func TestGetAgentConsent(t *testing.T) {
 	mock := NewMockSignalsService(ctrl)
 	tool := setupToolWithMock(mock)
 
-	t.Run("missing AgentID", func(t *testing.T) {
+	t.Run("missing EnvironmentID and AgentID", func(t *testing.T) {
 		res, err := tool.getAgentConsent(context.Background(), mcp.CallToolRequest{
 			Params: mcp.CallToolParams{Arguments: map[string]any{}},
 		})
@@ -110,7 +160,22 @@ func TestGetAgentConsent(t *testing.T) {
 		require.True(t, res.IsError)
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("EnvironmentID alone", func(t *testing.T) {
+		mock.EXPECT().GetAgentConsent(gomock.Any(), "agent-1").Return(&godo.SignalsAgentConsent{
+			TeamID: 123, AgentID: "agent-1", Enabled: true,
+		}, &godo.Response{}, nil)
+		res, err := tool.getAgentConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{"EnvironmentID": "agent-1"}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		text := callText(res)
+		require.Contains(t, text, "agent-1")
+		require.Contains(t, text, `"environment_id": "agent-1"`)
+		require.False(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("AgentID alone", func(t *testing.T) {
 		mock.EXPECT().GetAgentConsent(gomock.Any(), "agent-1").Return(&godo.SignalsAgentConsent{
 			TeamID: 123, AgentID: "agent-1", Enabled: true,
 		}, &godo.Response{}, nil)
@@ -119,7 +184,34 @@ func TestGetAgentConsent(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.False(t, res.IsError)
-		require.Contains(t, callText(res), "agent-1")
+		require.True(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("both equal", func(t *testing.T) {
+		mock.EXPECT().GetAgentConsent(gomock.Any(), "agent-1").Return(&godo.SignalsAgentConsent{
+			TeamID: 123, AgentID: "agent-1", Enabled: true,
+		}, &godo.Response{}, nil)
+		res, err := tool.getAgentConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{
+				"EnvironmentID": "agent-1",
+				"AgentID":       "agent-1",
+			}},
+		})
+		require.NoError(t, err)
+		require.False(t, res.IsError)
+		require.True(t, hasDeprecationNotice(res))
+	})
+
+	t.Run("both different", func(t *testing.T) {
+		res, err := tool.getAgentConsent(context.Background(), mcp.CallToolRequest{
+			Params: mcp.CallToolParams{Arguments: map[string]any{
+				"EnvironmentID": "env-1",
+				"AgentID":       "agent-1",
+			}},
+		})
+		require.NoError(t, err)
+		require.True(t, res.IsError)
+		require.Contains(t, callText(res), "must be equal")
 	})
 }
 
@@ -130,7 +222,7 @@ func TestSetAgentConsent(t *testing.T) {
 
 	t.Run("missing Enabled", func(t *testing.T) {
 		res, err := tool.setAgentConsent(context.Background(), mcp.CallToolRequest{
-			Params: mcp.CallToolParams{Arguments: map[string]any{"AgentID": "agent-1"}},
+			Params: mcp.CallToolParams{Arguments: map[string]any{"EnvironmentID": "agent-1"}},
 		})
 		require.NoError(t, err)
 		require.True(t, res.IsError)
@@ -141,11 +233,13 @@ func TestSetAgentConsent(t *testing.T) {
 			ID: 1, TeamID: 123, AgentID: "agent-1", Enabled: true,
 		}, &godo.Response{}, nil)
 		res, err := tool.setAgentConsent(context.Background(), mcp.CallToolRequest{
-			Params: mcp.CallToolParams{Arguments: map[string]any{"AgentID": "agent-1", "Enabled": true}},
+			Params: mcp.CallToolParams{Arguments: map[string]any{"EnvironmentID": "agent-1", "Enabled": true}},
 		})
 		require.NoError(t, err)
 		require.False(t, res.IsError)
-		require.Contains(t, callText(res), "agent-1")
+		text := callText(res)
+		require.Contains(t, text, "agent-1")
+		require.Contains(t, text, `"environment_id": "agent-1"`)
 	})
 }
 
@@ -234,11 +328,11 @@ func TestListAgentSessions(t *testing.T) {
 
 	res, err := tool.listAgentSessions(context.Background(), mcp.CallToolRequest{
 		Params: mcp.CallToolParams{Arguments: map[string]any{
-			"AgentID":    "agent-1",
-			"Limit":      float64(20),
-			"After":      "c1",
-			"StartTime":  float64(1727740800),
-			"SignalType": []any{"Looping"},
+			"EnvironmentID": "agent-1",
+			"Limit":         float64(20),
+			"After":         "c1",
+			"StartTime":     float64(1727740800),
+			"SignalType":    []any{"Looping"},
 		}},
 	})
 	require.NoError(t, err)
@@ -274,6 +368,22 @@ func callText(res *mcp.CallToolResult) string {
 		return tc.Text
 	}
 	return ""
+}
+
+func hasDeprecationNotice(res *mcp.CallToolResult) bool {
+	if res == nil {
+		return false
+	}
+	for _, c := range res.Content {
+		tc, ok := c.(mcp.TextContent)
+		if !ok {
+			continue
+		}
+		if tc.Text == agentIDDeprecationNotice {
+			return true
+		}
+	}
+	return false
 }
 
 func decodeConsentRecord(t *testing.T, res *mcp.CallToolResult) godo.SignalsConsentRecord {

@@ -14,11 +14,47 @@ import (
 // InferenceAgentID is the agent ID under which Signals stores serverless inference sessions and exports.
 const InferenceAgentID = "00000000-0000-0000-0000-000000000000"
 
-const agentIDWithInferenceDesc = "Environment ID. Use " + InferenceAgentID + " for serverless inference."
+const (
+	environmentIDDesc              = "Environment ID"
+	environmentIDWithInferenceDesc = "Environment ID. Use " + InferenceAgentID + " for serverless inference."
+	agentIDDeprecatedDesc          = "Deprecated: use EnvironmentID. Environment ID"
+	agentIDDeprecatedInferenceDesc = "Deprecated: use EnvironmentID. " + environmentIDWithInferenceDesc
+	agentIDDeprecationNotice       = "DEPRECATED: AgentID is deprecated; use EnvironmentID."
+)
 
 // Tool provides Signals investigation GETs, consent list/get/set, and export create/list/get.
 type Tool struct {
 	client func(ctx context.Context) (*godo.Client, error)
+}
+
+type resolvedEnvironmentID struct {
+	id         string
+	deprecated bool
+}
+
+func resolveEnvironmentID(args map[string]any, required bool) (resolvedEnvironmentID, *mcp.CallToolResult) {
+	agentID := argString(args, "AgentID")
+	envID := argString(args, "EnvironmentID")
+	switch {
+	case agentID != "" && envID != "" && agentID != envID:
+		return resolvedEnvironmentID{}, mcp.NewToolResultError("AgentID and EnvironmentID must be equal when both are set")
+	case envID != "":
+		return resolvedEnvironmentID{id: envID, deprecated: agentID != ""}, nil
+	case agentID != "":
+		return resolvedEnvironmentID{id: agentID, deprecated: true}, nil
+	case required:
+		return resolvedEnvironmentID{}, mcp.NewToolResultError("EnvironmentID or AgentID is required")
+	default:
+		return resolvedEnvironmentID{}, nil
+	}
+}
+
+func withAgentIDDeprecation(res *mcp.CallToolResult, err error, deprecated bool) (*mcp.CallToolResult, error) {
+	if !deprecated || err != nil || res == nil || res.IsError {
+		return res, err
+	}
+	res.Content = append(res.Content, mcp.TextContent{Type: "text", Text: agentIDDeprecationNotice})
+	return res, nil
 }
 
 // NewTool creates a Signals MCP tool set.
@@ -105,7 +141,7 @@ func (t *Tool) listConsents(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to list consents", err), nil
 	}
-	return consentsListOut.Result(out)
+	return resultDualEmit(consentsListOut, out)
 }
 
 func (t *Tool) getAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -113,15 +149,16 @@ func (t *Tool) getAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
-	agentID := argString(req.GetArguments(), "AgentID")
-	if agentID == "" {
-		return mcp.NewToolResultError("AgentID is required"), nil
+	resolved, errRes := resolveEnvironmentID(req.GetArguments(), true)
+	if errRes != nil {
+		return errRes, nil
 	}
-	out, _, err := client.Signals.GetAgentConsent(ctx, agentID)
+	out, _, err := client.Signals.GetAgentConsent(ctx, resolved.id)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to get agent consent", err), nil
 	}
-	return consentOut.Result(out)
+	res, err := resultDualEmit(consentOut, out)
+	return withAgentIDDeprecation(res, err, resolved.deprecated)
 }
 
 func (t *Tool) setAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -130,19 +167,20 @@ func (t *Tool) setAgentConsent(ctx context.Context, req mcp.CallToolRequest) (*m
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 	args := req.GetArguments()
-	agentID := argString(args, "AgentID")
-	if agentID == "" {
-		return mcp.NewToolResultError("AgentID is required"), nil
+	resolved, errRes := resolveEnvironmentID(args, true)
+	if errRes != nil {
+		return errRes, nil
 	}
 	enabled, ok := argBool(args, "Enabled")
 	if !ok {
 		return mcp.NewToolResultError("Enabled is required"), nil
 	}
-	out, _, err := client.Signals.SetAgentConsent(ctx, agentID, enabled)
+	out, _, err := client.Signals.SetAgentConsent(ctx, resolved.id, enabled)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to set agent consent", err), nil
 	}
-	return consentSetOut.Result(out)
+	res, err := resultDualEmit(consentSetOut, out)
+	return withAgentIDDeprecation(res, err, resolved.deprecated)
 }
 
 func (t *Tool) getInferenceConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -154,7 +192,7 @@ func (t *Tool) getInferenceConsent(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to get inference consent", err), nil
 	}
-	return inferenceConsentOut.Result(out)
+	return resultDualEmit(inferenceConsentOut, out)
 }
 
 func (t *Tool) setInferenceConsent(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -170,7 +208,7 @@ func (t *Tool) setInferenceConsent(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to set inference consent", err), nil
 	}
-	return inferenceConsentOut.Result(out)
+	return resultDualEmit(inferenceConsentOut, out)
 }
 
 func (t *Tool) listAgentSessions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -179,9 +217,9 @@ func (t *Tool) listAgentSessions(ctx context.Context, req mcp.CallToolRequest) (
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 	args := req.GetArguments()
-	agentID := argString(args, "AgentID")
-	if agentID == "" {
-		return mcp.NewToolResultError("AgentID is required"), nil
+	resolved, errRes := resolveEnvironmentID(args, true)
+	if errRes != nil {
+		return errRes, nil
 	}
 	opts := &godo.SignalsListAgentSessionsOptions{
 		SignalsCursorPageOptions: godo.SignalsCursorPageOptions{
@@ -192,11 +230,12 @@ func (t *Tool) listAgentSessions(ctx context.Context, req mcp.CallToolRequest) (
 		EndTime:    argInt64Ptr(args, "EndTime"),
 		SignalType: argStringSlice(args, "SignalType"),
 	}
-	out, _, err := client.Signals.ListAgentSessions(ctx, agentID, opts)
+	out, _, err := client.Signals.ListAgentSessions(ctx, resolved.id, opts)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to list agent sessions", err), nil
 	}
-	return sessionsOut.Result(out)
+	res, err := resultDualEmit(sessionsOut, out)
+	return withAgentIDDeprecation(res, err, resolved.deprecated)
 }
 
 func (t *Tool) listSessionDialogues(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -226,7 +265,7 @@ func (t *Tool) listSessionDialogues(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to list session dialogues", err), nil
 	}
-	return dialoguesOut.Result(out)
+	return resultDualEmit(dialoguesOut, out)
 }
 
 func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -235,12 +274,12 @@ func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 	args := req.GetArguments()
-	agentID := argString(args, "AgentID")
-	if agentID == "" {
-		return mcp.NewToolResultError("AgentID is required"), nil
+	resolved, errRes := resolveEnvironmentID(args, true)
+	if errRes != nil {
+		return errRes, nil
 	}
 	createReq := &godo.SignalsCreateExportRequest{
-		AgentID:    agentID,
+		AgentID:    resolved.id,
 		SignalType: argStringSlice(args, "SignalType"),
 		StartTime:  argInt64Ptr(args, "StartTime"),
 		EndTime:    argInt64Ptr(args, "EndTime"),
@@ -249,7 +288,8 @@ func (t *Tool) createExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to create export", err), nil
 	}
-	return exportJobOut.Result(out)
+	res, err := resultDualEmit(exportJobOut, out)
+	return withAgentIDDeprecation(res, err, resolved.deprecated)
 }
 
 func (t *Tool) listExports(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -258,18 +298,23 @@ func (t *Tool) listExports(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 	args := req.GetArguments()
+	resolved, errRes := resolveEnvironmentID(args, false)
+	if errRes != nil {
+		return errRes, nil
+	}
 	opts := &godo.SignalsListExportsOptions{
 		SignalsCursorPageOptions: godo.SignalsCursorPageOptions{
 			Limit: argInt(args, "Limit"),
 			After: argString(args, "After"),
 		},
-		AgentID: argString(args, "AgentID"),
+		AgentID: resolved.id,
 	}
 	out, _, err := client.Signals.ListExports(ctx, opts)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to list exports", err), nil
 	}
-	return exportsOut.Result(out)
+	res, err := resultDualEmit(exportsOut, out)
+	return withAgentIDDeprecation(res, err, resolved.deprecated)
 }
 
 func (t *Tool) getExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -285,7 +330,7 @@ func (t *Tool) getExport(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to get export", err), nil
 	}
-	return exportJobOut.Result(out)
+	return resultDualEmit(exportJobOut, out)
 }
 
 func (t *Tool) getExportDownload(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -301,7 +346,7 @@ func (t *Tool) getExportDownload(ctx context.Context, req mcp.CallToolRequest) (
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to get export download URL", err), nil
 	}
-	return exportDownloadOut.Result(out)
+	return resultDualEmit(exportDownloadOut, out)
 }
 
 func (t *Tool) getExportOptions(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -313,7 +358,7 @@ func (t *Tool) getExportOptions(ctx context.Context, req mcp.CallToolRequest) (*
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to get export options", err), nil
 	}
-	return exportOptionsOut.Result(out)
+	return resultDualEmit(exportOptionsOut, out)
 }
 
 func withLimitAfter(opts ...mcp.ToolOption) []mcp.ToolOption {
@@ -346,7 +391,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithRisk(common.RiskLow),
 				consentOut.Schema(),
 				mcp.WithDescription("Get Signals consent for one environment. For serverless inference, use signals-get-inference-consent."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
+				mcp.WithString("EnvironmentID", mcp.Description(environmentIDDesc)),
+				mcp.WithString("AgentID", mcp.Description(agentIDDeprecatedDesc)),
 			),
 		},
 		{
@@ -356,7 +402,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithRisk(common.RiskMedium),
 				consentSetOut.Schema(),
 				mcp.WithDescription("Enable or disable Signals for one environment. For serverless inference, use signals-set-inference-consent."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description("Environment ID")),
+				mcp.WithString("EnvironmentID", mcp.Description(environmentIDDesc)),
+				mcp.WithString("AgentID", mcp.Description(agentIDDeprecatedDesc)),
 				mcp.WithBoolean("Enabled", mcp.Required(), mcp.Description("true to enable, false to disable")),
 			),
 		},
@@ -387,7 +434,8 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithRisk(common.RiskLow),
 					sessionsOut.Schema(),
 					mcp.WithDescription("List sessions for an environment, or for serverless inference."),
-					mcp.WithString("AgentID", mcp.Required(), mcp.Description(agentIDWithInferenceDesc)),
+					mcp.WithString("EnvironmentID", mcp.Description(environmentIDWithInferenceDesc)),
+					mcp.WithString("AgentID", mcp.Description(agentIDDeprecatedInferenceDesc)),
 					mcp.WithNumber("StartTime", mcp.Description("Lower bound (Unix epoch seconds)")),
 					mcp.WithNumber("EndTime", mcp.Description("Upper bound (Unix epoch seconds)")),
 					signalTypeOpt(),
@@ -418,7 +466,8 @@ func (t *Tool) Tools() []server.ServerTool {
 				common.WithRisk(common.RiskMedium),
 				exportJobOut.Schema(),
 				mcp.WithDescription("Create an export for an environment, or for serverless inference."),
-				mcp.WithString("AgentID", mcp.Required(), mcp.Description(agentIDWithInferenceDesc)),
+				mcp.WithString("EnvironmentID", mcp.Description(environmentIDWithInferenceDesc)),
+				mcp.WithString("AgentID", mcp.Description(agentIDDeprecatedInferenceDesc)),
 				signalTypeOpt(),
 				mcp.WithNumber("StartTime", mcp.Description("Lower bound (Unix epoch seconds)")),
 				mcp.WithNumber("EndTime", mcp.Description("Upper bound (Unix epoch seconds)")),
@@ -432,7 +481,8 @@ func (t *Tool) Tools() []server.ServerTool {
 					common.WithRisk(common.RiskLow),
 					exportsOut.Schema(),
 					mcp.WithDescription("List exports for the team."),
-					mcp.WithString("AgentID", mcp.Description(agentIDWithInferenceDesc)),
+					mcp.WithString("EnvironmentID", mcp.Description(environmentIDWithInferenceDesc)),
+					mcp.WithString("AgentID", mcp.Description(agentIDDeprecatedInferenceDesc)),
 				)...,
 			),
 		},
