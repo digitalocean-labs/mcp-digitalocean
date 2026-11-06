@@ -609,6 +609,7 @@ func (d *DocsClient) cachedMarkdownURL(pageURL string) string {
 type queryTerm struct {
 	text string
 	stem string
+	alts []queryTerm
 }
 
 // minPrefixLen is the shortest query term allowed to match a longer token by
@@ -622,7 +623,15 @@ func (q queryTerm) matchesToken(token queryTerm) bool {
 	if token.text == q.text || token.stem == q.stem {
 		return true
 	}
-	return len(q.text) >= minPrefixLen && strings.HasPrefix(token.text, q.text)
+	if len(q.text) >= minPrefixLen && strings.HasPrefix(token.text, q.text) {
+		return true
+	}
+	for _, alt := range q.alts {
+		if token.text == alt.text || token.stem == alt.stem {
+			return true
+		}
+	}
+	return false
 }
 
 func (q queryTerm) matches(field string) bool {
@@ -734,7 +743,7 @@ func parseQueryTerms(query string) []queryTerm {
 
 	terms := make([]queryTerm, len(kept))
 	for i, tok := range kept {
-		terms[i] = queryTerm{text: tok, stem: lightStem(tok)}
+		terms[i] = queryTerm{text: tok, stem: lightStem(tok), alts: synonymsFor(tok)}
 	}
 	return terms
 }
@@ -837,6 +846,7 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 		return nil
 	}
 
+	profile := profileQuery(query)
 	matches, weights := matchTerms(index, terms)
 	var results []scoredEntry
 
@@ -874,6 +884,23 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 		// Boost entries that match all query terms
 		if len(terms) > 1 && matchedTerms == len(terms) {
 			score += allTermsBoost
+		}
+
+		if !requireAllTerms && score > 0 {
+			tk := index.entryTokensAt(i)
+			covers := len(terms) > 0
+			for _, term := range terms {
+				if !term.matchesTokens(tk.title) {
+					covers = false
+					break
+				}
+			}
+			path := urlPathLower(entry.URL)
+			slug := fieldTerms(path[strings.LastIndex(strings.TrimSuffix(path, "/"), "/")+1:])
+			factor := priorFactor(path, profile, covers) *
+				coverageFactor(terms, tk.title, slug) *
+				termCoverageFactor(matchedTerms, len(terms))
+			score = int(float64(score) * factor)
 		}
 
 		if score > 0 {
@@ -1280,7 +1307,8 @@ func capBoundaryBlanks(s string, leading, trailing bool) string {
 	return s
 }
 
-// stripHTMLOutsideCodeSpans strips HTML, skipping inline code spans. A backtick
+// stripHTMLOutsideCodeSpans strips HTML and tags console links (see
+// tagAgentLinks), skipping inline code spans. A backtick
 // run opens a span that only a run of the same length closes, so the backticks
 // in a span such as `<div>` protect what they wrap. A span may wrap onto the
 // next line but not across a blank line, which ends the paragraph.
@@ -1290,10 +1318,10 @@ func stripHTMLOutsideCodeSpans(s string) string {
 		if s[i] != '`' {
 			next := strings.IndexByte(s[i:], '`')
 			if next < 0 {
-				out.WriteString(stripHTMLFragment(s[i:]))
+				out.WriteString(tagAgentLinks(stripHTMLFragment(s[i:])))
 				break
 			}
-			out.WriteString(stripHTMLFragment(s[i : i+next]))
+			out.WriteString(tagAgentLinks(stripHTMLFragment(s[i : i+next])))
 			i += next
 			continue
 		}
