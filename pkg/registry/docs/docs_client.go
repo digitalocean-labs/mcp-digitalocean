@@ -710,6 +710,18 @@ var wordTokenRe = regexp.MustCompile(`[\p{L}\p{N}]+`)
 
 var tokenSplitRe = regexp.MustCompile(`[^\p{L}\p{N}]+`)
 
+// turnPhraseRe rewrites "turn on" and "turn off" to the verbs page titles use.
+// Mapping "turn" alone to "enable" sent "turn off backups" to How to Enable
+// Backups, so the particle decides the direction.
+var turnPhraseRe = regexp.MustCompile(`\b(?:turn|switch)\s+(on|off)\b`)
+
+func turnPhrase(m string) string {
+	if strings.HasSuffix(m, "off") {
+		return "disable"
+	}
+	return "enable"
+}
+
 // maxQueryTerms bounds per-query work (each term is matched against every
 // index entry); terms beyond the cap are ignored.
 const maxQueryTerms = 16
@@ -717,7 +729,7 @@ const maxQueryTerms = 16
 // parseQueryTerms lowercases, splits on punctuation, drops stop words and
 // single-character fragments (unless nothing else remains) and attaches stems.
 func parseQueryTerms(query string) []queryTerm {
-	raw := tokenSplitRe.Split(strings.ToLower(query), -1)
+	raw := tokenSplitRe.Split(turnPhraseRe.ReplaceAllStringFunc(strings.ToLower(query), turnPhrase), -1)
 	var tokens, kept []string
 	for _, tok := range raw {
 		if tok == "" {
@@ -895,7 +907,9 @@ func searchIndex(index *DocsIndex, query string, requireAllTerms bool) []DocsEnt
 			factor := priorFactor(path, profile, covers) *
 				coverageFactor(terms, tk.title, slug) *
 				termCoverageFactor(matchedTerms, len(terms))
-			score = int(float64(score) * factor)
+			// Factors reorder matched pages; they never drop one, so a
+			// positive score stays at least 1 after scaling.
+			score = max(1, int(float64(score)*factor))
 		}
 
 		if score > 0 {

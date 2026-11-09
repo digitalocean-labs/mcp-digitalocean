@@ -13,14 +13,16 @@ type queryProfile struct {
 	trouble    bool // describes an error or symptom
 	action     bool // asks how to do a task
 	pricing    bool // asks about cost
-	terms      int
 }
 
+// interfaceWords name a tool or interface. Language names ("python") and
+// generic nouns ("command", "reference") are left out: they appear in plain
+// task queries such as "deploy a python app", where lifting the demotion lets
+// generated SDK pages compete at full weight.
 var interfaceWords = map[string]struct{}{
 	"doctl": {}, "pydo": {}, "terraform": {}, "ansible": {}, "godo": {}, "sdk": {}, "cli": {},
 	"api": {}, "endpoint": {}, "endpoints": {}, "curl": {}, "permission": {}, "permissions": {},
-	"scope": {}, "scopes": {}, "openapi": {}, "provider": {}, "flags": {}, "flag": {}, "command": {},
-	"python": {}, "golang": {}, "ruby": {}, "dots": {}, "reference": {},
+	"scope": {}, "scopes": {}, "openapi": {}, "flags": {}, "flag": {}, "dots": {},
 }
 
 var troubleWords = map[string]struct{}{
@@ -49,7 +51,24 @@ var indexFolders = map[string]struct{}{
 
 var generatedReferencePrefixes = []string{
 	"/reference/doctl/", "/reference/pydo/", "/reference/terraform/", "/reference/ansible/",
-	"/reference/api/", "/reference/godo/", "/reference/dots/", "/platform/teams/roles/permissions/",
+	"/reference/api/", "/reference/godo/", "/reference/dots/", "/reference/paperspace/",
+	"/platform/teams/roles/permissions/",
+}
+
+// isGeneratedReference reports whether path is a generated reference page.
+// Per-product API pages (/products/droplets/reference/api/droplets/) are
+// generated proxies of /reference/api/reference/, so any path containing
+// /reference/api/ counts; /reference/api-errors/ pages are authored and do not.
+func isGeneratedReference(path string) bool {
+	if strings.Contains(path, "/reference/api/") {
+		return true
+	}
+	for _, prefix := range generatedReferencePrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func profileQuery(query string) queryProfile {
@@ -58,7 +77,6 @@ func profileQuery(query string) queryProfile {
 		if tok == "" {
 			continue
 		}
-		p.terms++
 		if _, ok := interfaceWords[tok]; ok {
 			p.interfaces = true
 		}
@@ -93,13 +111,11 @@ func isHubPath(path string) bool {
 // priorFactor returns the multiplier for one result.
 func priorFactor(path string, p queryProfile, titleCoversQuery bool) float64 {
 	f := 1.0
-	for _, prefix := range generatedReferencePrefixes {
-		if strings.HasPrefix(path, prefix) {
-			if !p.interfaces {
-				f *= 0.45
-			}
-			return f
+	if isGeneratedReference(path) {
+		if !p.interfaces {
+			f *= 0.45
 		}
+		return f
 	}
 	if strings.HasPrefix(path, "/support/") {
 		if !p.trouble {
@@ -169,8 +185,8 @@ var synonyms = map[string][]string{
 	"cost":      {"pricing"}, "costs": {"pricing"}, "price": {"pricing"}, "prices": {"pricing"},
 	"charge": {"pricing"}, "charges": {"pricing"}, "billed": {"pricing"},
 	"started": {"quickstart"}, "start": {"quickstart"}, "begin": {"quickstart"},
-	"turn": {"enable"}, "activate": {"enable"},
-	"cross": {"cors"}, "origin": {"cors"},
+	"activate": {"enable"},
+	"cross":    {"cors"}, "origin": {"cors"},
 	"teammate": {"member", "membership"}, "teammates": {"member", "membership"}, "colleague": {"member", "membership"},
 	"datacenter": {"region"}, "datacenters": {"region"},
 	"add": {"create"}, "create": {"add"}, "make": {"create"},

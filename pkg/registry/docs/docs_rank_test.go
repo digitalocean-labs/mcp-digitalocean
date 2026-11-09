@@ -11,10 +11,10 @@ func TestProfileQuery(t *testing.T) {
 		query string
 		want  queryProfile
 	}{
-		{"create a VPC network", queryProfile{action: true, terms: 4}},
-		{"doctl compute droplet create flags", queryProfile{interfaces: true, action: true, terms: 5}},
-		{"520 status code app platform", queryProfile{trouble: true, terms: 5}},
-		{"how much does Spaces cost", queryProfile{pricing: true, terms: 5}},
+		{"create a VPC network", queryProfile{action: true}},
+		{"doctl compute droplet create flags", queryProfile{interfaces: true, action: true}},
+		{"520 status code app platform", queryProfile{trouble: true}},
+		{"how much does Spaces cost", queryProfile{pricing: true}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.query, func(t *testing.T) {
@@ -29,6 +29,9 @@ func TestPriorFactor(t *testing.T) {
 
 	require.Less(t, priorFactor("/reference/doctl/reference/compute/droplet/create/", guide, false), 1.0)
 	require.Equal(t, 1.0, priorFactor("/reference/doctl/reference/compute/droplet/create/", cli, false))
+	require.Less(t, priorFactor("/products/droplets/reference/api/droplet-actions/", guide, false), 1.0)
+	require.Less(t, priorFactor("/reference/paperspace/pspace/reference/", guide, false), 1.0)
+	require.Equal(t, 1.0, priorFactor("/products/vector-databases/weaviate/reference/api-errors/", queryProfile{}, true))
 	require.Less(t, priorFactor("/support/why-is-smtp-blocked/", guide, false), 1.0)
 	require.Equal(t, 1.0, priorFactor("/support/why-is-smtp-blocked/", queryProfile{trouble: true}, false))
 	require.Less(t, priorFactor("/products/spaces/", guide, false), 1.0)
@@ -73,4 +76,22 @@ func TestTermCoverageFactorFavorsFullerMatches(t *testing.T) {
 	require.Equal(t, 1.0, termCoverageFactor(7, 7))
 	require.Less(t, termCoverageFactor(2, 7), termCoverageFactor(6, 7))
 	require.Equal(t, 1.0, termCoverageFactor(0, 0))
+}
+
+func TestProfileQueryLanguageIsNotInterface(t *testing.T) {
+	require.False(t, profileQuery("deploy a python app").interfaces)
+	require.True(t, profileQuery("pydo create droplet").interfaces)
+}
+
+func TestTurnOffMapsToDisable(t *testing.T) {
+	texts := func(q string) []string {
+		var out []string
+		for _, term := range parseQueryTerms(q) {
+			out = append(out, term.text)
+		}
+		return out
+	}
+	require.Equal(t, []string{"disable", "backups"}, texts("turn off backups"))
+	require.Equal(t, []string{"enable", "backups"}, texts("Turn on backups"))
+	require.Equal(t, []string{"turnstile"}, texts("turnstile"))
 }
