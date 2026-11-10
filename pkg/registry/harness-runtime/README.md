@@ -21,18 +21,18 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 ### Sessions
 
 - **`harness-runtime-create-session`** — Provision a new session from an existing Agent Config (`ConfigID` + `Name` required). Returns the session row immediately; sandbox boot completes asynchronously. Optional: `ResumeOnTopoff` (auto-resume consent), `WorkspaceID` (persistent workspace).
-- **`harness-runtime-get-session`** — Get the current snapshot of a session by `SessionID` (UUID), including status, agent kind, sandbox id, and lineage.
+- **`harness-runtime-get-session`** — Get the current snapshot of a session by `SessionID` (UUID), including status, agent kind, sandbox id, lineage, and `pause_reason` when paused. Known reasons: `manual`, `idle`, `zero_balance`, and `trigger` (a reuse trigger paused the session after a firing). An unrecognized reason is opaque.
 - **`harness-runtime-list-sessions`** — List sessions for the team (newest first). By default omits destroyed and failed sessions; pass `Status=SESSION_STATUS_ALL` to include every session. Supports `PageSize`, `PageToken`, `Status`, `Name` (exact-match filter), and `Search` (substring filter).
 - **`harness-runtime-destroy-session`** — Permanently tear down a session's sandbox. **Destructive.** Workspace contents are retained per tenant policy.
-- **`harness-runtime-send-input`** — Deliver a user message into a READY or DETACHED session. Requires `SessionID` and at least one of `Text` (string) or `Inputs` (structured dict). Returns the `run_id`.
-- **`harness-runtime-pause-session`** — Freeze a READY/DETACHED session's microVM sandbox. microvm-substrate only.
-- **`harness-runtime-resume-session`** — Explicitly thaw a PAUSED session's sandbox. Returns synchronously once ready.
+- **`harness-runtime-send-input`** — Deliver a user message into a session. A PAUSED session is woken first. Requires `SessionID` and at least one of `Text` (string) or `Inputs` (structured dict). Returns the `run_id`. If the session is bound to a reuse trigger, sending input can interrupt a firing that is waiting for the session to pause.
+- **`harness-runtime-pause-session`** — Freeze a READY/DETACHED session's microVM sandbox. microvm-substrate only. Pausing the bound session of a reuse trigger is what lets a waiting firing start.
+- **`harness-runtime-resume-session`** — Explicitly thaw a PAUSED session's sandbox. Returns synchronously once ready. Resuming the bound session of a reuse trigger keeps a waiting firing from starting until the session is paused again.
 - **`harness-runtime-patch-session`** — Update session-scoped settings. Currently supports `ResumeOnTopoff` (auto-resume consent toggle). Returns the updated session snapshot.
 - **`harness-runtime-resolve-hitl`** — Record the user's decision on a pending HITL request. `Outcome` must be one of `HITL_OUTCOME_APPROVE`, `HITL_OUTCOME_REJECT`, or `HITL_OUTCOME_DEFER`. Optional: `Reason` (audit trail text), `Content` (structured form answer).
 - **`harness-runtime-fork-session`** — Create 1-4 child sessions from a checkpoint of an existing session. `SessionID` required; `FromCheckpointID` (READY checkpoint UUID to fork from — omit to capture an implicit checkpoint of "now") and `Count` (1-4, default 1) are optional. Returns the created child sessions with `parent_session_id` and `fork_id` set.
 - **`harness-runtime-exec-in-sandbox`** — Run a one-shot command inside a session's sandbox. `SessionID` and `Argv` (non-empty string array) required. Optional: `Workdir` (default `/workspace`), `Stdin` (base64-encoded), `TimeoutSeconds` (max 240, server-enforced). Returns `exit_code`, `stdout`, `stderr`, and `duration_ms`. A non-zero exit code is still a successful HTTP response — check the field.
 - **`harness-runtime-get-ingress-url`** — Get (or provision on first call) the public HTTPS ingress URL for the session's sandbox port 8000 (OpenHands Agent Server). Idempotent while the session runs; revoked on pause/lock/rollback — re-fetch after those operations. Poll until `state` is `INGRESS_URL_STATE_READY`. Only OpenHands sessions support ingress.
-- **`harness-runtime-cancel-turn`** — Stop the turn currently running in a session (the Ctrl-C / Esc equivalent) and leave the session alive and idle. `SessionID` required; `RunID` optional (from `send-input`'s response — names the specific turn to cancel; omit to cancel whatever is in flight). The outcome field tells you what happened: `acked`, `no_turn`, or `unsupported`.
+- **`harness-runtime-cancel-turn`** — Stop the turn currently running in a session (the Ctrl-C / Esc equivalent) and leave the session alive and idle. `SessionID` required; `RunID` optional (from `send-input`'s response — names the specific turn to cancel; omit to cancel whatever is in flight). The outcome field tells you what happened: `acked`, `no_turn`, or `unsupported`. Cancelling the turn does not pause the session, so a reuse firing waiting on that pause keeps waiting.
 
 ### Checkpoints
 
@@ -99,16 +99,16 @@ OAuth device-flow to connect the team to an external provider. The user opens th
 Triggers automate agent session launches on a schedule (cron) or via webhook.
 
 - **`harness-runtime-list-triggers`** — List the team's triggers. Supports `PageSize`, `PageToken`, and optional `ConfigID` filter.
-- **`harness-runtime-create-trigger`** — Create a new trigger. `Name`, `Kind` (`webhook` or `cron`), `SessionMode` (`fresh` or `reuse`), and `PromptTemplate` required. Webhook triggers return a webhook URL and signing secret. Fresh mode requires `SessionTemplate`; reuse mode requires `BoundSessionID`. Optional: `CronExpr`, `Timezone`, `OutputMode` (`none`/`email`/`slack`), `MaxConcurrency`.
+- **`harness-runtime-create-trigger`** — Create a new trigger. `Name`, `Kind` (`webhook` or `cron`), `SessionMode` (`fresh` or `reuse`), and `PromptTemplate` required. Webhook triggers return a webhook URL and signing secret. Fresh mode requires `SessionTemplate`; reuse mode requires `BoundSessionID`, the paused session the trigger resumes on each firing and pauses afterward. Several triggers may bind one session. Optional: `CronExpr`, `Timezone`, `OutputMode` (`none`/`email`/`slack`), `MaxConcurrency`.
 - **`harness-runtime-get-trigger`** — Get a trigger by `TriggerID` (UUID).
 - **`harness-runtime-update-trigger`** — Update a trigger's mutable fields (name, prompt, session mode, schedule, output, etc.). At least one field required. Returns the updated trigger.
 - **`harness-runtime-delete-trigger`** — Permanently delete a trigger. **Destructive.**
 - **`harness-runtime-pause-trigger`** — Pause an active trigger. In-flight executions continue to completion.
 - **`harness-runtime-resume-trigger`** — Resume a paused trigger.
 - **`harness-runtime-rotate-trigger-secret`** — Rotate the webhook signing secret for a webhook trigger. The old secret is immediately invalidated.
-- **`harness-runtime-list-trigger-executions`** — List executions for a trigger. Supports `PageSize` and `PageToken`.
-- **`harness-runtime-get-trigger-execution`** — Get a single execution by `TriggerID` and `ExecutionID`.
-- **`harness-runtime-cancel-execution`** — Cancel a running trigger execution. `TriggerID` and `ExecutionID` required.
+- **`harness-runtime-list-trigger-executions`** — List executions for a trigger. Supports `PageSize` and `PageToken`. A reuse firing waiting for its bound session to pause stays `status=running` with `status_reason=waiting_for_bound_session` and a `status_message`.
+- **`harness-runtime-get-trigger-execution`** — Get a single execution by `TriggerID` and `ExecutionID`, including `run_id`, `status_reason`, and `status_message`.
+- **`harness-runtime-cancel-execution`** — Cancel a running trigger execution. `TriggerID` and `ExecutionID` required. A fresh-mode session is destroyed. A reuse-mode session is paused and the turn it was running is stopped.
 - **`harness-runtime-get-trigger-by-session`** — Look up the trigger associated with a given session by `SessionID`.
 - **`harness-runtime-list-reusable-sessions`** — List paused sessions available for reuse binding. Supports `PageSize` and `PageToken`.
 
