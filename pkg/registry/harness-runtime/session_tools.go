@@ -47,6 +47,56 @@ type Session struct {
 	ConfigID             string     `json:"config_id,omitempty"`
 	OpenAISessionID      string     `json:"openai_session_id,omitempty"`
 	OpenAIEnvironmentID  string     `json:"openai_environment_id,omitempty"`
+	// Update is the latest live config update (see harness-runtime-patch-session).
+	Update *SessionConfigUpdate `json:"update,omitempty"`
+	// ConfigDrifted is true when the running config differs from the created manifest.
+	ConfigDrifted bool `json:"config_drifted,omitempty"`
+	// ConfigDiff summarises the drift per section.
+	ConfigDiff *SessionConfigChanges `json:"config_diff,omitempty"`
+	// Manifest is the effective manifest; only present when ConfigDrifted. Never contains secret values.
+	Manifest map[string]any `json:"manifest,omitempty"`
+}
+
+// SessionConfigSectionChanges lists the keys touched in one manifest section.
+type SessionConfigSectionChanges struct {
+	Added   []string `json:"added,omitempty"`
+	Removed []string `json:"removed,omitempty"`
+	Changed []string `json:"changed,omitempty"`
+}
+
+// SessionConfigChanges summarises changes per manifest section.
+type SessionConfigChanges struct {
+	Tools   *SessionConfigSectionChanges `json:"tools,omitempty"`
+	Env     *SessionConfigSectionChanges `json:"env,omitempty"`
+	Secrets *SessionConfigSectionChanges `json:"secrets,omitempty"`
+}
+
+// SessionConfigUpdate describes one live config update (or rollback) of a session.
+type SessionConfigUpdate struct {
+	UpdateID     string                `json:"update_id,omitempty"`
+	SessionID    string                `json:"session_id,omitempty"`
+	Kind         string                `json:"kind,omitempty"`
+	State        string                `json:"state,omitempty"`
+	Sections     []string              `json:"sections,omitempty"`
+	Changes      *SessionConfigChanges `json:"changes,omitempty"`
+	Error        string                `json:"error,omitempty"`
+	Reverted     bool                  `json:"reverted,omitempty"`
+	Detail       string                `json:"detail,omitempty"`
+	ManifestHash string                `json:"manifest_hash,omitempty"`
+	PreviousHash string                `json:"previous_hash,omitempty"`
+	UserUUID     string                `json:"user_uuid,omitempty"`
+	UserEmail    string                `json:"user_email,omitempty"`
+	StartedAt    *time.Time            `json:"started_at,omitempty"`
+	FinishedAt   *time.Time            `json:"finished_at,omitempty"`
+}
+
+// PatchSessionResponse is the response of PATCH /v2/harness-runtime/sessions/{id}.
+// Outcome is ACCEPTED (HTTP 202, update applying) or UNCHANGED (HTTP 200); it is
+// empty for a resume_on_topoff-only patch.
+type PatchSessionResponse struct {
+	Session  Session  `json:"session"`
+	Outcome  string   `json:"outcome,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 // CreateSessionResponse is the response of POST /v2/harness-runtime/sessions.
@@ -341,12 +391,26 @@ func (t *Tool) patchSession(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 
 	resumeOnTopoff, hasResumeOnTopoff := args["ResumeOnTopoff"].(bool)
-	if !hasResumeOnTopoff {
-		return mcp.NewToolResultError("At least one patchable field must be provided (e.g. ResumeOnTopoff)"), nil
+	manifest, hasManifest := args["Manifest"]
+	if hasManifest && manifest == nil {
+		hasManifest = false
+	}
+	switch {
+	case hasResumeOnTopoff && hasManifest:
+		return mcp.NewToolResultError("Provide either ResumeOnTopoff or Manifest, not both"), nil
+	case !hasResumeOnTopoff && !hasManifest:
+		return mcp.NewToolResultError("Exactly one of ResumeOnTopoff or Manifest must be provided"), nil
 	}
 
-	body := map[string]any{
-		"resume_on_topoff": resumeOnTopoff,
+	body := map[string]any{}
+	if hasManifest {
+		manifestYAML, errMsg := manifestArgToYAML(manifest)
+		if errMsg != "" {
+			return mcp.NewToolResultError(errMsg), nil
+		}
+		body["manifest_yaml"] = manifestYAML
+	} else {
+		body["resume_on_topoff"] = resumeOnTopoff
 	}
 	encoded, err := json.Marshal(body)
 	if err != nil {
@@ -361,11 +425,11 @@ func (t *Tool) patchSession(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	apiReq.Body = io.NopCloser(bytes.NewReader(encoded))
 	apiReq.ContentLength = int64(len(encoded))
 
-	var out GetSessionResponse
+	var out PatchSessionResponse
 	if _, err := client.Do(ctx, apiReq, &out); err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to patch session", err), nil
 	}
-	return sessionOut.Result(out)
+	return sessionPatchOut.Result(out)
 }
 
 // resolveHITL records the user's decision on a pending HITL request.
@@ -731,11 +795,12 @@ func (t *Tool) sessionTools() []server.ServerTool {
 			Handler: t.patchSession,
 			Tool: mcp.NewTool("harness-runtime-patch-session",
 				common.WithHints(common.HintsToggle),
-				common.WithRisk(common.RiskLow),
-				sessionOut.Schema(),
-				mcp.WithDescription("Update session-scoped settings on an existing (non-terminal) session. Currently supports toggling resume_on_topoff (auto-resume consent after a low-balance pause). Returns the updated session snapshot."),
+				common.WithRisk(common.RiskMedium),
+				sessionPatchOut.Schema(),
+				mcp.WithDescription("Update an existing (non-terminal) session. Provide exactly one of: ResumeOnTopoff (toggle auto-resume consent after a low-balance pause), or Manifest (change the live config: tools, env, secrets). Manifest holds only the sections to change; absent sections are untouched, other top-level keys are rejected (model and permissions return 501). `tools` is the full replacement list (an empty list detaches every MCP server). `env` and `secrets` are FULL sets: a key left out is removed; a secret value is a string (set/rotate) or {} (keep the current value). To avoid dropping keys, read the current manifest first via harness-runtime-get-session (`manifest`, present when `config_drifted`) or harness-runtime-get-agent-config. Env/secret changes restart the agent and can take about 2 minutes. Response has `outcome`: UNCHANGED (nothing to do) or ACCEPTED (the session is now SESSION_STATUS_UPDATING): on ACCEPTED, poll harness-runtime-get-session until status leaves SESSION_STATUS_UPDATING, then read `update` (state APPLIED, APPLIED_RESTARTED or FAILED with `reverted`/`detail`). This tool does not wait. Errors: 403 feature not enabled for the team, 409 session not running or already updating, 422 requires a new session."),
 				mcp.WithString("SessionID", mcp.Required(), mcp.Description("The session UUID to patch")),
-				mcp.WithBoolean("ResumeOnTopoff", mcp.Required(), mcp.Description("Set whether this session opts in to automatic resumption when the team's prepayment balance is restored")),
+				mcp.WithBoolean("ResumeOnTopoff", mcp.Description("Set whether this session opts in to automatic resumption when the team's prepayment balance is restored. Mutually exclusive with Manifest")),
+				mcp.WithObject("Manifest", mcp.Description("Partial manifest of the sections to change (tools, env, secrets), as a JSON object or a YAML string. Mutually exclusive with ResumeOnTopoff")),
 			),
 		},
 		{
