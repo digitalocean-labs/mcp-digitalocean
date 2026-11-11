@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"mcp-digitalocean/internal/resourceid"
 	"mcp-digitalocean/internal/wslogging"
 	"mcp-digitalocean/pkg/registry"
+	"mcp-digitalocean/pkg/registry/docs"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/server"
@@ -27,7 +30,7 @@ import (
 
 const (
 	mcpName                 = "mcp-digitalocean"
-	mcpVersion              = "1.6.0"
+	mcpVersion              = "1.6.6"
 	wsLoggingContextTimeout = 15 * time.Second
 	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
 	// protocol on. It matches mcp-go's default so existing clients are unaffected.
@@ -42,6 +45,41 @@ const (
 	oauthTokenPrefix = "doo_"
 )
 
+// publicContentServices may run with --allow-anonymous: their tools read
+// published content and never construct a DigitalOcean API client. Any other
+// service keeps the bearer guard, so a stray ALLOW_ANONYMOUS cannot drop
+// authentication from an account-scoped deployment.
+var publicContentServices = map[string]struct{}{
+	"docs": {},
+}
+
+// checkAnonymousServices reports whether the enabled service set may run
+// without the bearer guard. An empty set means every service is registered,
+// which includes account-scoped ones, so it is rejected along with any service
+// outside publicContentServices. Names are compared exactly as the registry
+// receives them, so a name this accepts is always one the registry can resolve.
+func checkAnonymousServices(services []string) error {
+	if len(services) == 0 {
+		return errors.New("--allow-anonymous requires --services to list only public-content services (docs); all services are enabled")
+	}
+	var rejected []string
+	for _, s := range services {
+		if _, ok := publicContentServices[s]; !ok {
+			rejected = append(rejected, fmt.Sprintf("%q", s))
+		}
+	}
+	if len(rejected) > 0 {
+		return fmt.Errorf("--allow-anonymous supports only public-content services (docs), got %s", strings.Join(rejected, ", "))
+	}
+	return nil
+}
+
+// docsEnabled reports whether the docs service is registered. An empty set
+// registers every service, docs included.
+func docsEnabled(services []string) bool {
+	return len(services) == 0 || slices.Contains(services, "docs")
+}
+
 // getEnv retrieves the value of the environment variable named by the key.
 // If the variable is empty or not present, it returns the fallback value.
 func getEnv(key, fallback string) string {
@@ -49,6 +87,52 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// getEnvBool accepts the forms strconv.ParseBool does ("1", "true", "TRUE"),
+// so an operator writing ALLOW_ANONYMOUS=1 gets what they intended. An
+// unparseable value falls back rather than guessing; invalidBoolEnv reports it
+// so startup can warn once the logger exists.
+func getEnvBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(strings.TrimSpace(v))
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+// getEnvFloat and getEnvInt fall back on unparseable values, like getEnvBool.
+func getEnvFloat(key string, fallback float64) float64 {
+	v, err := strconv.ParseFloat(strings.TrimSpace(os.Getenv(key)), 64)
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+func getEnvInt(key string, fallback int) int {
+	v, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+// invalidBoolEnv returns the raw value of key when it is set to something
+// getEnvBool cannot parse, otherwise the empty string.
+func invalidBoolEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return ""
+	}
+	if _, err := strconv.ParseBool(strings.TrimSpace(v)); err != nil {
+		return v
+	}
+	return ""
 }
 
 func main() {
@@ -65,6 +149,12 @@ func main() {
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	allowAnonymous := flag.Bool("allow-anonymous", getEnvBool("ALLOW_ANONYMOUS", false), "Serve the MCP endpoint without the bearer-token guard or OAuth metadata. Requires --services to list only public-content services (docs); the server refuses to start otherwise (remote transport only)")
+	docsSearchAPI := flag.Bool("docs-search-api", getEnvBool("DOCS_SEARCH_API", false), "Serve the plain-HTTP docs search endpoint at "+docs.SearchAPIPath+". Requires --allow-anonymous (remote transport only)")
+	docsSearchRateMode := flag.String("docs-search-rate-limit-mode", getEnv("DOCS_SEARCH_RATE_LIMIT_MODE", string(docs.RateLimitShadow)), "Per-client rate limiting for the docs search endpoint: off, shadow (log only), or enforce")
+	docsSearchRPS := flag.Float64("docs-search-rate-limit-rps", getEnvFloat("DOCS_SEARCH_RATE_LIMIT_RPS", 10), "Sustained requests per second allowed per client IP on the docs search endpoint")
+	docsSearchBurst := flag.Int("docs-search-rate-limit-burst", getEnvInt("DOCS_SEARCH_RATE_LIMIT_BURST", 30), "Burst size per client IP on the docs search endpoint")
+	docsSearchIPHeader := flag.String("docs-search-client-ip-header", getEnv("DOCS_SEARCH_CLIENT_IP_HEADER", ""), "Header carrying the client IP set by a trusted edge (e.g. CF-Connecting-IP). Leave empty unless all traffic arrives through that edge")
 	flag.Parse()
 
 	var level slog.Level
@@ -140,8 +230,53 @@ func main() {
 		os.Exit(1)
 	}
 
+	if v := invalidBoolEnv("ALLOW_ANONYMOUS"); v != "" {
+		logger.Warn("ignoring ALLOW_ANONYMOUS: not a boolean", "value", v)
+	}
+
+	if *allowAnonymous {
+		if *transport == "stdio" {
+			logger.Warn("--allow-anonymous has no effect on stdio transport")
+		} else if err := checkAnonymousServices(services); err != nil {
+			logger.Error("refusing to start with anonymous access", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	var extraRoutes map[string]http.Handler
+	if *docsSearchAPI {
+		if *transport == "stdio" || !*allowAnonymous {
+			logger.Error("--docs-search-api requires --allow-anonymous and a remote transport")
+			os.Exit(1)
+		}
+		mode, err := docs.ParseRateLimitMode(*docsSearchRateMode)
+		if err != nil {
+			logger.Error("invalid docs search rate limit configuration", "error", err)
+			os.Exit(1)
+		}
+		rlCfg := docs.RateLimitConfig{
+			Mode:            mode,
+			RPS:             *docsSearchRPS,
+			Burst:           *docsSearchBurst,
+			TrustedIPHeader: strings.TrimSpace(*docsSearchIPHeader),
+		}
+		searchHandler, err := docs.RateLimit(docs.NewSearchHandler(logger), rlCfg, logger)
+		if err != nil {
+			logger.Error("invalid docs search rate limit configuration", "error", err)
+			os.Exit(1)
+		}
+		if mode == docs.RateLimitShadow && rlCfg.TrustedIPHeader == "" {
+			logger.Warn("docs search rate limiting keys on the connection address; behind an edge every client looks the same. Set --docs-search-client-ip-header")
+		}
+		extraRoutes = map[string]http.Handler{docs.SearchAPIPath: searchHandler}
+		logger.Info("serving docs search api", "path", docs.SearchAPIPath, "rate_limit_mode", string(mode), "rps", rlCfg.RPS, "burst", rlCfg.Burst, "client_ip_header", rlCfg.TrustedIPHeader)
+	}
+
 	var opts []server.ServerOption
 	opts = append(opts, server.WithPromptCapabilities(true))
+	if docsEnabled(services) {
+		opts = append(opts, server.WithInstructions(docs.ServerInstructions))
+	}
 	if *enableToolErrorLogging {
 		toolLoggingMiddleware := middleware.ToolLoggingMiddleware{Logger: logger}
 		opts = append(opts, server.WithToolHandlerMiddleware(toolLoggingMiddleware.ToolMiddleware))
@@ -150,33 +285,38 @@ func main() {
 	svr := server.NewMCPServer(mcpName, mcpVersion, opts...)
 
 	// For remote (non-stdio) transports, serve the OAuth protected resource
-	// metadata document and challenge unauthenticated requests. The resource is
-	// taken from --mcp-resource-url when set, otherwise derived from each
-	// request's scheme and host.
+	// metadata document and challenge unauthenticated requests, unless
+	// --allow-anonymous opts a public-content service (docs) out of both. The
+	// resource is taken from --mcp-resource-url when set, otherwise derived from
+	// each request's scheme and host.
 	var (
 		wellKnownHandler       http.HandlerFunc
 		openaiChallengeHandler http.HandlerFunc
 		requireAuth            func(http.Handler) http.Handler
 	)
 	if *transport != "stdio" {
-		authServer := oauthmeta.ProdAuthorizationServer
-		serverURL := strings.TrimSpace(*serverURLFlag)
+		if *allowAnonymous {
+			logger.Info("anonymous access enabled; not serving OAuth metadata or challenging requests")
+		} else {
+			authServer := oauthmeta.ProdAuthorizationServer
+			serverURL := strings.TrimSpace(*serverURLFlag)
 
-		wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
-			Resource:               serverURL,
-			AuthorizationServers:   []string{authServer},
-			BearerMethodsSupported: []string{"header"},
-		})
+			wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
+				Resource:               serverURL,
+				AuthorizationServers:   []string{authServer},
+				BearerMethodsSupported: []string{"header"},
+			})
 
-		challengeCfg := oauthmeta.ChallengeConfig{
-			Resource: serverURL,
-			Scopes:   []string{"read", "write"},
+			challengeCfg := oauthmeta.ChallengeConfig{
+				Resource: serverURL,
+				Scopes:   []string{"read", "write"},
+			}
+			requireAuth = func(next http.Handler) http.Handler {
+				return oauthmeta.RequireBearer(next, challengeCfg)
+			}
+
+			logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
 		}
-		requireAuth = func(next http.Handler) http.Handler {
-			return oauthmeta.RequireBearer(next, challengeCfg)
-		}
-
-		logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
 
 		if token := strings.TrimSpace(*openaiAppsVerificationTokenFlag); token != "" && token != "OPENAI_APPS_VERIFICATION_TOKEN" {
 			openaiChallengeHandler = openaichallenge.Handler(token)
@@ -232,7 +372,7 @@ func main() {
 	}
 
 	// start our server.
-	err = runServer(ctx, svr, logger, *bindAddr, transport, wellKnownHandler, openaiChallengeHandler, requireAuth)
+	err = runServer(ctx, svr, logger, *bindAddr, transport, wellKnownHandler, openaiChallengeHandler, requireAuth, extraRoutes)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			logger.Info("shutting down mcp server")
@@ -306,7 +446,27 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	return godo.New(oauthClient, opts...)
 }
 
-func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string, wellKnownHandler http.HandlerFunc, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler) error {
+// registerRoutes mounts the MCP endpoint (behind requireAuth when set), the
+// well-known documents, and any extra routes. Extra routes are never wrapped
+// by requireAuth: they exist only on anonymous, public-content deployments.
+func registerRoutes(mux *http.ServeMux, mcpServer http.Handler, wellKnownHandler, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler, extraRoutes map[string]http.Handler) {
+	mcpHandler := mcpServer
+	if requireAuth != nil {
+		mcpHandler = requireAuth(mcpServer)
+	}
+	mux.Handle(mcpEndpointPath, mcpHandler)
+	if wellKnownHandler != nil {
+		mux.HandleFunc(oauthmeta.WellKnownPath, wellKnownHandler)
+	}
+	if openaiChallengeHandler != nil {
+		mux.HandleFunc(openaichallenge.WellKnownPath, openaiChallengeHandler)
+	}
+	for path, h := range extraRoutes {
+		mux.Handle(path, h)
+	}
+}
+
+func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bindAddr string, transport *string, wellKnownHandler http.HandlerFunc, openaiChallengeHandler http.HandlerFunc, requireAuth func(http.Handler) http.Handler, extraRoutes map[string]http.Handler) error {
 	logger.Info("starting MCP server", "name", mcpName, "version", mcpVersion, "transport", *transport)
 	switch *transport {
 	case "stdio":
@@ -331,28 +491,24 @@ func runServer(ctx context.Context, s *server.MCPServer, logger *slog.Logger, bi
 			server.WithStateLess(true),
 		)
 
-		useCustomMux := wellKnownHandler != nil || openaiChallengeHandler != nil || requireAuth != nil
+		useCustomMux := wellKnownHandler != nil || openaiChallengeHandler != nil || requireAuth != nil || len(extraRoutes) > 0
 		var mux *http.ServeMux
 		if useCustomMux {
 			mux = http.NewServeMux()
-			streamableOpts = append(streamableOpts, server.WithStreamableHTTPServer(&http.Server{Handler: mux}))
+			streamableOpts = append(streamableOpts, server.WithStreamableHTTPServer(&http.Server{
+				Handler: mux,
+				// Bounds slow-header connections. No write timeout: MCP
+				// responses can stream.
+				ReadHeaderTimeout: 10 * time.Second,
+				IdleTimeout:       120 * time.Second,
+			}))
 		}
 
 		httpServer := server.NewStreamableHTTPServer(s, streamableOpts...)
 
 		if mux != nil {
 			// We provided a custom *http.Server, so routing is our responsibility.
-			var mcpHandler http.Handler = httpServer
-			if requireAuth != nil {
-				mcpHandler = requireAuth(httpServer)
-			}
-			mux.Handle(mcpEndpointPath, mcpHandler)
-			if wellKnownHandler != nil {
-				mux.HandleFunc(oauthmeta.WellKnownPath, wellKnownHandler)
-			}
-			if openaiChallengeHandler != nil {
-				mux.HandleFunc(openaichallenge.WellKnownPath, openaiChallengeHandler)
-			}
+			registerRoutes(mux, httpServer, wellKnownHandler, openaiChallengeHandler, requireAuth, extraRoutes)
 		}
 
 		go func() {

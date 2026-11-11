@@ -25,9 +25,9 @@ func NewRegistryTool(client func(ctx context.Context) (*godo.Client, error)) *Re
 
 // get fetches a container registry by name
 func (r *RegistryTool) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || name == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	name, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -89,9 +89,9 @@ func (r *RegistryTool) create(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 // delete deletes a container registry
 func (r *RegistryTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || name == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	name, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -109,9 +109,9 @@ func (r *RegistryTool) delete(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 // dockerCredentials retrieves Docker credentials for a container registry
 func (r *RegistryTool) dockerCredentials(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || name == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	name, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	readWrite := false

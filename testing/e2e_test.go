@@ -63,9 +63,10 @@ type McpServerConfig struct {
 	DigitalOceanAPIToken string
 	LogLevel             string
 	Transport            string
-	Services             string // optional: comma-separated list of services
-	WSLoggingURL         string // optional
-	WSLoggingToken       string // optional
+	Services             string            // optional: comma-separated list of services
+	WSLoggingURL         string            // optional
+	WSLoggingToken       string            // optional
+	ExtraEnv             map[string]string // optional: additional environment variables
 }
 
 // ToMap converts the config to a map of environment variables
@@ -89,6 +90,10 @@ func (cfg McpServerConfig) ToMap() map[string]string {
 	}
 	if cfg.WSLoggingToken != "" {
 		env["WS_LOGGING_TOKEN"] = cfg.WSLoggingToken
+	}
+
+	for k, v := range cfg.ExtraEnv {
+		env[k] = v
 	}
 
 	return env

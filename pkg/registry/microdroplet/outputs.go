@@ -38,6 +38,16 @@ type (
 		ExitCode       int32  `json:"exit_code"`
 		Truncated      bool   `json:"truncated,omitempty"`
 	}
+
+	// fileReadResponse is this tool's own shape: GET …/files streams raw bytes
+	// with the digest in X-Checksum-Sha256, so there is no JSON body to pass through.
+	fileReadResponse struct {
+		Path      string `json:"path"`
+		SizeBytes int    `json:"size_bytes"`
+		SHA256    string `json:"sha256"`
+		Encoding  string `json:"encoding"`
+		Content   string `json:"content"`
+	}
 )
 
 // Output contracts for this package's tools; see the marketplace package for
@@ -52,4 +62,6 @@ var (
 	checkpointOut      = common.NewObjectOutput[checkpointResponse]()
 	checkpointsListOut = common.NewObjectOutput[checkpointsListResponse]()
 	execOut            = common.NewObjectOutput[execResponse]()
+	fileInfoOut        = common.NewObjectOutput[*godo.MicroVMFileInfo]()
+	fileReadOut        = common.NewObjectOutput[fileReadResponse]()
 )

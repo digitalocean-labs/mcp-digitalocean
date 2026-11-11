@@ -377,3 +377,78 @@ func TestInsightsV2AlertRuleLifecycle(t *testing.T) {
 		"PerPage": 20,
 	})
 }
+
+func deleteDashboard(t *testing.T, tc testContext, uuid string) {
+	t.Logf("deleting dashboard %s...", uuid)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-dashboard-delete",
+			Arguments: map[string]interface{}{"UUID": uuid},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete dashboard: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-dashboard-delete returned error: %v", resp.Content)
+	}
+}
+
+// dashboardSpec is the smallest Perses document the Insights API accepts: one
+// grid layout referencing one time-series panel. Mirrors godo's smoke example.
+func dashboardSpec(name, description string) string {
+	return fmt.Sprintf(`{
+  "kind": "Dashboard",
+  "apiVersion": "perses.dev/v1alpha1",
+  "spec": {
+    "display": {"name": %q, "description": %q},
+    "duration": "1h",
+    "variables": [],
+    "layouts": [{"kind": "Grid", "spec": {"items": [
+      {"x": 0, "y": 0, "width": 12, "height": 6, "content": {"$ref": "#/spec/panels/cpu"}}
+    ]}}],
+    "panels": {"cpu": {"kind": "Panel", "spec": {
+      "display": {"name": "CPU utilization"},
+      "plugin": {"kind": "TimeSeriesChart", "spec": {}},
+      "queries": [{"kind": "TimeSeriesQuery", "spec": {
+        "plugin": {"kind": "MetricsTimeSeriesQuery", "spec": {
+          "metricName": "do.droplets.cpu_utilization", "kind": "gauge", "filters": [], "groupBy": []
+        }}
+      }}]
+    }}}
+  }
+}`, name, description)
+}
+
+func TestInsightsDashboardLifecycle(t *testing.T) {
+	ctx, c := setupTest(t)
+	tc := testContext{ctx: ctx, client: c}
+
+	schema := callTool[map[string]any](t, "insights-dashboard-get-schema", map[string]interface{}{})
+	require.NotEmpty(t, schema, "schema must be a non-empty JSON object")
+
+	name := fmt.Sprintf("mcp-e2e-dashboard-%d", time.Now().Unix())
+	created := callTool[godo.Dashboard](t, "insights-dashboard-create", map[string]interface{}{
+		"Spec": dashboardSpec(name, "Created by mcp-digitalocean e2e. Safe to delete."),
+	})
+	require.NotEmpty(t, created.UUID)
+	defer func() { deleteDashboard(t, tc, created.UUID) }()
+	require.Equal(t, name, created.Name, "name is derived from spec.display.name")
+
+	fetched := callTool[godo.Dashboard](t, "insights-dashboard-get", map[string]interface{}{"UUID": created.UUID})
+	require.Equal(t, created.UUID, fetched.UUID)
+	require.JSONEq(t, dashboardSpec(name, "Created by mcp-digitalocean e2e. Safe to delete."), string(fetched.Spec))
+
+	list := callTool[godo.DashboardList](t, "insights-dashboard-list", map[string]interface{}{
+		"Page": 1, "PerPage": 50, "Sort": "created_at", "SortDirection": "desc",
+	})
+	requireFoundInList(t, list.Dashboards, func(d godo.Dashboard) bool { return d.UUID == created.UUID }, "dashboard")
+
+	updated := callTool[godo.Dashboard](t, "insights-dashboard-update", map[string]interface{}{
+		"UUID": created.UUID,
+		"Spec": dashboardSpec(name+"-updated", "Updated by mcp-digitalocean e2e."),
+	})
+	require.Equal(t, created.UUID, updated.UUID)
+	require.Equal(t, name+"-updated", updated.Name, "name is recomputed from the replaced spec")
+}

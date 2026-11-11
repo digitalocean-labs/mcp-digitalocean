@@ -23,7 +23,7 @@ func setupGarbageCollectionToolWithMock(mockRegistries godo.RegistriesService) *
 func TestGarbageCollectionTool_startGarbageCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	testGC := &godo.GarbageCollection{UUID: "gc-uuid-1", Status: "requested"}
+	testGC := &godo.GarbageCollection{UUID: "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", Status: "requested"}
 
 	tests := []struct {
 		name        string
@@ -85,7 +85,7 @@ func TestGarbageCollectionTool_startGarbageCollection(t *testing.T) {
 func TestGarbageCollectionTool_getGarbageCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	testGC := &godo.GarbageCollection{UUID: "gc-uuid-1", Status: "running"}
+	testGC := &godo.GarbageCollection{UUID: "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", Status: "running"}
 
 	tests := []struct {
 		name        string
@@ -209,7 +209,7 @@ func TestGarbageCollectionTool_listGarbageCollections(t *testing.T) {
 func TestGarbageCollectionTool_updateGarbageCollection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	testGC := &godo.GarbageCollection{UUID: "gc-uuid-1", Status: "cancelled"}
+	testGC := &godo.GarbageCollection{UUID: "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", Status: "cancelled"}
 
 	tests := []struct {
 		name        string
@@ -219,7 +219,7 @@ func TestGarbageCollectionTool_updateGarbageCollection(t *testing.T) {
 	}{
 		{
 			name:        "missing RegistryName",
-			args:        map[string]any{"GarbageCollectionUUID": "gc-uuid-1", "Cancel": true},
+			args:        map[string]any{"GarbageCollectionUUID": "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", "Cancel": true},
 			expectError: true,
 		},
 		{
@@ -229,17 +229,17 @@ func TestGarbageCollectionTool_updateGarbageCollection(t *testing.T) {
 		},
 		{
 			name: "api error",
-			args: map[string]any{"RegistryName": "my-registry", "GarbageCollectionUUID": "gc-uuid-1", "Cancel": true},
+			args: map[string]any{"RegistryName": "my-registry", "GarbageCollectionUUID": "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", "Cancel": true},
 			mockSetup: func(m *MockRegistriesService) {
-				m.EXPECT().UpdateGarbageCollection(gomock.Any(), "my-registry", "gc-uuid-1", gomock.Any()).Return(nil, nil, errors.New("api error"))
+				m.EXPECT().UpdateGarbageCollection(gomock.Any(), "my-registry", "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", gomock.Any()).Return(nil, nil, errors.New("api error"))
 			},
 			expectError: true,
 		},
 		{
 			name: "success",
-			args: map[string]any{"RegistryName": "my-registry", "GarbageCollectionUUID": "gc-uuid-1", "Cancel": true},
+			args: map[string]any{"RegistryName": "my-registry", "GarbageCollectionUUID": "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", "Cancel": true},
 			mockSetup: func(m *MockRegistriesService) {
-				m.EXPECT().UpdateGarbageCollection(gomock.Any(), "my-registry", "gc-uuid-1", gomock.Any()).DoAndReturn(
+				m.EXPECT().UpdateGarbageCollection(gomock.Any(), "my-registry", "3f2b1c6e-8d4a-4f1b-9c2e-7a5d6b8e9f01", gomock.Any()).DoAndReturn(
 					func(_ context.Context, regName, gcUUID string, req *godo.UpdateGarbageCollectionRequest) (*godo.GarbageCollection, *godo.Response, error) {
 						require.True(t, req.Cancel)
 						return testGC, nil, nil

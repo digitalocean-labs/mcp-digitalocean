@@ -24,6 +24,8 @@ var expectedAnnotations = map[string]struct {
 	"microvm-pause":             {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"microvm-resume":            {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
 	"microvm-exec":              {false, false, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"microvm-file-write":        {false, true, false, false, common.OpUpdate, common.RiskHigh, false, false},
+	"microvm-file-read":         {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"microvm-checkpoint-create": {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
 	"microvm-checkpoint-list":   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 	"microvm-checkpoint-get":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},

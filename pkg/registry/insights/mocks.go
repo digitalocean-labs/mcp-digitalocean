@@ -11,6 +11,7 @@ package insights
 
 import (
 	context "context"
+	json "encoding/json"
 	reflect "reflect"
 
 	godo "github.com/digitalocean/godo"
@@ -1142,6 +1143,22 @@ func (mr *MockInsightsServiceMockRecorder) CreateAlertRule(arg0, arg1 any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAlertRule", reflect.TypeOf((*MockInsightsService)(nil).CreateAlertRule), arg0, arg1)
 }
 
+// CreateDashboard mocks base method.
+func (m *MockInsightsService) CreateDashboard(arg0 context.Context, arg1 *godo.DashboardRequest) (*godo.Dashboard, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDashboard", arg0, arg1)
+	ret0, _ := ret[0].(*godo.Dashboard)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateDashboard indicates an expected call of CreateDashboard.
+func (mr *MockInsightsServiceMockRecorder) CreateDashboard(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDashboard", reflect.TypeOf((*MockInsightsService)(nil).CreateDashboard), arg0, arg1)
+}
+
 // CreateNotificationChannel mocks base method.
 func (m *MockInsightsService) CreateNotificationChannel(arg0 context.Context, arg1 *godo.NotificationChannelRequest) (*godo.NotificationChannel, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1171,6 +1188,21 @@ func (m *MockInsightsService) DeleteAlertRule(arg0 context.Context, arg1 string)
 func (mr *MockInsightsServiceMockRecorder) DeleteAlertRule(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAlertRule", reflect.TypeOf((*MockInsightsService)(nil).DeleteAlertRule), arg0, arg1)
+}
+
+// DeleteDashboard mocks base method.
+func (m *MockInsightsService) DeleteDashboard(arg0 context.Context, arg1 string) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteDashboard", arg0, arg1)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteDashboard indicates an expected call of DeleteDashboard.
+func (mr *MockInsightsServiceMockRecorder) DeleteDashboard(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDashboard", reflect.TypeOf((*MockInsightsService)(nil).DeleteDashboard), arg0, arg1)
 }
 
 // DeleteNotificationChannel mocks base method.
@@ -1218,6 +1250,38 @@ func (m *MockInsightsService) GetAlertRule(arg0 context.Context, arg1 string) (*
 func (mr *MockInsightsServiceMockRecorder) GetAlertRule(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAlertRule", reflect.TypeOf((*MockInsightsService)(nil).GetAlertRule), arg0, arg1)
+}
+
+// GetDashboard mocks base method.
+func (m *MockInsightsService) GetDashboard(arg0 context.Context, arg1 string) (*godo.Dashboard, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDashboard", arg0, arg1)
+	ret0, _ := ret[0].(*godo.Dashboard)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetDashboard indicates an expected call of GetDashboard.
+func (mr *MockInsightsServiceMockRecorder) GetDashboard(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDashboard", reflect.TypeOf((*MockInsightsService)(nil).GetDashboard), arg0, arg1)
+}
+
+// GetDashboardSchema mocks base method.
+func (m *MockInsightsService) GetDashboardSchema(arg0 context.Context) (json.RawMessage, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDashboardSchema", arg0)
+	ret0, _ := ret[0].(json.RawMessage)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetDashboardSchema indicates an expected call of GetDashboardSchema.
+func (mr *MockInsightsServiceMockRecorder) GetDashboardSchema(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDashboardSchema", reflect.TypeOf((*MockInsightsService)(nil).GetDashboardSchema), arg0)
 }
 
 // GetNotificationChannel mocks base method.
@@ -1330,6 +1394,22 @@ func (m *MockInsightsService) ListAlertRules(arg0 context.Context, arg1 *godo.Al
 func (mr *MockInsightsServiceMockRecorder) ListAlertRules(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAlertRules", reflect.TypeOf((*MockInsightsService)(nil).ListAlertRules), arg0, arg1)
+}
+
+// ListDashboards mocks base method.
+func (m *MockInsightsService) ListDashboards(arg0 context.Context, arg1 *godo.DashboardListOptions) (*godo.DashboardList, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDashboards", arg0, arg1)
+	ret0, _ := ret[0].(*godo.DashboardList)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListDashboards indicates an expected call of ListDashboards.
+func (mr *MockInsightsServiceMockRecorder) ListDashboards(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDashboards", reflect.TypeOf((*MockInsightsService)(nil).ListDashboards), arg0, arg1)
 }
 
 // ListNotificationChannels mocks base method.
@@ -1538,6 +1618,22 @@ func (m *MockInsightsService) UpdateAlertRule(arg0 context.Context, arg1 string,
 func (mr *MockInsightsServiceMockRecorder) UpdateAlertRule(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAlertRule", reflect.TypeOf((*MockInsightsService)(nil).UpdateAlertRule), arg0, arg1, arg2)
+}
+
+// UpdateDashboard mocks base method.
+func (m *MockInsightsService) UpdateDashboard(arg0 context.Context, arg1 string, arg2 *godo.DashboardRequest) (*godo.Dashboard, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDashboard", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Dashboard)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateDashboard indicates an expected call of UpdateDashboard.
+func (mr *MockInsightsServiceMockRecorder) UpdateDashboard(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDashboard", reflect.TypeOf((*MockInsightsService)(nil).UpdateDashboard), arg0, arg1, arg2)
 }
 
 // UpdateNotificationChannel mocks base method.

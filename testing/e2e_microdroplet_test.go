@@ -101,14 +101,24 @@ func TestMicroDropletExec(t *testing.T) {
 
 	var listed struct {
 		MicroVMs []struct {
-			ID string `json:"id"`
+			ID    string `json:"id"`
+			State string `json:"state"`
 		} `json:"microvms"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(callToolResultText(listResp)), &listed))
 	if len(listed.MicroVMs) == 0 {
 		t.Skip("no microvms available for exec e2e")
 	}
-	id := listed.MicroVMs[0].ID
+	id := ""
+	for _, vm := range listed.MicroVMs {
+		if strings.EqualFold(vm.State, "running") {
+			id = vm.ID
+			break
+		}
+	}
+	if id == "" {
+		t.Skip("no running microvm available for exec e2e")
+	}
 
 	execResp, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
