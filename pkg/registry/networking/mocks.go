@@ -1318,6 +1318,22 @@ func (mr *MockVPCsServiceMockRecorder) Create(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockVPCsService)(nil).Create), arg0, arg1)
 }
 
+// CreateSubnet mocks base method.
+func (m *MockVPCsService) CreateSubnet(arg0 context.Context, arg1 string, arg2 *godo.VPCSubnetCreateRequest) (*godo.VPCSubnet, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSubnet", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.VPCSubnet)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateSubnet indicates an expected call of CreateSubnet.
+func (mr *MockVPCsServiceMockRecorder) CreateSubnet(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubnet", reflect.TypeOf((*MockVPCsService)(nil).CreateSubnet), arg0, arg1, arg2)
+}
+
 // CreateVPCPeering mocks base method.
 func (m *MockVPCsService) CreateVPCPeering(arg0 context.Context, arg1 *godo.VPCPeeringCreateRequest) (*godo.VPCPeering, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1365,6 +1381,21 @@ func (mr *MockVPCsServiceMockRecorder) Delete(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockVPCsService)(nil).Delete), arg0, arg1)
 }
 
+// DeleteSubnet mocks base method.
+func (m *MockVPCsService) DeleteSubnet(arg0 context.Context, arg1, arg2 string) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSubnet", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSubnet indicates an expected call of DeleteSubnet.
+func (mr *MockVPCsServiceMockRecorder) DeleteSubnet(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSubnet", reflect.TypeOf((*MockVPCsService)(nil).DeleteSubnet), arg0, arg1, arg2)
+}
+
 // DeleteVPCPeering mocks base method.
 func (m *MockVPCsService) DeleteVPCPeering(arg0 context.Context, arg1 string) (*godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1394,6 +1425,22 @@ func (m *MockVPCsService) Get(arg0 context.Context, arg1 string) (*godo.VPC, *go
 func (mr *MockVPCsServiceMockRecorder) Get(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockVPCsService)(nil).Get), arg0, arg1)
+}
+
+// GetSubnet mocks base method.
+func (m *MockVPCsService) GetSubnet(arg0 context.Context, arg1, arg2 string) (*godo.VPCSubnet, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSubnet", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.VPCSubnet)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetSubnet indicates an expected call of GetSubnet.
+func (mr *MockVPCsServiceMockRecorder) GetSubnet(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubnet", reflect.TypeOf((*MockVPCsService)(nil).GetSubnet), arg0, arg1, arg2)
 }
 
 // GetVPCPeering mocks base method.
@@ -1442,6 +1489,22 @@ func (m *MockVPCsService) ListMembers(arg0 context.Context, arg1 string, arg2 *g
 func (mr *MockVPCsServiceMockRecorder) ListMembers(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMembers", reflect.TypeOf((*MockVPCsService)(nil).ListMembers), arg0, arg1, arg2, arg3)
+}
+
+// ListSubnets mocks base method.
+func (m *MockVPCsService) ListSubnets(arg0 context.Context, arg1 string, arg2 *godo.ListOptions) ([]*godo.VPCSubnet, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSubnets", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*godo.VPCSubnet)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListSubnets indicates an expected call of ListSubnets.
+func (mr *MockVPCsServiceMockRecorder) ListSubnets(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSubnets", reflect.TypeOf((*MockVPCsService)(nil).ListSubnets), arg0, arg1, arg2)
 }
 
 // ListVPCPeerings mocks base method.
@@ -1511,6 +1574,22 @@ func (m *MockVPCsService) Update(arg0 context.Context, arg1 string, arg2 *godo.V
 func (mr *MockVPCsServiceMockRecorder) Update(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockVPCsService)(nil).Update), arg0, arg1, arg2)
+}
+
+// UpdateSubnet mocks base method.
+func (m *MockVPCsService) UpdateSubnet(arg0 context.Context, arg1, arg2 string, arg3 *godo.VPCSubnetUpdateRequest) (*godo.VPCSubnet, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSubnet", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*godo.VPCSubnet)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UpdateSubnet indicates an expected call of UpdateSubnet.
+func (mr *MockVPCsServiceMockRecorder) UpdateSubnet(arg0, arg1, arg2, arg3 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubnet", reflect.TypeOf((*MockVPCsService)(nil).UpdateSubnet), arg0, arg1, arg2, arg3)
 }
 
 // UpdateVPCPeering mocks base method.

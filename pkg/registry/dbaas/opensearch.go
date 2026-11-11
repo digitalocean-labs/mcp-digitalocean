@@ -35,11 +35,7 @@ func (s *OpenSearchTool) getOpensearchConfig(ctx context.Context, req mcp.CallTo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return opensearchConfigOut.Result(cfg)
 }
 
 func (s *OpenSearchTool) updateOpensearchConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -78,6 +74,7 @@ func (s *OpenSearchTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-opensearch-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				opensearchConfigOut.Schema(),
 				mcp.WithDescription("Get the Opensearch config for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),

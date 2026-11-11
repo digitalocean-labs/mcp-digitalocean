@@ -2,7 +2,6 @@ package volumes
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/digitalocean/godo"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -77,11 +76,7 @@ func (vt *VolumeTool) createVolume(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonVolume, err := json.MarshalIndent(volume, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonVolume)), nil
+	return volumeOut.Result(volume)
 }
 
 func (vt *VolumeTool) listVolumes(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -121,27 +116,12 @@ func (vt *VolumeTool) listVolumes(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	filteredVolumes := make([]map[string]any, len(volumes))
+	filteredVolumes := make([]volumeSummary, len(volumes))
 	for i, volume := range volumes {
-		filteredVolumes[i] = map[string]any{
-			"id":               volume.ID,
-			"name":             volume.Name,
-			"size_gigabytes":   volume.SizeGigaBytes,
-			"region":           volume.Region,
-			"description":      volume.Description,
-			"filesystem_type":  volume.FilesystemType,
-			"filesystem_label": volume.FilesystemLabel,
-			"tags":             volume.Tags,
-			"created_at":       volume.CreatedAt,
-			"droplet_ids":      volume.DropletIDs,
-		}
+		filteredVolumes[i] = newVolumeSummary(volume)
 	}
 
-	jsonVolumes, err := json.MarshalIndent(filteredVolumes, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonVolumes)), nil
+	return volumeListOut.Result(filteredVolumes)
 }
 
 func (vt *VolumeTool) getVolumeByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -161,11 +141,7 @@ func (vt *VolumeTool) getVolumeByID(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonVolume, err := json.MarshalIndent(volume, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonVolume)), nil
+	return volumeOut.Result(volume)
 }
 
 func (vt *VolumeTool) deleteVolume(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -224,11 +200,7 @@ func (vt *VolumeTool) createSnapshot(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonSnapshot, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonSnapshot)), nil
+	return snapshotOut.Result(snapshot)
 }
 
 func (vt *VolumeTool) listSnapshots(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -265,26 +237,12 @@ func (vt *VolumeTool) listSnapshots(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	filteredSnapshots := make([]map[string]any, len(snapshots))
+	filteredSnapshots := make([]snapshotSummary, len(snapshots))
 	for i, snapshot := range snapshots {
-		filteredSnapshots[i] = map[string]any{
-			"id":             snapshot.ID,
-			"name":           snapshot.Name,
-			"resource_id":    snapshot.ResourceID,
-			"resource_type":  snapshot.ResourceType,
-			"regions":        snapshot.Regions,
-			"min_disk_size":  snapshot.MinDiskSize,
-			"size_gigabytes": snapshot.SizeGigaBytes,
-			"tags":           snapshot.Tags,
-			"created_at":     snapshot.Created,
-		}
+		filteredSnapshots[i] = newSnapshotSummary(snapshot)
 	}
 
-	jsonSnapshots, err := json.MarshalIndent(filteredSnapshots, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonSnapshots)), nil
+	return snapshotListOut.Result(filteredSnapshots)
 }
 
 func (vt *VolumeTool) getSnapshotByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -304,11 +262,7 @@ func (vt *VolumeTool) getSnapshotByID(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonSnapshot, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("marshal error", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonSnapshot)), nil
+	return snapshotOut.Result(snapshot)
 }
 
 func (vt *VolumeTool) deleteSnapshot(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -339,6 +293,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				volumeOut.Schema(),
 				mcp.WithDescription("Create a new block storage volume"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("The name of the volume")),
 				mcp.WithNumber("SizeGigaBytes", mcp.Required(), mcp.Description("The size of the volume in GB")),
@@ -356,6 +311,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				volumeListOut.Schema(),
 				mcp.WithDescription("List block storage volumes with optional Name/Region filters. Supports pagination."),
 				mcp.WithString("Name", mcp.Description("Name filtering parameter")),
 				mcp.WithString("Region", mcp.Description("Region filtering parameter")),
@@ -369,6 +325,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				volumeOut.Schema(),
 				mcp.WithDescription("Get a block storage volume by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the volume to get")),
 			),
@@ -389,6 +346,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-snapshot-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				snapshotOut.Schema(),
 				mcp.WithDescription("Create a new snapshot from a volume"),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to create a snapshot from")),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("The name of the snapshot")),
@@ -401,6 +359,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-snapshot-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				snapshotListOut.Schema(),
 				mcp.WithDescription("List snapshots for a volume. Supports pagination."),
 				mcp.WithString("VolumeID", mcp.Required(), mcp.Description("The ID of the volume to list snapshots for")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultVolumeListPage), mcp.Description("Page number")),
@@ -413,6 +372,7 @@ func (vt *VolumeTool) Tools() []server.ServerTool {
 				"volume-snapshot-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				snapshotOut.Schema(),
 				mcp.WithDescription("Get a snapshot by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("The ID of the snapshot to get")),
 			),

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
@@ -97,7 +98,21 @@ func TestSpacesKeyLifecycle(t *testing.T) {
 
 	requireBasicResponse(t, err, resp)
 
-	// validate that the key is no longer present
+	// validate that the key can no longer be fetched
+	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "spaces-key-get",
+			Arguments: map[string]interface{}{
+				"AccessKey": key.AccessKey,
+			},
+		},
+	})
+
+	requireBasicResponse(t, err, resp)
+	require.True(t, resp.IsError, "expected spaces-key-get to fail for deleted key")
+	require.Contains(t, resp.Content[0].(mcp.TextContent).Text, "404")
+
+	// and that it is no longer listed
 	resp, err = c.CallTool(context.Background(), mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "spaces-key-list",
@@ -105,13 +120,20 @@ func TestSpacesKeyLifecycle(t *testing.T) {
 	})
 
 	requireBasicResponse(t, err, resp)
-	require.True(t, resp.IsError)
+	require.False(t, resp.IsError)
 
-	// check that the content of the response contains Not Found
-	require.Contains(t, resp.Content[0].(mcp.TextContent).Text, "Not Found")
+	listKeysResponse = keysResponse{}
+	err = json.Unmarshal([]byte(resp.Content[0].(mcp.TextContent).Text), &listKeysResponse)
+	require.NoError(t, err)
+
+	for _, k := range listKeysResponse.Keys {
+		require.NotEqual(t, key.AccessKey, k.AccessKey, "deleted key %s still listed", key.AccessKey)
+	}
 }
 
-// cleanupKeys removes any keys created during testing.
+// flushKeys removes the keys this package created. It matches on
+// e2eSpaceKeyNamePrefix so that a run against an account with unrelated keys
+// leaves them alone.
 func flushKeys(t *testing.T, c *client.Client) {
 	ctx := context.Background()
 	resp, err := c.CallTool(ctx, mcp.CallToolRequest{
@@ -132,6 +154,10 @@ func flushKeys(t *testing.T, c *client.Client) {
 	}
 
 	for _, key := range listKeysResponse.Keys {
+		if !strings.HasPrefix(key.Name, e2eSpaceKeyNamePrefix) {
+			continue
+		}
+
 		resp, err = c.CallTool(ctx, mcp.CallToolRequest{
 			Params: mcp.CallToolParams{
 				Name: "spaces-key-delete",

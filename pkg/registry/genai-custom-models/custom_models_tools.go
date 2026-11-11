@@ -2,7 +2,6 @@ package genaicustommodels
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -52,7 +51,7 @@ func (cmt *CustomModelsTool) listModels(ctx context.Context, req mcp.CallToolReq
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("failed to list custom models", err), nil
 		}
-		return mcp.NewToolResultText(formatCustomModelsList("", rows)), nil
+		return listModelsResult("", rows)
 	}
 
 	statusFilter := ""
@@ -78,7 +77,15 @@ func (cmt *CustomModelsTool) listModels(ctx context.Context, req mcp.CallToolReq
 		rows = append(rows, toCustomSearchRow(cm))
 	}
 
-	return mcp.NewToolResultText(formatCustomModelsList(statusFilter, rows)), nil
+	return listModelsResult(statusFilter, rows)
+}
+
+// listModelsResult renders the table and publishes the rows behind it. The
+// rows are sorted first because the table sorts as it renders, and the two
+// halves of the result have to agree on order.
+func listModelsResult(statusFilter string, rows []CustomSearchRow) (*mcp.CallToolResult, error) {
+	rows = sortCustomSearchRows(rows)
+	return modelRowsOut.ResultWithText(formatCustomModelsList(statusFilter, rows), rows)
 }
 
 func listModelsHasFilters(args map[string]any) bool {
@@ -183,17 +190,12 @@ func (cmt *CustomModelsTool) importModel(ctx context.Context, req mcp.CallToolRe
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	out, _, err := client.GradientAI.ImportCustomModel(ctx, importRequestToGodo(input))
+	out, _, err := client.AgentPlatform.ImportCustomModel(ctx, importRequestToGodo(input))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to import custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(importResponseFromGodo(out), "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return importOut.Result(importResponseFromGodo(out))
 }
 
 // updateMetadata updates the metadata of a custom model.
@@ -272,17 +274,12 @@ func (cmt *CustomModelsTool) updateMetadata(ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	model, _, err := client.GradientAI.UpdateCustomModelMetadata(ctx, uuid, metadataUpdateToGodo(input))
+	model, _, err := client.AgentPlatform.UpdateCustomModelMetadata(ctx, uuid, metadataUpdateToGodo(input))
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("failed to update custom model metadata", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(customModelFromGodo(model), "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return customModelOut.Result(customModelFromGodo(model))
 }
 
 // getModel retrieves a single custom model by UUID (public endpoint).
@@ -302,12 +299,7 @@ func (cmt *CustomModelsTool) getModel(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("failed to get custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(model, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return customModelOut.Result(model)
 }
 
 // deleteModel deletes a custom model by exact uuid or exact name (partial identifiers return candidates only).
@@ -379,12 +371,7 @@ func (cmt *CustomModelsTool) deleteModelByUUID(ctx context.Context, client *godo
 		return mcp.NewToolResultErrorFromErr("failed to delete custom model", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return deleteOut.Result(output)
 }
 
 // Tools returns the list of server tools for custom model management.
@@ -396,6 +383,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-models-unified-search",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				unifiedSearchOut.Schema(),
 				mcp.WithDescription("PRIMARY tool for listing or searching models. Use when the user asks to list all models, show available models, or search by partial name. Returns two markdown tables (Model Catalog and Custom Models) with one row per model: custom columns are UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message; catalog columns include Provider, Type, Context Window, Capabilities, and modalities. Empty query lists everything; partial query returns nearest matches."),
 				mcp.WithString("query", mcp.Description("Partial model name or search string (optional). Empty returns all models in both tables.")),
 			),
@@ -406,6 +394,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				modelRowsOut.Schema(),
 				mcp.WithDescription("List all custom models in one markdown table (one row per model, every UUID shown including STATUS_FAILED). Columns: UUID, Name, Source, Status, Architecture, Input Modalities, Output Modalities, Error Message. Do not summarize the table in the response. For catalog + custom together use genai-models-unified-search. Optional status/page/per_page filters."),
 				mcp.WithString("status", mcp.Description("Filter by status: STATUS_IMPORTING, STATUS_READY, STATUS_FAILED, STATUS_DELETED")),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
@@ -418,6 +407,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-import",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				importOut.Schema(),
 				mcp.WithDescription(genaiCustomModelsImportToolDescription),
 				mcp.WithString("name", mcp.Description("Optional display name for the custom model (leading/trailing whitespace is trimmed when provided).")),
 				mcp.WithString("source_type", mcp.Required(), mcp.Description("Source type: SOURCE_TYPE_HUGGINGFACE, SOURCE_TYPE_SPACES_BUCKET, SOURCE_TYPE_SDK_UPLOAD, SOURCE_TYPE_FINE_TUNING")),
@@ -434,6 +424,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-update-metadata",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				customModelOut.Schema(),
 				mcp.WithDescription("Update the metadata of an existing custom model. Editable fields include name, description, tags, input/output modalities, parameters, and license."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to update")),
 				mcp.WithString("name", mcp.Description("New name for the model")),
@@ -451,6 +442,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				customModelOut.Schema(),
 				mcp.WithDescription("Get the full catalog card for a custom model, including its status, architecture, source info, size, license, tags, active deployments, and cost estimate."),
 				mcp.WithString("uuid", mcp.Required(), mcp.Description("UUID of the custom model to retrieve")),
 			),
@@ -461,6 +453,7 @@ func (cmt *CustomModelsTool) Tools() []server.ServerTool {
 				"genai-custom-models-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskHigh),
+				deleteOut.Schema(),
 				mcp.WithDescription(genaiCustomModelsDeleteToolDescription),
 				mcp.WithString("name", mcp.Description("Exact custom model name the user provided or confirmed (character-for-character, whitespace trimmed). Use this OR uuid. Partial names return candidates only.")),
 				mcp.WithString("uuid", mcp.Description("Exact full custom model UUID (8-4-4-4-12 hex). Use this OR name. Partial uuids return candidates only; never delete on a partial uuid even if one match.")),

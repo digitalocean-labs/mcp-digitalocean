@@ -155,7 +155,7 @@ func (m *ModelTool) handleSearchByTask(ctx context.Context, req mcp.GetPromptReq
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	uuids, _, err := client.GradientAI.SearchModels(ctx, "")
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to search models: %w", err)
 	}

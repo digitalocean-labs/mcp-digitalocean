@@ -1,0 +1,200 @@
+[
+ {
+  "query": "Why is SMTP blocked?",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/why-is-smtp-blocked/"
+  ]
+ },
+ {
+  "query": "system not initialized multi-GPU Droplet",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/how-do-i-fix-a-system-not-initialized-error-on-multi-gpu-droplets/"
+  ]
+ },
+ {
+  "query": "Droplet 100% disk usage recovery ISO",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/how-do-i-recover-access-to-a-droplet-that-is-at-100-disk-usage/",
+   "https://docs.digitalocean.com/products/droplets/how-to/recovery/"
+  ]
+ },
+ {
+  "query": "520 status code app platform",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/why-am-i-receiving-520-status-codes-from-my-app/"
+  ]
+ },
+ {
+  "query": "app deployment failed health check",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/my-app-deployment-failed-because-of-a-health-check/"
+  ]
+ },
+ {
+  "query": "reset droplet root password",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/how-do-i-reset-my-droplets-root-password/"
+  ]
+ },
+ {
+  "query": "connection refused database",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/how-do-i-fix-the-connection-refused-error-when-connecting-to-my-database/"
+  ]
+ },
+ {
+  "query": "load balancer health check failing",
+  "tool": "troubleshoot",
+  "expected": [
+   "https://docs.digitalocean.com/support/how-to-troubleshoot-load-balancer-health-check-issues/"
+  ]
+ },
+ {
+  "query": "how to create a droplet",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/droplets/how-to/create/"
+  ]
+ },
+ {
+  "query": "resize droplet",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/droplets/how-to/resize/"
+  ]
+ },
+ {
+  "query": "app platform custom domain",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/app-platform/how-to/manage-domains/"
+  ]
+ },
+ {
+  "query": "spaces CORS configuration",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/spaces/how-to/configure-cors/"
+  ]
+ },
+ {
+  "query": "postgresql connection pool",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-connection-pools/"
+  ]
+ },
+ {
+  "query": "VPC peering",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/networking/vpc/how-to/create-peering/"
+  ]
+ },
+ {
+  "query": "firewall rules",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/networking/firewalls/how-to/configure-rules/"
+  ]
+ },
+ {
+  "query": "droplet pricing",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/droplets/details/pricing/"
+  ]
+ },
+ {
+  "query": "spaces access keys",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/spaces/how-to/manage-access/"
+  ]
+ },
+ {
+  "query": "kubernetes quickstart",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/kubernetes/getting-started/quickstart/"
+  ]
+ },
+ {
+  "query": "functions quickstart",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/functions/getting-started/quickstart/"
+  ]
+ },
+ {
+  "query": "doctl compute droplet create",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/doctl/reference/compute/droplet/create/"
+  ]
+ },
+ {
+  "query": "terraform digitalocean_droplet resource",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/terraform/reference/resources/droplet/"
+  ]
+ },
+ {
+  "query": "pydo droplets create",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/pydo/reference/droplets/create/"
+  ]
+ },
+ {
+  "query": "API droplets endpoint",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/api/reference/droplets/"
+  ]
+ },
+ {
+  "query": "recovery ISO",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/droplets/how-to/recovery/recovery-iso/",
+   "https://docs.digitalocean.com/products/droplets/how-to/recovery/"
+  ]
+ },
+ {
+  "query": "mongo backups",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/databases/mongodb/how-to/restore-from-backups/"
+  ]
+ },
+ {
+  "query": "config spaces cors",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/spaces/how-to/configure-cors/"
+  ]
+ },
+ {
+  "query": "kube node pool",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/node-pool/"
+  ]
+ },
+ {
+  "query": "postgres connection pool",
+  "tool": "search",
+  "expected": [
+   "https://docs.digitalocean.com/products/databases/postgresql/how-to/manage-connection-pools/"
+  ]
+ }
+]

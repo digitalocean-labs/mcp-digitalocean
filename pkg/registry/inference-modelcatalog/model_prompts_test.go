@@ -16,7 +16,7 @@ func TestModelTool_Prompts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	tool := setupModelToolWithMock(mock)
 
 	prompts := tool.Prompts()
@@ -593,7 +593,7 @@ func TestHandleModelComparison_Success(t *testing.T) {
 		ModelAvailability: "Dedicated",
 	}
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(model1, nil, nil)
 	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-2").Return(model2, nil, nil)
 
@@ -625,7 +625,7 @@ func TestHandleModelComparison_MissingArguments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	tool := setupModelToolWithMock(NewMockGradientAIService(ctrl))
+	tool := setupModelToolWithMock(NewMockAgentPlatformService(ctrl))
 
 	tests := []struct {
 		name string
@@ -673,7 +673,7 @@ func TestHandleSearchByTask_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1", "uuid-2"}, nil, nil)
 
 	model1 := &godo.Model{
@@ -727,7 +727,7 @@ func TestHandleSearchByTask_MissingArguments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	tool := setupModelToolWithMock(NewMockGradientAIService(ctrl))
+	tool := setupModelToolWithMock(NewMockAgentPlatformService(ctrl))
 
 	req := mcp.GetPromptRequest{
 		Params: mcp.GetPromptParams{
@@ -744,7 +744,7 @@ func TestHandleSearchByTask_SearchError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	mock.EXPECT().SearchModels(gomock.Any(), "").Return(nil, nil, errors.New("API unavailable"))
 
 	tool := setupModelToolWithMock(mock)
@@ -767,7 +767,7 @@ func TestHandleSearchByTask_ModelFetchError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1", "uuid-2"}, nil, nil)
 	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(nil, nil, errors.New("model not found"))
 	// Should continue with uuid-2
@@ -801,7 +801,7 @@ func TestHandleSearchByTask_WithInvalidPriceConstraints(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mock := NewMockGradientAIService(ctrl)
+	mock := NewMockAgentPlatformService(ctrl)
 	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1"}, nil, nil)
 	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(&godo.Model{
 		Uuid:     "uuid-1",

@@ -2,7 +2,6 @@ package marketplace
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -42,15 +41,7 @@ func (o *OneClickTool) listOneClickApps(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to list 1-click apps: %v", err)), nil
 	}
 
-	result, err := json.Marshal(map[string]interface{}{
-		"apps": apps,
-		"type": oneClickType,
-	})
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to marshal response: %v", err)), nil
-	}
-
-	return mcp.NewToolResultText(string(result)), nil
+	return oneClickListOut.Result(oneClickList{Apps: apps, Type: oneClickType})
 }
 
 func (o *OneClickTool) installKubernetesApps(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -110,12 +101,7 @@ func (o *OneClickTool) installKubernetesApps(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to install Kubernetes apps: %v", err)), nil
 	}
 
-	result, err := json.Marshal(response)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to marshal response: %v", err)), nil
-	}
-
-	return mcp.NewToolResultText(string(result)), nil
+	return installOut.Result(response)
 }
 
 func (o *OneClickTool) Tools() []server.ServerTool {
@@ -125,6 +111,7 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("marketplace-1-click-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				oneClickListOut.Schema(),
 				mcp.WithDescription("List available 1-click applications from the DigitalOcean marketplace"),
 				mcp.WithString("Type", mcp.Description("Type of 1-click apps to list (e.g., 'droplet', 'kubernetes'). Defaults to 'droplet'")),
 			),
@@ -134,6 +121,7 @@ func (o *OneClickTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("marketplace-1-click-kubernetes-app-install",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				installOut.Schema(),
 				mcp.WithDescription("Install 1-click applications on a Kubernetes cluster"),
 				mcp.WithString("ClusterUUID", mcp.Required(), mcp.Description("UUID of the Kubernetes cluster to install apps on")),
 				mcp.WithArray("AppSlugs", mcp.Required(), mcp.Description("Array of app slugs to install"), mcp.Items(map[string]any{"type": "string"})),

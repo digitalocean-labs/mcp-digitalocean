@@ -43,11 +43,7 @@ func (s *UserTool) getUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return userOut.Result(dbUser)
 }
 
 func (s *UserTool) listUsers(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -84,12 +80,7 @@ func (s *UserTool) listUsers(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUsers, err := json.MarshalIndent(users, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUsers)), nil
+	return userListOut.Result(users)
 }
 
 func (s *UserTool) createUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -137,12 +128,7 @@ func (s *UserTool) createUser(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return userOut.Result(dbUser)
 }
 
 func (s *UserTool) updateUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -186,12 +172,7 @@ func (s *UserTool) updateUser(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonUser, err := json.MarshalIndent(dbUser, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonUser)), nil
+	return userOut.Result(dbUser)
 }
 
 func (s *UserTool) deleteUser(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -261,6 +242,7 @@ func (s *UserTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-user",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				userOut.Schema(),
 				mcp.WithDescription("Get a database user by cluster id and user name"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("user", mcp.Required(), mcp.Description("The user name")),
@@ -271,6 +253,7 @@ func (s *UserTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-list-users",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				userListOut.Schema(),
 				mcp.WithDescription("List database users for a cluster"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("page", mcp.Description("Page number for pagination (optional)")),
@@ -282,6 +265,7 @@ func (s *UserTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-create-user",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				userOut.Schema(),
 				mcp.WithDescription("Create a new database user for a cluster"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("name", mcp.Required(), mcp.Description("The user name")),
@@ -294,6 +278,7 @@ func (s *UserTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-update-user",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				userOut.Schema(),
 				mcp.WithDescription("Update a database user's settings"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster ID")),
 				mcp.WithString("user", mcp.Required(), mcp.Description("The user name")),

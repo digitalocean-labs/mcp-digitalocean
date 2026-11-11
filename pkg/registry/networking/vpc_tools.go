@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -39,11 +38,7 @@ func (v *VPCTool) getVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonVPC)), nil
+	return vpcOut.Result(vpc)
 }
 
 // listVPCs lists VPCs with pagination support
@@ -66,11 +61,7 @@ func (v *VPCTool) listVPCs(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonVPCs, err := json.MarshalIndent(vpcs, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonVPCs)), nil
+	return vpcListOut.Result(vpcs)
 }
 
 // createVPC creates a new VPC
@@ -103,12 +94,7 @@ func (v *VPCTool) createVPC(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonVPC, err := json.MarshalIndent(vpc, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonVPC)), nil
+	return vpcOut.Result(vpc)
 }
 
 // listVPCMembers lists members of a VPC
@@ -125,12 +111,7 @@ func (v *VPCTool) listVPCMembers(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonMembers, err := json.MarshalIndent(members, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonMembers)), nil
+	return vpcMemberListOut.Result(members)
 }
 
 // deleteVPC deletes a VPC
@@ -158,6 +139,7 @@ func (v *VPCTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				vpcOut.Schema(),
 				mcp.WithDescription("Get VPC information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
 			),
@@ -167,6 +149,7 @@ func (v *VPCTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				vpcListOut.Schema(),
 				mcp.WithDescription("List VPCs with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -177,6 +160,7 @@ func (v *VPCTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				vpcOut.Schema(),
 				mcp.WithDescription("Create a new VPC"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the VPC")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug (e.g., nyc3)")),
@@ -189,6 +173,7 @@ func (v *VPCTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-list-members",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				vpcMemberListOut.Schema(),
 				mcp.WithDescription("List members of a VPC"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC")),
 			),

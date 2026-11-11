@@ -38,12 +38,7 @@ func (s *FirewallTool) getFirewallRules(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonRules, err := json.MarshalIndent(rules, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRules)), nil
+	return firewallRuleListOut.Result(rules)
 }
 
 func (s *FirewallTool) updateFirewallRules(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -98,6 +93,7 @@ func (s *FirewallTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-firewall-rules",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				firewallRuleListOut.Schema(),
 				mcp.WithDescription("Get firewall rules for a database cluster."),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),

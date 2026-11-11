@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -48,12 +47,7 @@ func (c *CertificateTool) createCustomCertificate(ctx context.Context, req mcp.C
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return certificateOut.Result(certificate)
 }
 
 // createLetsEncryptCertificate creates a new LetsEncrypt certificate
@@ -81,12 +75,7 @@ func (c *CertificateTool) createLetsEncryptCertificate(ctx context.Context, req 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return certificateOut.Result(certificate)
 }
 
 // deleteCertificate deletes a certificate
@@ -123,12 +112,7 @@ func (c *CertificateTool) getCertificate(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonCert, err := json.MarshalIndent(certificate, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonCert)), nil
+	return certificateOut.Result(certificate)
 }
 
 // listCertificates lists certificates with pagination support
@@ -151,11 +135,7 @@ func (c *CertificateTool) listCertificates(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCerts, err := json.MarshalIndent(certs, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCerts)), nil
+	return certificateListOut.Result(certs)
 }
 
 // Tools returns a list of certificate tools
@@ -166,6 +146,7 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("certificate-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				certificateOut.Schema(),
 				mcp.WithDescription("Get certificate information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the certificate")),
 			),
@@ -175,6 +156,7 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("certificate-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				certificateListOut.Schema(),
 				mcp.WithDescription("List certificates with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -185,6 +167,7 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("custom-certificate-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				certificateOut.Schema(),
 				mcp.WithDescription("Create a new custom certificate"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the certificate")),
 				mcp.WithString("PrivateKey", mcp.Required(), mcp.Description("Private key for the certificate")),
@@ -197,6 +180,7 @@ func (c *CertificateTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("lets-encrypt-certificate-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				certificateOut.Schema(),
 				mcp.WithDescription("Create a new let's encrypt certificate"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the certificate")),
 				mcp.WithArray("DnsNames", mcp.Required(), mcp.Description("DNS names of the certificate"), mcp.Items(map[string]any{

@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -33,12 +32,7 @@ func (b *BalanceTools) getBalance(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(balance, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return balanceOut.Result(balance)
 }
 
 // Tools returns the list of server tools for balance.
@@ -49,6 +43,7 @@ func (b *BalanceTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("balance-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				balanceOut.Schema(),
 				mcp.WithDescription("Get balance information for the user account"),
 			),
 		},

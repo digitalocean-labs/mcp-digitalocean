@@ -36,11 +36,7 @@ func (s *MysqlTool) getMySQLConfig(ctx context.Context, req mcp.CallToolRequest)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return mysqlConfigOut.Result(cfg)
 }
 
 func (s *MysqlTool) updateMySQLConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -90,7 +86,8 @@ func (s *MysqlTool) getSQLMode(ctx context.Context, req mcp.CallToolRequest) (*m
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	return mcp.NewToolResultText(mode), nil
+	// The text stays the bare mode string; only the structured half is wrapped.
+	return sqlModeOut.ResultWithText(mode, mode)
 }
 
 func (s *MysqlTool) setSQLMode(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -128,6 +125,7 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-mysql-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				mysqlConfigOut.Schema(),
 				mcp.WithDescription("Get the MySQL config for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),
@@ -186,6 +184,7 @@ func (s *MysqlTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-sql-mode",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				sqlModeOut.Schema(),
 				mcp.WithDescription("Get the SQL mode for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),

@@ -2,7 +2,6 @@ package genaibatchinference
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -41,7 +40,7 @@ func (b *BatchInferenceTool) createFile(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("Failed to create file upload presigned URL", err), nil
 	}
 
-	return marshalResult(upload)
+	return fileUploadOut.Result(upload)
 }
 
 func (b *BatchInferenceTool) uploadInputFile(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -111,7 +110,7 @@ func (b *BatchInferenceTool) createJob(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("Failed to create batch inference job", err), nil
 	}
 
-	return marshalResult(batch)
+	return batchOut.Result(batch)
 }
 
 func (b *BatchInferenceTool) getJob(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -130,7 +129,7 @@ func (b *BatchInferenceTool) getJob(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("Failed to get batch inference job", err), nil
 	}
 
-	return marshalResult(batch)
+	return batchOut.Result(batch)
 }
 
 func (b *BatchInferenceTool) getJobResults(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -149,7 +148,7 @@ func (b *BatchInferenceTool) getJobResults(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("Failed to get batch inference job results", err), nil
 	}
 
-	return marshalResult(results)
+	return resultsOut.Result(results)
 }
 
 func (b *BatchInferenceTool) cancelJob(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -168,7 +167,7 @@ func (b *BatchInferenceTool) cancelJob(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("Failed to cancel batch inference job", err), nil
 	}
 
-	return marshalResult(batch)
+	return batchOut.Result(batch)
 }
 
 func (b *BatchInferenceTool) listJobs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -195,7 +194,7 @@ func (b *BatchInferenceTool) listJobs(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultErrorFromErr("Failed to list batch inference jobs", err), nil
 	}
 
-	return marshalResult(list)
+	return batchListOut.Result(list)
 }
 
 // Tools returns the list of server tools for Batch Inference management.
@@ -207,6 +206,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-create-file",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
+				fileUploadOut.Schema(),
 				mcp.WithDescription("Create a presigned URL for uploading a batch inference JSONL input file. The file must have a .jsonl extension. Upload the file to the returned URL via HTTP PUT before creating a batch job."),
 				mcp.WithString("FileName", mcp.Required(), mcp.Description("Name of the JSONL file to upload (must end in .jsonl)")),
 			),
@@ -228,6 +228,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				batchOut.Schema(),
 				mcp.WithDescription("Create a new batch inference job. Requires a previously uploaded file (via create-file). For OpenAI provider, the Endpoint argument is also required."),
 				mcp.WithString("Provider", mcp.Required(), mcp.Description("Batch provider: 'openai' or 'anthropic'")),
 				mcp.WithString("FileID", mcp.Required(), mcp.Description("UUID of a previously uploaded .jsonl file")),
@@ -242,6 +243,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				batchOut.Schema(),
 				mcp.WithDescription("Get the current status and metadata of a batch inference job by its ID."),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job")),
 			),
@@ -252,6 +254,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-get-results",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				resultsOut.Schema(),
 				mcp.WithDescription("Get the results download URL for a completed batch inference job. Returns a presigned download URL and output file ID. Fails if the job has not completed."),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job")),
 			),
@@ -262,6 +265,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-cancel",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				batchOut.Schema(),
 				mcp.WithDescription("Request cancellation of a batch inference job. The job may not be cancelled immediately; poll with get to check status."),
 				mcp.WithString("BatchID", mcp.Required(), mcp.Description("UUID of the batch inference job to cancel")),
 			),
@@ -272,6 +276,7 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 				"genai-batch-inference-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				batchListOut.Schema(),
 				mcp.WithDescription("List batch inference jobs with optional status filter and cursor-based pagination. Returns Relay-style edges with per-row cursors and page_info."),
 				mcp.WithString("Status", mcp.Description("Filter by job status (e.g. 'completed', 'in_progress', 'failed')")),
 				mcp.WithNumber("Limit", mcp.Description("Maximum number of jobs to return per page")),
@@ -279,12 +284,4 @@ func (b *BatchInferenceTool) Tools() []server.ServerTool {
 			),
 		},
 	}
-}
-
-func marshalResult(v any) (*mcp.CallToolResult, error) {
-	jsonData, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
 }

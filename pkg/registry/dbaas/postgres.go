@@ -37,11 +37,7 @@ func (s *PostgreSQLTool) getPostgreSQLConfig(ctx context.Context, req mcp.CallTo
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonCfg, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonCfg)), nil
+	return postgresConfigOut.Result(cfg)
 }
 
 func (s *PostgreSQLTool) updatePostgreSQLConfig(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -86,6 +82,7 @@ func (s *PostgreSQLTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("db-cluster-get-postgresql-config",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				postgresConfigOut.Schema(),
 				mcp.WithDescription("Get the PostgreSQL config for a cluster by its id"),
 				mcp.WithString("id", mcp.Required(), mcp.Description("The cluster UUID")),
 			),

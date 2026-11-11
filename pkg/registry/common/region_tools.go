@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -14,6 +13,11 @@ const (
 	defaultRegionsPageSize = 50
 	defaultRegionsPage     = 1
 )
+
+// regionsOut is the output contract for region-list. The payload is a bare
+// array, so it takes the plural envelope that keeps structuredContent an
+// object.
+var regionsOut = NewOutput[[]godo.Region]("regions")
 
 // RegionTools provides tool-based handlers for DigitalOcean regions.
 type RegionTools struct {
@@ -51,12 +55,7 @@ func (r *RegionTools) listRegions(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(regions, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return regionsOut.Result(regions)
 }
 
 // Tools returns the list of server tools for regions.
@@ -67,6 +66,7 @@ func (r *RegionTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("region-list",
 				WithHints(HintsRead),
 				WithRisk(RiskLow),
+				regionsOut.Schema(),
 				mcp.WithDescription("List all available regions with features and droplet size availability. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultRegionsPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultRegionsPageSize), mcp.Description("Items per page")),

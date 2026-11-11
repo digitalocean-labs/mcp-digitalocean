@@ -56,6 +56,29 @@ var expectedAnnotations = map[string]struct {
 	"genai-model-eval-create-custom-metric":     {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
 	"genai-model-eval-update-custom-metric":     {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
 	"genai-model-eval-delete-custom-metric":     {false, true, true, false, common.OpDelete, common.RiskLow, false, false},
+
+	// simulation_tools.go (scenario sets + simulation runs)
+	"genai-simulation-list-scenario-sets":               {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-scenario-set":                 {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-create-scenario-set":              {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
+	"genai-simulation-generate-scenario-set":            {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"genai-simulation-list-scenarios":                   {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-scenario-set-download-url":    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-update-scenario-set":              {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"genai-simulation-delete-scenario-set":              {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
+	"genai-simulation-list-scenario-library":            {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-list-scenario-library-scenarios":  {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-create-scenario-set-from-library": {false, false, false, false, common.OpCreate, common.RiskLow, false, false},
+	"genai-simulation-create-run":                       {false, false, false, false, common.OpCreate, common.RiskMedium, false, false},
+	"genai-simulation-list-runs":                        {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-run":                          {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-update-run":                       {false, false, true, false, common.OpUpdate, common.RiskLow, false, false},
+	"genai-simulation-cancel-run":                       {false, false, true, false, common.OpUpdate, common.RiskMedium, false, false},
+	"genai-simulation-delete-run":                       {false, true, true, false, common.OpDelete, common.RiskMedium, false, false},
+	"genai-simulation-list-episodes":                    {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode":                      {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode-trajectory":           {true, false, true, false, common.OpRead, common.RiskLow, false, false},
+	"genai-simulation-get-episode-trajectory-url":       {true, false, true, false, common.OpRead, common.RiskLow, false, false},
 }
 
 func TestToolAnnotations(t *testing.T) {
@@ -66,6 +89,7 @@ func TestToolAnnotations(t *testing.T) {
 	var all []server.ServerTool
 	all = append(all, NewEvaluationTool(clientFn).Tools()...)
 	all = append(all, NewModelEvaluationTool(clientFn).Tools()...)
+	all = append(all, NewSimulationTool(clientFn).Tools()...)
 
 	if len(all) != len(expectedAnnotations) {
 		t.Fatalf("tool count mismatch: registered=%d, expected=%d (add new tools to expectedAnnotations)", len(all), len(expectedAnnotations))

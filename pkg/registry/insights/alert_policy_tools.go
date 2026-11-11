@@ -2,7 +2,6 @@ package insights
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -45,12 +44,7 @@ func (a *AlertPolicyTool) getAlertPolicy(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return withAlertPolicyDeprecation(alertPolicyOut.Result(alertPolicy))
 }
 
 // listAlertPolicies lists alert policies with pagination support
@@ -74,12 +68,7 @@ func (a *AlertPolicyTool) listAlertPolicies(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicies, err := json.MarshalIndent(alertPolicies, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAlertPolicies)), nil
+	return withAlertPolicyDeprecation(alertPoliciesOut.Result(alertPolicies))
 }
 
 // createAlertPolicy creates a new alert policy
@@ -166,12 +155,7 @@ func (a *AlertPolicyTool) createAlertPolicy(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return withAlertPolicyDeprecation(alertPolicyOut.Result(alertPolicy))
 }
 
 // updateAlertPolicy updates an existing alert policy
@@ -263,12 +247,7 @@ func (a *AlertPolicyTool) updateAlertPolicy(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAlertPolicy, err := json.MarshalIndent(alertPolicy, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAlertPolicy)), nil
+	return withAlertPolicyDeprecation(alertPolicyOut.Result(alertPolicy))
 }
 
 // deleteAlertPolicy deletes an alert policy
@@ -288,7 +267,7 @@ func (a *AlertPolicyTool) deleteAlertPolicy(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	return mcp.NewToolResultText("Alert Policy deleted successfully"), nil
+	return withAlertPolicyDeprecation(mcp.NewToolResultText("Alert Policy deleted successfully"), nil)
 }
 
 // Tools returns a list of tool functions
@@ -299,7 +278,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("alert-policy-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Get Alert Policy information by UUID"),
+				alertPolicyOut.Schema(),
+				mcp.WithDescription(descAlertPolicyGetV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to retrieve (format: 00000000-0000-0000-0000-000000000000)")),
 			),
 		},
@@ -308,7 +288,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("alert-policy-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("List all Alert Policies in your account with pagination"),
+				alertPoliciesOut.Schema(),
+				mcp.WithDescription(descAlertPolicyListV1),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultAlertPoliciesPage), mcp.Description("Page number for pagination (starts from 1)")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultAlertPoliciesPageSize), mcp.Description("Number of items per page (1-200, default 20)")),
 			),
@@ -318,7 +299,8 @@ func (c *AlertPolicyTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("alert-policy-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Create a new Alert Policy"),
+				alertPolicyOut.Schema(),
+				mcp.WithDescription(descAlertPolicyCreateV1),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
 Droplet metrics:
 - 'v1/insights/droplet/load_1'
@@ -381,7 +363,8 @@ Database metrics:
 			Tool: mcp.NewTool("alert-policy-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
-				mcp.WithDescription("Update an Alert Policy"),
+				alertPolicyOut.Schema(),
+				mcp.WithDescription(descAlertPolicyUpdateV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to update")),
 				mcp.WithString("Type", mcp.Required(), mcp.Description(`Type of the Alert Policy. Available types:
 Droplet metrics:
@@ -445,7 +428,7 @@ Database metrics:
 			Tool: mcp.NewTool("alert-policy-delete",
 				common.WithHints(common.HintsDelete),
 				common.WithRisk(common.RiskMedium),
-				mcp.WithDescription("Delete an Alert Policy permanently"),
+				mcp.WithDescription(descAlertPolicyDeleteV1),
 				mcp.WithString("UUID", mcp.Required(), mcp.Description("UUID of the Alert Policy to delete (format: 00000000-0000-0000-0000-000000000000)")),
 			),
 		},

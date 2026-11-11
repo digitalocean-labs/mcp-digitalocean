@@ -2,7 +2,6 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -96,11 +95,7 @@ func (d *DropletTool) createDroplet(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("droplet create", err), nil
 	}
-	jsonDroplet, err := json.MarshalIndent(droplet, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("json marshal", err), nil
-	}
-	return mcp.NewToolResultText(string(jsonDroplet)), nil
+	return dropletOut.Result(droplet)
 }
 
 // deleteDroplet deletes a droplet
@@ -133,12 +128,7 @@ func (d *DropletTool) getDropletNeighbors(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonNeighbors, err := json.MarshalIndent(neighbors, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonNeighbors)), nil
+	return neighborsOut.Result(neighbors)
 }
 
 // enablePrivateNetworking enables private networking on a droplet
@@ -155,12 +145,7 @@ func (d *DropletTool) enablePrivateNetworking(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // getDropletKernels gets available kernels for a droplet
@@ -183,12 +168,7 @@ func (d *DropletTool) getDropletKernels(ctx context.Context, req mcp.CallToolReq
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonKernels, err := json.MarshalIndent(kernels, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKernels)), nil
+	return kernelsOut.Result(kernels)
 }
 
 // Tools returns a list of tool functions
@@ -207,11 +187,7 @@ func (d *DropletTool) getDropletByID(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(droplet, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return dropletOut.Result(droplet)
 }
 
 // getDropletBackupPolicy returns the backup policy for a droplet.
@@ -231,11 +207,7 @@ func (d *DropletTool) getDropletBackupPolicy(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(policy, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return backupPolicyOut.Result(policy)
 }
 
 func (d *DropletTool) getDropletActionByID(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -257,11 +229,7 @@ func (d *DropletTool) getDropletActionByID(ctx context.Context, req mcp.CallTool
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return actionOut.Result(action)
 }
 
 // getDroplets lists all droplets for a user
@@ -290,39 +258,12 @@ func (d *DropletTool) getDroplets(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	filteredDroplets := make([]map[string]any, len(droplets))
+	summaries := make([]dropletSummary, len(droplets))
 	for i, droplet := range droplets {
-		filteredDroplets[i] = map[string]any{
-			"id":                 droplet.ID,
-			"name":               droplet.Name,
-			"memory":             droplet.Memory,
-			"vcpus":              droplet.Vcpus,
-			"disk":               droplet.Disk,
-			"region":             droplet.Region,
-			"image":              droplet.Image,
-			"size":               droplet.Size,
-			"size_slug":          droplet.SizeSlug,
-			"backup_ids":         droplet.BackupIDs,
-			"next_backup_window": droplet.NextBackupWindow,
-			"snapshot_ids":       droplet.SnapshotIDs,
-			"features":           droplet.Features,
-			"locked":             droplet.Locked,
-			"status":             droplet.Status,
-			"networks":           droplet.Networks,
-			"created_at":         droplet.Created,
-			"kernel":             droplet.Kernel,
-			"tags":               droplet.Tags,
-			"volume_ids":         droplet.VolumeIDs,
-			"vpc_uuid":           droplet.VPCUUID,
-		}
+		summaries[i] = newDropletSummary(droplet)
 	}
 
-	jsonData, err := json.MarshalIndent(filteredDroplets, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return dropletSummariesOut.Result(summaries)
 }
 
 func (d *DropletTool) Tools() []server.ServerTool {
@@ -332,6 +273,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskHigh),
+				dropletOut.Schema(),
 				mcp.WithDescription("Create a new droplet. Supports standard distribution images via ImageID and 1-click marketplace app images via ImageSlug. Exactly one of ImageID or ImageSlug must be provided."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the droplet")),
 				mcp.WithString("Size", mcp.Required(), mcp.Description("Slug of the droplet size (e.g., s-1vcpu-1gb)")),
@@ -358,6 +300,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-enable-private-net",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskHigh),
+				actionOut.Schema(),
 				mcp.WithDescription("Enable private networking on a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -367,6 +310,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-kernels",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				kernelsOut.Schema(),
 				mcp.WithDescription("Get available kernels for a droplet"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the droplet")),
 			),
@@ -376,6 +320,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				dropletOut.Schema(),
 				mcp.WithDescription("Get a droplet by its ID"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Droplet ID")),
 			),
@@ -385,6 +330,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-backup-policy",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				backupPolicyOut.Schema(),
 				mcp.WithDescription("Get a droplet's backup policy"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("Droplet ID")),
 			),
@@ -394,6 +340,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-action",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Get a droplet action by droplet ID and action ID"),
 				mcp.WithNumber("DropletID", mcp.Required(), mcp.Description("Droplet ID")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("Action ID")),
@@ -404,6 +351,7 @@ func (d *DropletTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("droplet-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				dropletSummariesOut.Schema(),
 				mcp.WithDescription("List all droplets for the user. Supports pagination."),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(50), mcp.Description("Items per page")),

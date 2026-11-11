@@ -4,6 +4,34 @@ This directory provides tool-based handlers for interacting with DigitalOcean in
 Server. All insight operations are exposed as tools that accept structured arguments—no resource URIs are used.
 Pagination and filtering are supported where applicable.
 
+## Insights v2 (preferred)
+
+Uses `client.Insights` (`/v2/insights/...`).
+
+- **insights-alert-rule-*** — get/list/create/update/delete (`NotificationChannels` required on create)
+- **insights-notification-channel-*** — get/list/create/update/delete
+- **insights-alert-instance-*** — get/list
+- **insights-query**, **insights-query-range**, **insights-query-series**, **insights-query-labels**, **insights-query-label-values**
+- **insights-logs-search** — search logs in a region (`From`/`To` required, max 7 days)
+- **insights-spans-search** — search spans in a region (`From`/`To` required, max 7 days)
+- **insights-traces-search** — search traces in a region (`From`/`To` required, max 7 days)
+- **insights-trace-get** — get one trace and its spans (`Region` + `TraceID`)
+- **insights-resource-get**, **insights-resource-list**, **insights-resource-update-signals** — per-resource metrics/logs/traces enablement
+- **insights-dashboard-*** — get/list/create/update/delete, plus **insights-dashboard-get-schema** (see below)
+
+### Dashboards
+
+A dashboard is a [Perses](https://perses.dev) document. The API owns its shape; this server does not model it.
+
+- **insights-dashboard-get-schema** — returns the JSON Schema (draft 2020-12) a `Spec` must satisfy. Call it before create/update; the schema is passed through from the API verbatim.
+- **insights-dashboard-create** / **insights-dashboard-update** — take `Spec` as a string containing the JSON object itself (not a JSON-encoded string of it). The tool rejects anything that is not a JSON object before calling the API. `name` and `description` are derived server-side from `spec.display`; update replaces the whole spec. API errors: `409` duplicate `spec.display.name` within the team, `429` team dashboard limit or per-dashboard chart limit.
+- **insights-dashboard-get** / **insights-dashboard-list** — results carry `spec` as a JSON-encoded string, exactly as the API emits it. `get` returns `404` for unknown, deleted, or other-team UUIDs. `list` takes `Page`, `PerPage` (max 200), `Sort` (`name` | `created_at` | `updated_at`; omitted = newest first) and `SortDirection` (`asc` | `desc`, only applied with `Sort`).
+- **insights-dashboard-delete** — deletes by `UUID`.
+
+## Deprecated v1
+
+`alert-policy-*` still call Monitoring. Tool descriptions and a second result text block say DEPRECATED and point at `insights-alert-rule-*`. Uptime tools are unchanged (no v2 MCP yet).
+
 ## Supported Tools
 
 ### UptimeCheck

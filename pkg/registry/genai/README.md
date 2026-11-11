@@ -4,21 +4,27 @@ This package provides MCP tools for DigitalOcean's GenAI platform.
 
 ## Overview
 
-The package contains two sets of evaluation tools:
+The package contains three sets of tools under `genai-evaluation`:
 
-**Agent Evaluation** (`genai-evaluation`) — evaluate deployed agents end-to-end:
+**Agent Evaluation** — evaluate deployed agents end-to-end:
 - List available evaluation metrics
 - Manage evaluation datasets (upload CSV files)
 - Create and update evaluation test cases
 - Run evaluations against agent deployments
 - Monitor evaluation run status
 
-**Model Evaluation** (under `genai-evaluation`) — evaluate raw models directly:
+**Model Evaluation** — evaluate raw models directly:
 - List available model evaluation metrics
 - Upload evaluation datasets
 - Create and run model evaluation runs
 - Download evaluation results
 - Monitor model evaluation run status
+
+**Simulation** — multi-turn agent simulations with scenario sets and episodes:
+- Manage team-owned scenario sets (create, generate, upload JSONL, update, delete)
+- Browse the platform scenario library and materialize entries into team sets
+- Create and monitor simulation runs against candidate agents
+- Inspect episodes and trajectory transcripts
 
 ## Tools
 
@@ -79,7 +85,11 @@ Creates an evaluation dataset by uploading a CSV file. The file is validated to 
 
 **Arguments:**
 - `name` (string, required): Name for the dataset
-- `file_path` (string, required): Path to the CSV file to upload
+- Provide exactly one dataset source:
+  - `file_path` (string): Local path to the CSV file (local MCP only)
+  - `file_content` (string): Inline CSV contents (hosted MCP / Action Gateway)
+  - `file_url` (string): HTTP(S) URL the server can fetch
+- `file_name` (string): File name including `.csv` (required with `file_content`; optional with `file_url` if the URL path includes it)
 
 **Returns:** JSON object with dataset UUID and metadata
 
@@ -134,12 +144,15 @@ Updates an existing evaluation test case.
 ```
 
 #### `genai-run-evaluation-test-case`
-Runs an evaluation test case against specified agent deployments.
+Runs an evaluation test case against regular agents and/or ADK deployments.
 
 **Arguments:**
 - `test_case_uuid` (string, required): Test case UUID to run
-- `agent_deployment_names` (array of strings, required): Deployment names to evaluate
+- `agent_uuids` (array of strings, optional): Agent UUIDs to evaluate (regular agents)
+- `agent_deployment_names` (array of strings, optional): Deployment names to evaluate (ADK)
 - `run_name` (string, required): Name for this evaluation run
+
+At least one of `agent_uuids` or `agent_deployment_names` must be provided.
 
 **Returns:** JSON object with evaluation run UUIDs
 
@@ -189,15 +202,22 @@ Runs a complete end-to-end evaluation workflow. This tool orchestrates all the s
 This tool is ideal for users unfamiliar with the multi-step evaluation process, as it handles all orchestration internally.
 
 **Arguments:**
-- `dataset_file_path` (string, required): Path to CSV evaluation dataset
+- Provide exactly one dataset source:
+  - `dataset_file_path` (string): Local path to CSV evaluation dataset (local MCP only)
+  - `dataset_file_content` (string): Inline CSV contents (hosted MCP / Action Gateway)
+  - `dataset_file_url` (string): HTTP(S) URL the server can fetch
+- `dataset_file_name` (string): File name including `.csv` (required with `dataset_file_content`)
 - `workspace_name` (string, required): Agent workspace name
 - `test_case_name` (string, required): Name for the test case
-- `agent_deployment_names` (array of strings, required): Deployment names to evaluate
+- `agent_uuids` (array of strings, optional): Agent UUIDs to evaluate (regular agents)
+- `agent_deployment_names` (array of strings, optional): Deployment names to evaluate (ADK)
 - `run_name` (string, required): Name for the evaluation run
 - `description` (string, optional): Test case description
 - `metric_categories` (array of strings, optional): Filter by metric categories (e.g., `"METRIC_CATEGORY_CORRECTNESS"`, `"METRIC_CATEGORY_SAFETY_AND_SECURITY"`). If empty, all metrics are used.
 - `timeout_seconds` (number, optional): Timeout for polling results (default: 300 seconds)
 - `poll_interval_seconds` (number, optional): Interval between status polls (default: 5 seconds)
+
+At least one of `agent_uuids` or `agent_deployment_names` must be provided.
 
 **Returns:** JSON object with complete workflow results
 
@@ -244,6 +264,7 @@ query,expected_output
    genai-create-evaluation-dataset
      name: "my_dataset"
      file_path: "/path/to/queries.csv"
+   # On hosted MCP / Action Gateway, use file_content + file_name (or file_url) instead of file_path.
 
 3. Create a test case:
    genai-create-evaluation-test-case
@@ -256,7 +277,8 @@ query,expected_output
 4. Run the evaluation:
    genai-run-evaluation-test-case
      test_case_uuid: "<uuid from step 3>"
-     agent_deployment_names: ["my_agent_deployment"]
+     agent_uuids: ["<agent-uuid>"]
+     # or agent_deployment_names: ["my_agent_deployment"] for ADK
      run_name: "run_1"
 
 5. Poll for results:
@@ -392,7 +414,11 @@ Upload and register a model evaluation dataset (presign → Spaces upload → da
 
 **Arguments:**
 - `name` (string, required): Name for the dataset
-- `file_path` (string, required): Path to a `.csv` or `.jsonl` file to upload. CSV must include an `input` column; JSONL must be one JSON object per line with an `input` field. `ground_truth` is optional in both formats.
+- Provide exactly one dataset source (`.csv` with `input` column, or `.jsonl` with one JSON object per line containing `input`; `ground_truth` optional):
+  - `file_path` (string): Local path (local MCP only)
+  - `file_content` (string): Inline file contents (hosted MCP / Action Gateway)
+  - `file_url` (string): HTTP(S) URL the server can fetch
+- `file_name` (string): File name including `.csv` or `.jsonl` (required with `file_content`)
 
 **Returns:** JSON object with the registered dataset UUID and upload metadata
 
@@ -422,7 +448,7 @@ Create a model evaluation run.
 - `judge_model_uuid` (string, optional): Exact full judge UUID
 - `metric_uuids` (array of strings, optional): Metric UUIDs to evaluate
 - `star_metric` (object, optional): Primary success metric
-- `candidate_inference_config` (object, optional): Inference params (max_tokens, temperature, top_p)
+- `candidate_inference_config` (object, optional): Inference params (temperature, stop_token, system_prompt, reasoning_effort)
 - `user_message` (string, optional): End user's verbatim chat reply after preview (second call; typically `yes`)
 
 **Returns:** JSON object with the evaluation run UUID
@@ -568,7 +594,11 @@ Run a complete model evaluation workflow: upload dataset, create run, and poll f
 **User consent:** Same two-step chat confirmation as `genai-model-eval-create-run`.
 
 **Arguments:**
-- `dataset_file_path` (string, required): Path to the `.csv` or `.jsonl` evaluation dataset
+- Provide exactly one dataset source:
+  - `dataset_file_path` (string): Local path to `.csv` or `.jsonl` (local MCP only)
+  - `dataset_file_content` (string): Inline file contents (hosted MCP / Action Gateway)
+  - `dataset_file_url` (string): HTTP(S) URL the server can fetch
+- `dataset_file_name` (string): File name including `.csv` or `.jsonl` (required with `dataset_file_content`)
 - `name` (string, required): Name for the evaluation run
 - `candidate_model_name` (string, required): Exact candidate model name
 - `candidate_model_uuid` (string, optional): Exact full candidate UUID
@@ -680,4 +710,135 @@ genai-model-eval-run-workflow
 - `FAILED`: Run failed completely
 
 Terminal statuses: `SUCCESSFUL`, `FAILED`, `CANCELLED`, `PARTIALLY_SUCCESSFUL`
+
+---
+
+# Simulation Tools
+
+These tools run multi-turn agent simulations. A **scenario set** defines what to test; a **simulation run** executes that set against a candidate agent; each execution produces a **episode** with a transcript (**trajectory**) and judge verdict.
+
+## Scenario Set Tools
+
+#### `genai-simulation-list-scenario-sets`
+List team-owned scenario sets. Optional filters: `search`, `statuses`, `page`, `per_page`.
+
+#### `genai-simulation-get-scenario-set`
+Get one scenario set by `scenario_set_uuid`.
+
+#### `genai-simulation-create-scenario-set`
+Create a scenario set from **exactly one** of:
+- `scenarios`: array of objects with required `name` and optional `description`, `user_persona`, `stopping_criteria`, `max_turns`, `exploration_budget`
+- `file_path`: local `.jsonl` file (each line a JSON object with a non-empty `name`)
+
+Required: `name`.
+
+#### `genai-simulation-generate-scenario-set`
+Generate scenarios from a natural-language goal. Required: `name`, `goal_description`. Optional: `num_scenarios`, `generator_model_uuid`. Poll `genai-simulation-get-scenario-set` until status is `SCENARIO_SET_STATUS_READY`.
+
+#### `genai-simulation-list-scenarios`
+List scenarios in a team scenario set (`scenario_set_uuid` required).
+
+#### `genai-simulation-get-scenario-set-download-url`
+Get a short-lived presigned URL for the scenario set JSONL.
+
+#### `genai-simulation-update-scenario-set`
+Update `name` and/or replace `scenarios` (at least one required).
+
+#### `genai-simulation-delete-scenario-set`
+Delete a scenario set. Requires `confirm_deletion: true` after explicit user consent.
+
+## Scenario Library Tools
+
+#### `genai-simulation-list-scenario-library`
+List platform-curated library entries. Optional: `category`, `search`, pagination.
+
+#### `genai-simulation-list-scenario-library-scenarios`
+List scenarios inside a library entry (`library_scenario_uuid` required).
+
+#### `genai-simulation-create-scenario-set-from-library`
+Materialize a library entry into a team-owned scenario set. Required: `library_scenario_uuid`. Optional: `name`.
+
+## Simulation Run Tools
+
+#### `genai-simulation-create-run`
+Create a run. Required: `scenario_set_uuid`, `agent_uuid`. Optional: `name`, `agent_deployment_uuid`, `agent_name`, `user_simulator_model_uuid`, `judge_model_uuid`, `user_simulator_config`, `exploration_budget`, `max_turns`, `metric_uuids`, `star_metric`.
+
+#### `genai-simulation-list-runs`
+List runs. Optional filters: `scenario_set_uuid`, `statuses`, `search`, pagination.
+
+#### `genai-simulation-get-run`
+Get a run by `run_uuid`, including per-scenario result rollups when available.
+
+#### `genai-simulation-update-run`
+Rename a run (`run_uuid`, `name`).
+
+#### `genai-simulation-cancel-run`
+Cancel an in-progress run. Requires `confirm_cancel: true` after explicit user consent.
+
+#### `genai-simulation-delete-run`
+Delete a run. Requires `confirm_deletion: true` after explicit user consent.
+
+## Episode Tools
+
+#### `genai-simulation-list-episodes`
+List episodes for a run (`run_uuid` required). Optional filters: `scenario_uuid`, `statuses`, `verdicts`, `search`, pagination.
+
+#### `genai-simulation-get-episode`
+Get one episode (`run_uuid`, `episode_uuid`).
+
+#### `genai-simulation-get-episode-trajectory`
+Get parsed trajectory JSON (messages, tool calls, judge result, metrics).
+
+#### `genai-simulation-get-episode-trajectory-url`
+Get a short-lived presigned download URL for the trajectory file.
+
+## Simulation Workflow Example
+
+```
+# 1. Create or reuse a scenario set
+genai-simulation-create-scenario-set
+  name: "billing-support"
+  scenarios: [{"name":"cancel-subscription","user_persona":"frustrated customer","stopping_criteria":["subscription cancelled"]}]
+
+# 2. Start a run against a candidate agent
+genai-simulation-create-run
+  scenario_set_uuid: "<from step 1>"
+  agent_uuid: "<agent-uuid>"
+  name: "billing-sim-v1"
+
+# 3. Poll the run
+genai-simulation-get-run
+  run_uuid: "<from step 2>"
+
+# 4. Inspect episodes and trajectories
+genai-simulation-list-episodes
+  run_uuid: "<from step 2>"
+
+genai-simulation-get-episode-trajectory
+  run_uuid: "<from step 2>"
+  episode_uuid: "<from list>"
+```
+
+## Scenario Set Status Values
+
+- `SCENARIO_SET_STATUS_GENERATING`
+- `SCENARIO_SET_STATUS_READY`
+- `SCENARIO_SET_STATUS_FAILED`
+- `SCENARIO_SET_STATUS_CANCELLED`
+
+## Simulation Run Status Values
+
+- `SIMULATION_RUN_STATUS_PENDING`
+- `SIMULATION_RUN_STATUS_RUNNING`
+- `SIMULATION_RUN_STATUS_EVALUATING`
+- `SIMULATION_RUN_STATUS_SUCCEEDED`
+- `SIMULATION_RUN_STATUS_PARTIALLY_SUCCESSFUL`
+- `SIMULATION_RUN_STATUS_FAILED`
+- `SIMULATION_RUN_STATUS_CANCELLED`
+
+## Episode Verdict Values
+
+- `SIMULATION_EPISODE_VERDICT_SUCCESS`
+- `SIMULATION_EPISODE_VERDICT_FAILURE`
+- `SIMULATION_EPISODE_VERDICT_INCONCLUSIVE`
 

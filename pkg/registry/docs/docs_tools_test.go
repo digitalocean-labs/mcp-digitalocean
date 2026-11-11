@@ -50,6 +50,7 @@ func TestSearchDocs(t *testing.T) {
 			args: map[string]any{"Query": "droplet"},
 			mockSetup: func(m *MockDocsService) {
 				m.EXPECT().GetDocsIndex().Return(testIndex, nil)
+				m.EXPECT().ContentExcerpts(gomock.Any(), gomock.Len(2), "droplet").Return(nil)
 			},
 			expectText: "result(s) for \"droplet\"",
 		},
@@ -83,6 +84,51 @@ func TestSearchDocs(t *testing.T) {
 			require.Contains(t, text, tc.expectText)
 		})
 	}
+}
+
+func TestSearchDocs_RendersCitationMetadata(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	index := &DocsIndex{
+		Source: "llms-index.json",
+		Entries: []DocsEntry{
+			{
+				Title:        "Why is SMTP blocked?",
+				URL:          "https://docs.digitalocean.com/support/why-is-smtp-blocked/",
+				Description:  "SMTP is blocked on Droplets to prevent spam and abuse.",
+				Section:      "Support",
+				LastModified: "2026-07-13",
+			},
+			{
+				Title:       "Droplet Quickstart",
+				URL:         "https://docs.digitalocean.com/products/droplets/getting-started/quickstart/index.html.md",
+				Description: "Get started with Droplets.",
+				Section:     "Droplets",
+			},
+		},
+	}
+
+	mock := NewMockDocsService(ctrl)
+	mock.EXPECT().GetDocsIndex().Return(index, nil)
+	mock.EXPECT().ContentExcerpts(gomock.Any(), gomock.Len(2), "droplet smtp").Return(nil)
+
+	tool := setupDocsToolWithMock(mock)
+	req := mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"Query": "droplet smtp"}}}
+	resp, err := tool.searchDocs(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, resp.IsError)
+
+	text := resp.Content[0].(mcp.TextContent).Text
+	require.Contains(t, text, "Found 2 result(s)")
+	require.Contains(t, text, "searched 2 pages")
+	require.Contains(t, text, "1. Why is SMTP blocked?\n   https://docs.digitalocean.com/support/why-is-smtp-blocked/\n")
+	require.Contains(t, text, "[Support | support | updated 2026-07-13]")
+	require.Contains(t, text, "SMTP is blocked on Droplets to prevent spam and abuse.")
+	require.Contains(t, text, "2. Droplet Quickstart\n   https://docs.digitalocean.com/products/droplets/getting-started/quickstart/\n")
+	require.Contains(t, text, "[Droplets | getting-started]")
+	require.Contains(t, text, "docs-get-page")
+	require.NotContains(t, text, "index.html.md", "results should cite canonical URLs")
 }
 
 func TestGetDoc(t *testing.T) {
@@ -332,6 +378,7 @@ func TestTroubleshoot(t *testing.T) {
 			mockSetup: func(m *MockDocsService) {
 				m.EXPECT().FindTroubleshootPage("520 status code").Return(supportEntries, nil)
 				m.EXPECT().FetchDocPage("https://docs.digitalocean.com/support/520-status-codes/").Return("# 520 Status Codes\n\nYour app crashed.", nil)
+				m.EXPECT().ContentExcerpts(gomock.Any(), supportEntries[1:], "520 status code").Return(nil)
 			},
 			expectText: "520 Status Codes",
 		},

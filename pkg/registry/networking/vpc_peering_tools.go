@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -38,11 +37,7 @@ func (t *VPCPeeringTool) getVPCPeering(ctx context.Context, req mcp.CallToolRequ
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(peering, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return vpcPeeringOut.Result(peering)
 }
 
 func (t *VPCPeeringTool) listVPCPeerings(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -64,11 +59,7 @@ func (t *VPCPeeringTool) listVPCPeerings(ctx context.Context, req mcp.CallToolRe
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonPeerings, err := json.MarshalIndent(peerings, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonPeerings)), nil
+	return vpcPeeringListOut.Result(peerings)
 }
 
 func (t *VPCPeeringTool) createPeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -92,12 +83,7 @@ func (t *VPCPeeringTool) createPeering(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(peering, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return vpcPeeringOut.Result(peering)
 }
 
 func (t *VPCPeeringTool) deletePeering(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -126,6 +112,7 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-peering-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				vpcPeeringOut.Schema(),
 				mcp.WithDescription("Get VPC Peering information by ID"),
 				mcp.WithString("ID", mcp.Required(), mcp.Description("ID of the VPC Peering connection")),
 			),
@@ -135,6 +122,7 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-peering-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				vpcPeeringListOut.Schema(),
 				mcp.WithDescription("List VPC Peering connections with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(1), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(20), mcp.Description("Items per page")),
@@ -145,6 +133,7 @@ func (t *VPCPeeringTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("vpc-peering-create",
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
+				vpcPeeringOut.Schema(),
 				mcp.WithDescription("Create a new VPC Peering connection between two VPCs"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name for the Peering connection")),
 				mcp.WithString("Vpc1", mcp.Required(), mcp.Description("ID of the first VPC")),

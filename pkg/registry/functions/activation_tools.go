@@ -2,7 +2,6 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -60,12 +59,11 @@ func (t *ActivationTool) listActivations(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultErrorFromErr("list activations", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return activationListOut.ResultRaw(out, data), nil
 }
 
 func (t *ActivationTool) getActivation(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -91,12 +89,11 @@ func (t *ActivationTool) getActivation(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultErrorFromErr("get activation", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return activationOut.ResultRaw(out, data), nil
 }
 
 func (t *ActivationTool) getActivationLogs(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -122,12 +119,11 @@ func (t *ActivationTool) getActivationLogs(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("get activation logs", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return activationLogsOut.ResultRaw(out, data), nil
 }
 
 func (t *ActivationTool) getActivationResult(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -153,12 +149,11 @@ func (t *ActivationTool) getActivationResult(ctx context.Context, req mcp.CallTo
 		return mcp.NewToolResultErrorFromErr("get activation result", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return activationResultOut.ResultRaw(out, data), nil
 }
 
 func (t *ActivationTool) Tools() []server.ServerTool {
@@ -168,6 +163,7 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-activations",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				activationListOut.Schema(),
 				mcp.WithDescription("List activations (invocation records) for a DigitalOcean Functions namespace. Activations record every function invocation with timing, status, and optional response data."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithString("FunctionName", mcp.Description("Filter activations by function name")),
@@ -183,6 +179,7 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-activation",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				activationOut.Schema(),
 				mcp.WithDescription("Get the full activation record for a specific function invocation, including response, logs, timing, and status."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),
@@ -193,6 +190,7 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-activation-logs",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				activationLogsOut.Schema(),
 				mcp.WithDescription("Get only the logs for a specific function activation. Useful for debugging function execution."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),
@@ -203,6 +201,7 @@ func (t *ActivationTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-activation-result",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				activationResultOut.Schema(),
 				mcp.WithDescription("Get only the result of a specific function activation. Returns the function's return value and status."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("ActivationID", mcp.Required(), mcp.Description("The activation ID")),

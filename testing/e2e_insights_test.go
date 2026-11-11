@@ -282,3 +282,173 @@ func TestAlertPolicyLifecycle(t *testing.T) {
 	require.Equal(t, updatedDescription, updatedPolicy.Description)
 	t.Logf("updated policy description to: %s", updatedPolicy.Description)
 }
+
+func deleteNotificationChannel(t *testing.T, tc testContext, id string) {
+	t.Logf("deleting notification channel %s...", id)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-notification-channel-delete",
+			Arguments: map[string]interface{}{"ID": id},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete notification channel: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-notification-channel-delete returned error: %v", resp.Content)
+	}
+}
+
+func deleteAlertRule(t *testing.T, tc testContext, id string) {
+	t.Logf("deleting alert rule %s...", id)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-alert-rule-delete",
+			Arguments: map[string]interface{}{"ID": id},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete alert rule: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-alert-rule-delete returned error: %v", resp.Content)
+	}
+}
+
+func TestInsightsV2AlertRuleLifecycle(t *testing.T) {
+	ctx, c := setupTest(t)
+	tc := testContext{ctx: ctx, client: c}
+
+	account := callTool[godo.Account](t, "account-get-information", map[string]interface{}{})
+	require.NotEmpty(t, account.Email)
+
+	channelName := fmt.Sprintf("test-insights-channel-%d", time.Now().Unix())
+	channel := callTool[godo.NotificationChannel](t, "insights-notification-channel-create", map[string]interface{}{
+		"Name":    channelName,
+		"EmailTo": account.Email,
+	})
+	require.NotEmpty(t, channel.ID)
+	defer func() { deleteNotificationChannel(t, tc, channel.ID) }()
+
+	fetchedChannel := callTool[godo.NotificationChannel](t, "insights-notification-channel-get", map[string]interface{}{"ID": channel.ID})
+	require.Equal(t, channel.ID, fetchedChannel.ID)
+
+	channels := callTool[[]godo.NotificationChannel](t, "insights-notification-channel-list", map[string]interface{}{"Page": 1, "PerPage": 50})
+	requireFoundInList(t, channels, func(ch godo.NotificationChannel) bool { return ch.ID == channel.ID }, "notification channel")
+
+	ruleName := fmt.Sprintf("test-insights-rule-%d", time.Now().Unix())
+	rule := callTool[godo.AlertRule](t, "insights-alert-rule-create", map[string]interface{}{
+		"Name":     ruleName,
+		"Metric":   "do.droplets.cpu_utilization",
+		"Operator": godo.InsightsThresholdOperatorGreaterThan,
+		"Critical": 95,
+		"Window":   godo.InsightsEvaluationWindow5m,
+		"Tags":     []string{"mcp-e2e"},
+		"NotificationChannels": []map[string]interface{}{{
+			"NotificationChannelID": channel.ID,
+			"NotifyOn":              []string{godo.InsightsSeverityCritical},
+		}},
+	})
+	require.NotEmpty(t, rule.ID)
+	defer func() { deleteAlertRule(t, tc, rule.ID) }()
+
+	fetchedRule := callTool[godo.AlertRule](t, "insights-alert-rule-get", map[string]interface{}{"ID": rule.ID})
+	require.Equal(t, rule.ID, fetchedRule.ID)
+
+	rules := callTool[[]godo.AlertRule](t, "insights-alert-rule-list", map[string]interface{}{"Page": 1, "PerPage": 50})
+	requireFoundInList(t, rules, func(r godo.AlertRule) bool { return r.ID == rule.ID }, "alert rule")
+
+	updated := callTool[godo.AlertRule](t, "insights-alert-rule-update", map[string]interface{}{
+		"ID":       rule.ID,
+		"Name":     ruleName + "-updated",
+		"Metric":   "do.droplets.cpu_utilization",
+		"Operator": godo.InsightsThresholdOperatorGreaterThan,
+		"Critical": 90,
+		"Window":   godo.InsightsEvaluationWindow10m,
+		"Tags":     []string{"mcp-e2e"},
+	})
+	require.Equal(t, ruleName+"-updated", updated.Spec.Name)
+
+	_ = callTool[[]godo.AlertInstance](t, "insights-alert-instance-list", map[string]interface{}{
+		"RuleID":  rule.ID,
+		"Page":    1,
+		"PerPage": 20,
+	})
+}
+
+func deleteDashboard(t *testing.T, tc testContext, uuid string) {
+	t.Logf("deleting dashboard %s...", uuid)
+	resp, err := tc.client.CallTool(tc.ctx, mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "insights-dashboard-delete",
+			Arguments: map[string]interface{}{"UUID": uuid},
+		},
+	})
+	if err != nil {
+		t.Logf("failed to delete dashboard: %v", err)
+		return
+	}
+	if resp.IsError {
+		t.Logf("insights-dashboard-delete returned error: %v", resp.Content)
+	}
+}
+
+// dashboardSpec is the smallest Perses document the Insights API accepts: one
+// grid layout referencing one time-series panel. Mirrors godo's smoke example.
+func dashboardSpec(name, description string) string {
+	return fmt.Sprintf(`{
+  "kind": "Dashboard",
+  "apiVersion": "perses.dev/v1alpha1",
+  "spec": {
+    "display": {"name": %q, "description": %q},
+    "duration": "1h",
+    "variables": [],
+    "layouts": [{"kind": "Grid", "spec": {"items": [
+      {"x": 0, "y": 0, "width": 12, "height": 6, "content": {"$ref": "#/spec/panels/cpu"}}
+    ]}}],
+    "panels": {"cpu": {"kind": "Panel", "spec": {
+      "display": {"name": "CPU utilization"},
+      "plugin": {"kind": "TimeSeriesChart", "spec": {}},
+      "queries": [{"kind": "TimeSeriesQuery", "spec": {
+        "plugin": {"kind": "MetricsTimeSeriesQuery", "spec": {
+          "metricName": "do.droplets.cpu_utilization", "kind": "gauge", "filters": [], "groupBy": []
+        }}
+      }}]
+    }}}
+  }
+}`, name, description)
+}
+
+func TestInsightsDashboardLifecycle(t *testing.T) {
+	ctx, c := setupTest(t)
+	tc := testContext{ctx: ctx, client: c}
+
+	schema := callTool[map[string]any](t, "insights-dashboard-get-schema", map[string]interface{}{})
+	require.NotEmpty(t, schema, "schema must be a non-empty JSON object")
+
+	name := fmt.Sprintf("mcp-e2e-dashboard-%d", time.Now().Unix())
+	created := callTool[godo.Dashboard](t, "insights-dashboard-create", map[string]interface{}{
+		"Spec": dashboardSpec(name, "Created by mcp-digitalocean e2e. Safe to delete."),
+	})
+	require.NotEmpty(t, created.UUID)
+	defer func() { deleteDashboard(t, tc, created.UUID) }()
+	require.Equal(t, name, created.Name, "name is derived from spec.display.name")
+
+	fetched := callTool[godo.Dashboard](t, "insights-dashboard-get", map[string]interface{}{"UUID": created.UUID})
+	require.Equal(t, created.UUID, fetched.UUID)
+	require.JSONEq(t, dashboardSpec(name, "Created by mcp-digitalocean e2e. Safe to delete."), string(fetched.Spec))
+
+	list := callTool[godo.DashboardList](t, "insights-dashboard-list", map[string]interface{}{
+		"Page": 1, "PerPage": 50, "Sort": "created_at", "SortDirection": "desc",
+	})
+	requireFoundInList(t, list.Dashboards, func(d godo.Dashboard) bool { return d.UUID == created.UUID }, "dashboard")
+
+	updated := callTool[godo.Dashboard](t, "insights-dashboard-update", map[string]interface{}{
+		"UUID": created.UUID,
+		"Spec": dashboardSpec(name+"-updated", "Updated by mcp-digitalocean e2e."),
+	})
+	require.Equal(t, created.UUID, updated.UUID)
+	require.Equal(t, name+"-updated", updated.Name, "name is recomputed from the replaced spec")
+}

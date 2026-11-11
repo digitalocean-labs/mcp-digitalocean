@@ -2,7 +2,6 @@ package droplet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -47,12 +46,7 @@ func (ia *ImageActionsTool) transferImage(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // convertImageToSnapshot converts a backup into a snapshot.
@@ -72,12 +66,7 @@ func (ia *ImageActionsTool) convertImageToSnapshot(ctx context.Context, req mcp.
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // getImageAction retrieves the status of an image action.
@@ -101,12 +90,7 @@ func (ia *ImageActionsTool) getImageAction(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonAction, err := json.MarshalIndent(action, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonAction)), nil
+	return actionOut.Result(action)
 }
 
 // Tools returns the list of server tools for image actions.
@@ -118,6 +102,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 				"image-action-transfer",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Transfer an image to another region."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the image to transfer")),
 				mcp.WithString("Region", mcp.Required(), mcp.Description("Region slug to transfer to (e.g., nyc3)")),
@@ -129,6 +114,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 				"image-action-convert",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Convert an image (backup) to a snapshot."),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the image to convert")),
 			),
@@ -139,6 +125,7 @@ func (ia *ImageActionsTool) Tools() []server.ServerTool {
 				"image-action-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				actionOut.Schema(),
 				mcp.WithDescription("Retrieve the status of an image action."),
 				mcp.WithNumber("ImageID", mcp.Required(), mcp.Description("ID of the image")),
 				mcp.WithNumber("ActionID", mcp.Required(), mcp.Description("ID of the action")),

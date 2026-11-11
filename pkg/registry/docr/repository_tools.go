@@ -2,7 +2,6 @@ package docr
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -31,9 +30,9 @@ func NewRepositoryTool(client func(ctx context.Context) (*godo.Client, error)) *
 
 // listRepositories lists repositories in a container registry
 func (r *RepositoryTool) listRepositories(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -60,32 +59,22 @@ func (r *RepositoryTool) listRepositories(ctx context.Context, req mcp.CallToolR
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	result := struct {
-		Repositories []*godo.RepositoryV2 `json:"repositories"`
-		Meta         *godo.Meta           `json:"meta,omitempty"`
-	}{
+	return repositoryListOut.Result(repositoryList{
 		Repositories: repos,
 		Meta:         resp.Meta,
-	}
-
-	jsonRepos, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonRepos)), nil
+	})
 }
 
 // listRepositoryTags lists tags for a repository
 func (r *RepositoryTool) listRepositoryTags(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -110,37 +99,27 @@ func (r *RepositoryTool) listRepositoryTags(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	result := struct {
-		Tags []*godo.RepositoryTag `json:"tags"`
-		Meta *godo.Meta            `json:"meta,omitempty"`
-	}{
+	return repositoryTagListOut.Result(repositoryTagList{
 		Tags: tags,
 		Meta: resp.Meta,
-	}
-
-	jsonTags, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonTags)), nil
+	})
 }
 
 // deleteTag deletes a tag from a repository
 func (r *RepositoryTool) deleteTag(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	tag, ok := req.GetArguments()["Tag"].(string)
-	if !ok || tag == "" {
-		return mcp.NewToolResultError("Tag is required"), nil
+	tag, errResult := tagArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -158,14 +137,14 @@ func (r *RepositoryTool) deleteTag(ctx context.Context, req mcp.CallToolRequest)
 
 // listRepositoryManifests lists manifests for a repository
 func (r *RepositoryTool) listRepositoryManifests(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	page := defaultRepoPage
@@ -190,37 +169,27 @@ func (r *RepositoryTool) listRepositoryManifests(ctx context.Context, req mcp.Ca
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	result := struct {
-		Manifests []*godo.RepositoryManifest `json:"manifests"`
-		Meta      *godo.Meta                 `json:"meta,omitempty"`
-	}{
+	return repositoryManifestListOut.Result(repositoryManifestList{
 		Manifests: manifests,
 		Meta:      resp.Meta,
-	}
-
-	jsonManifests, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonManifests)), nil
+	})
 }
 
 // deleteManifest deletes a manifest from a repository
 func (r *RepositoryTool) deleteManifest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	registryName, ok := req.GetArguments()["RegistryName"].(string)
-	if !ok || registryName == "" {
-		return mcp.NewToolResultError("RegistryName is required"), nil
+	registryName, errResult := registryNameArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	repository, ok := req.GetArguments()["Repository"].(string)
-	if !ok || repository == "" {
-		return mcp.NewToolResultError("Repository is required"), nil
+	repository, errResult := repositoryArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
-	digest, ok := req.GetArguments()["Digest"].(string)
-	if !ok || digest == "" {
-		return mcp.NewToolResultError("Digest is required"), nil
+	digest, errResult := digestArg(req)
+	if errResult != nil {
+		return errResult, nil
 	}
 
 	client, err := r.client(ctx)
@@ -244,6 +213,7 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-repository-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				repositoryListOut.Schema(),
 				mcp.WithDescription("List repositories in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultRepoPage), mcp.Description("Page number")),
@@ -256,6 +226,7 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-repository-tag-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				repositoryTagListOut.Schema(),
 				mcp.WithDescription("List tags for a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),
@@ -279,6 +250,7 @@ func (r *RepositoryTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-repository-manifest-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				repositoryManifestListOut.Schema(),
 				mcp.WithDescription("List manifests for a repository in a container registry"),
 				mcp.WithString("RegistryName", mcp.Required(), mcp.Description("Name of the container registry")),
 				mcp.WithString("Repository", mcp.Required(), mcp.Description("Name of the repository")),

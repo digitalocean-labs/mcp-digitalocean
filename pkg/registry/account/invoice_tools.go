@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -46,11 +45,7 @@ func (i *InvoiceTools) listInvoices(ctx context.Context, req mcp.CallToolRequest
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(invoices, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return invoiceListOut.Result(invoices)
 }
 
 // getInvoice retrieves a specific invoice by UUID.
@@ -80,12 +75,7 @@ func (i *InvoiceTools) getInvoice(ctx context.Context, req mcp.CallToolRequest) 
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonData, err := json.MarshalIndent(invoice, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return invoiceOut.Result(invoice)
 }
 
 // Tools returns the list of server tools for invoices.
@@ -96,6 +86,7 @@ func (i *InvoiceTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("invoice-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				invoiceListOut.Schema(),
 				mcp.WithDescription("List invoices with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultInvoicesPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultInvoicesPageSize), mcp.Description("Items per page")),
@@ -106,6 +97,7 @@ func (i *InvoiceTools) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("get-invoice",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				invoiceOut.Schema(),
 				mcp.WithDescription("Get a specific invoice"),
 				mcp.WithString("InvoiceUUID", mcp.Required(), mcp.Description("The UUID of the invoice")),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultInvoicesPage), mcp.Description("Page number")),

@@ -110,9 +110,9 @@ func TestRegionTools_listRegions(t *testing.T) {
 			require.False(t, resp.IsError)
 			require.NotEmpty(t, resp.Content)
 			content := resp.Content[0].(mcp.TextContent).Text
-			var regionsOut []godo.Region
-			require.NoError(t, json.Unmarshal([]byte(content), &regionsOut))
-			require.Equal(t, mockRegions, regionsOut)
+			var fromText []godo.Region
+			require.NoError(t, json.Unmarshal([]byte(content), &fromText))
+			require.Equal(t, mockRegions, fromText)
 		})
 	}
 }

@@ -12,14 +12,42 @@ import (
 
 type AuthKey struct{}
 
-// AuthFromRequest extracts the auth token from the request headers.
+// RouterResourceKey is the context key under which the encrypted resource
+// identifier supplied by a trusted MCP router is stored.
+type RouterResourceKey struct{}
+
+// RouterResourceHeader is the request header a trusted MCP router uses to
+// forward the AES-256-GCM ciphertext of its own MCP resource URL. When present,
+// this server relays it to the DigitalOcean API as the encrypted resource
+// identifier so the backend validates the OAuth audience against the router
+// (the resource the client actually authenticated to) instead of this server.
+const RouterResourceHeader = "X-Router-Encrypted-Resource-Identifier"
+
+// AuthFromRequest extracts the auth token and any router-supplied encrypted
+// resource identifier from the request headers.
 func AuthFromRequest(ctx context.Context, r *http.Request) context.Context {
-	return WithAuthKey(ctx, r.Header.Get("Authorization"))
+	ctx = WithAuthKey(ctx, r.Header.Get("Authorization"))
+	return WithRouterResource(ctx, r.Header.Get(RouterResourceHeader))
 }
 
 // WithAuthKey adds an auth key to the context.
 func WithAuthKey(ctx context.Context, auth string) context.Context {
 	return context.WithValue(ctx, AuthKey{}, auth)
+}
+
+// WithRouterResource adds the router-supplied encrypted resource identifier to
+// the context.
+func WithRouterResource(ctx context.Context, encryptedResource string) context.Context {
+	return context.WithValue(ctx, RouterResourceKey{}, encryptedResource)
+}
+
+// RouterResourceFromContext returns the router-supplied encrypted resource
+// identifier stored in ctx, or "" when absent.
+func RouterResourceFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(RouterResourceKey{}).(string); ok {
+		return v
+	}
+	return ""
 }
 
 // ToolLoggingMiddleware is a middleware that logs tool errors.

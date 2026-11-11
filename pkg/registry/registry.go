@@ -20,11 +20,14 @@ import (
 	genaibi "mcp-digitalocean/pkg/registry/genai-batchinference"
 	genaicm "mcp-digitalocean/pkg/registry/genai-custom-models"
 	genaiinferencerouter "mcp-digitalocean/pkg/registry/genai-inferencerouter"
+	harnessruntime "mcp-digitalocean/pkg/registry/harness-runtime"
 	inferencemodelcatalog "mcp-digitalocean/pkg/registry/inference-modelcatalog"
 	"mcp-digitalocean/pkg/registry/insights"
 	"mcp-digitalocean/pkg/registry/marketplace"
+	"mcp-digitalocean/pkg/registry/microdroplet"
 	"mcp-digitalocean/pkg/registry/networking"
 	"mcp-digitalocean/pkg/registry/nfs"
+	"mcp-digitalocean/pkg/registry/signals"
 	"mcp-digitalocean/pkg/registry/spaces"
 	"mcp-digitalocean/pkg/registry/vectordb"
 	"mcp-digitalocean/pkg/registry/volumes"
@@ -58,6 +61,9 @@ var supportedServices = map[string]struct{}{
 	"functions":              {},
 	"nfs":                    {},
 	"vector-databases":       {},
+	"signals":                {},
+	"harness-runtime":        {},
+	"microvms":               {},
 }
 
 // registerAppTools registers the app platform tools with the MCP server.
@@ -150,6 +156,7 @@ func registerModelCatalogTools(s *server.MCPServer, getClient getClientFn) error
 func registerGenAIEvaluationTools(s *server.MCPServer, getClient getClientFn) error {
 	s.AddTools(genai.NewEvaluationTool(getClient).Tools()...)
 	s.AddTools(genai.NewModelEvaluationTool(getClient).Tools()...)
+	s.AddTools(genai.NewSimulationTool(getClient).Tools()...)
 	return nil
 }
 
@@ -172,6 +179,12 @@ func registerGenAIInferenceRouterTools(s *server.MCPServer, getClient getClientF
 }
 
 func registerInsightsTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(insights.NewAlertRuleTool(getClient).Tools()...)
+	s.AddTools(insights.NewNotificationChannelTool(getClient).Tools()...)
+	s.AddTools(insights.NewAlertInstanceTool(getClient).Tools()...)
+	s.AddTools(insights.NewResourceTool(getClient).Tools()...)
+	s.AddTools(insights.NewDashboardTool(getClient).Tools()...)
+	s.AddTools(insights.NewQueryTool(getClient).Tools()...)
 	s.AddTools(insights.NewUptimeTool(getClient).Tools()...)
 	s.AddTools(insights.NewUptimeCheckAlertTool(getClient).Tools()...)
 	s.AddTools(insights.NewAlertPolicyTool(getClient).Tools()...)
@@ -239,6 +252,21 @@ func registerNfsTools(s *server.MCPServer, getClient getClientFn) error {
 
 func registerVectorDBTools(s *server.MCPServer, getClient getClientFn) error {
 	s.AddTools(vectordb.NewVectorDBTool(getClient).Tools()...)
+	return nil
+}
+
+func registerSignalsTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(signals.NewTool(getClient).Tools()...)
+	return nil
+}
+
+func registerHarnessRuntimeTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(harnessruntime.NewTool(getClient).Tools()...)
+	return nil
+}
+
+func registerMicroDropletTools(s *server.MCPServer, getClient getClientFn) error {
+	s.AddTools(microdroplet.NewMicroDropletTool(getClient).Tools()...)
 	return nil
 }
 
@@ -338,6 +366,18 @@ func Register(logger *slog.Logger, s *server.MCPServer, getClient getClientFn, s
 		case "vector-databases":
 			if err := registerVectorDBTools(s, getClient); err != nil {
 				return fmt.Errorf("failed to register vector-databases tools: %w", err)
+			}
+		case "signals":
+			if err := registerSignalsTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register signals tools: %w", err)
+			}
+		case "harness-runtime":
+			if err := registerHarnessRuntimeTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register harness-runtime tools: %w", err)
+			}
+		case "microvms":
+			if err := registerMicroDropletTools(s, getClient); err != nil {
+				return fmt.Errorf("failed to register microvms tools: %w", err)
 			}
 		default:
 			return fmt.Errorf("unsupported service: %s, supported service are: %v", svc, setToString(supportedServices))

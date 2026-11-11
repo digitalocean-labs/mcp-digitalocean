@@ -73,6 +73,9 @@ type CustomModelActiveDeployment struct {
 }
 
 // CustomModel represents a custom model in the GenAI platform.
+//
+// json.Number has a string kind, so schema reflection would call it a string;
+// it serialises as a bare JSON number, hence the explicit jsonschema type.
 type CustomModel struct {
 	UUID                 string                         `json:"uuid"`
 	Name                 string                         `json:"name"`
@@ -222,6 +225,9 @@ type UnifiedSearchResponse struct {
 	CatalogModels []CatalogSearchRow  `json:"catalog_models"`
 	CustomModels  []CustomSearchRow   `json:"custom_models"`
 	Counts        UnifiedSearchCounts `json:"counts"`
+	// Errors carries the failure from a single source when the other one
+	// still returned rows; the tool fails outright when both sources fail.
+	Errors []string `json:"errors,omitempty"`
 }
 
 // UnifiedSearchCounts holds per-source result counts.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/digitalocean/godo"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestResolveEvalModelByName(t *testing.T) {
@@ -18,6 +19,35 @@ func TestResolveEvalModelByName(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, unresolved)
 	require.Equal(t, "deepseek-r1-distill-llama-70b", resolved.APIName)
+}
+
+func TestCanResolveEvalModelsByUUID(t *testing.T) {
+	cand := "11111111-1111-1111-1111-111111111111"
+	judge := "22222222-2222-2222-2222-222222222222"
+
+	require.True(t, canResolveEvalModelsByUUID(cand, judge, true))
+	require.True(t, canResolveEvalModelsByUUID(cand, "", false))
+	require.False(t, canResolveEvalModelsByUUID("", judge, true))
+	require.False(t, canResolveEvalModelsByUUID(cand, "", true))
+	require.False(t, canResolveEvalModelsByUUID("partial-uuid", judge, true))
+}
+
+func TestResolveEvalModelsByUUIDFastPath_nameMismatch(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cand := "11111111-1111-1111-1111-111111111111"
+	m := NewMockAgentPlatformService(ctrl)
+	m.EXPECT().GetModelByUUID(gomock.Any(), cand).Return(&godo.Model{
+		Uuid: cand, Name: "Candidate", InferenceName: "candidate-slug",
+	}, &godo.Response{}, nil)
+
+	client := &godo.Client{AgentPlatform: m}
+	_, err := resolveEvalModelsByUUIDFastPath(
+		context.Background(), client, cand, "Wrong Name", "", "", false,
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "different models")
 }
 
 func TestCatalogModelNames(t *testing.T) {

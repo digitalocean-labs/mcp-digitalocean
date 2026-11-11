@@ -320,6 +320,22 @@ func (mr *MockDatabasesServiceMockRecorder) Get(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockDatabasesService)(nil).Get), arg0, arg1)
 }
 
+// GetAdvancedMySQLConfig mocks base method.
+func (m *MockDatabasesService) GetAdvancedMySQLConfig(arg0 context.Context, arg1 string) (*godo.AdvancedMySQLConfig, *godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAdvancedMySQLConfig", arg0, arg1)
+	ret0, _ := ret[0].(*godo.AdvancedMySQLConfig)
+	ret1, _ := ret[1].(*godo.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetAdvancedMySQLConfig indicates an expected call of GetAdvancedMySQLConfig.
+func (mr *MockDatabasesServiceMockRecorder) GetAdvancedMySQLConfig(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAdvancedMySQLConfig", reflect.TypeOf((*MockDatabasesService)(nil).GetAdvancedMySQLConfig), arg0, arg1)
+}
+
 // GetAdvancedPostgresSQLConfig mocks base method.
 func (m *MockDatabasesService) GetAdvancedPostgresSQLConfig(arg0 context.Context, arg1 string) (*godo.AdvancedPostgresConfig, *godo.Response, error) {
 	m.ctrl.T.Helper()
@@ -1052,6 +1068,21 @@ func (m *MockDatabasesService) StopOnlineMigration(ctx context.Context, database
 func (mr *MockDatabasesServiceMockRecorder) StopOnlineMigration(ctx, databaseID, migrationID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopOnlineMigration", reflect.TypeOf((*MockDatabasesService)(nil).StopOnlineMigration), ctx, databaseID, migrationID)
+}
+
+// UpdateAdvancedMySQLConfig mocks base method.
+func (m *MockDatabasesService) UpdateAdvancedMySQLConfig(arg0 context.Context, arg1 string, arg2 *godo.AdvancedMySQLConfigUpdate) (*godo.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAdvancedMySQLConfig", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*godo.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAdvancedMySQLConfig indicates an expected call of UpdateAdvancedMySQLConfig.
+func (mr *MockDatabasesServiceMockRecorder) UpdateAdvancedMySQLConfig(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAdvancedMySQLConfig", reflect.TypeOf((*MockDatabasesService)(nil).UpdateAdvancedMySQLConfig), arg0, arg1, arg2)
 }
 
 // UpdateAdvancedPostgresSQLConfig mocks base method.

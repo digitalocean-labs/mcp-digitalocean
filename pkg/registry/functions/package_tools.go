@@ -2,7 +2,6 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -51,12 +50,11 @@ func (t *PackageTool) listPackages(ctx context.Context, req mcp.CallToolRequest)
 		return mcp.NewToolResultErrorFromErr("list packages", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return packageListOut.ResultRaw(out, data), nil
 }
 
 func (t *PackageTool) getPackage(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -82,12 +80,11 @@ func (t *PackageTool) getPackage(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultErrorFromErr("get package", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return packageOut.ResultRaw(out, data), nil
 }
 
 func (t *PackageTool) createOrUpdatePackage(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -130,12 +127,11 @@ func (t *PackageTool) createOrUpdatePackage(ctx context.Context, req mcp.CallToo
 		return mcp.NewToolResultErrorFromErr("create/update package", err), nil
 	}
 
-	var result json.RawMessage = data
-	out, err := json.MarshalIndent(result, "", "  ")
+	out, err := indentJSON(data)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("json format", err), nil
 	}
-	return mcp.NewToolResultText(string(out)), nil
+	return packageOut.ResultRaw(out, data), nil
 }
 
 func (t *PackageTool) deletePackage(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -176,6 +172,7 @@ func (t *PackageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-list-packages",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				packageListOut.Schema(),
 				mcp.WithDescription("List all packages in a DigitalOcean Functions namespace. Packages group related actions together."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace (from functions-list-namespaces)")),
 				mcp.WithNumber("Limit", mcp.Description("Number of packages to return (0-200, default 30). Use 0 for maximum.")),
@@ -188,6 +185,7 @@ func (t *PackageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-get-package",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				packageOut.Schema(),
 				mcp.WithDescription("Get detailed information about a specific package in a DigitalOcean Functions namespace, including its actions, parameters, and annotations."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("PackageName", mcp.Required(), mcp.Description("The name of the package")),
@@ -198,6 +196,7 @@ func (t *PackageTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("functions-create-or-update-package",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskLow),
+				packageOut.Schema(),
 				mcp.WithDescription("Create or update a package in a DigitalOcean Functions namespace. Packages are used to group related actions."),
 				mcp.WithString("NamespaceID", mcp.Required(), mcp.Description("The UUID of the namespace")),
 				mcp.WithString("PackageName", mcp.Required(), mcp.Description("The name of the package to create or update")),

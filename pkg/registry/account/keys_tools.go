@@ -2,7 +2,6 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -46,12 +45,7 @@ func (k *KeysTool) createKey(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonKey, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonKey)), nil
+	return keyOut.Result(key)
 }
 
 func (k *KeysTool) deleteKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -86,11 +80,7 @@ func (k *KeysTool) getKey(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(key, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return keyOut.Result(key)
 }
 
 // listKeys lists SSH keys with pagination support.
@@ -113,11 +103,7 @@ func (k *KeysTool) listKeys(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
-	jsonData, err := json.MarshalIndent(keys, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-	return mcp.NewToolResultText(string(jsonData)), nil
+	return keysOut.Result(keys)
 }
 
 // Tools returns a list of tool functions
@@ -128,6 +114,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("key-create",
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskLow),
+				keyOut.Schema(),
 				mcp.WithDescription("Create a new SSH key"),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Name of the SSH key")),
 				mcp.WithString("PublicKey", mcp.Required(), mcp.Description("Public key content")),
@@ -147,6 +134,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("key-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				keyOut.Schema(),
 				mcp.WithDescription("Get a specific SSH key by ID"),
 				mcp.WithNumber("ID", mcp.Required(), mcp.Description("ID of the SSH key")),
 			),
@@ -156,6 +144,7 @@ func (k *KeysTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("key-list",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				keysOut.Schema(),
 				mcp.WithDescription("List SSH keys with pagination"),
 				mcp.WithNumber("Page", mcp.DefaultNumber(defaultKeysPage), mcp.Description("Page number")),
 				mcp.WithNumber("PerPage", mcp.DefaultNumber(defaultKeysPageSize), mcp.Description("Items per page")),

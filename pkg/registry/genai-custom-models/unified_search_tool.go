@@ -17,7 +17,7 @@ const (
 
 // unifiedSearch searches the model catalog and custom models in parallel, then returns
 // two markdown tables (one row per model, never combined). Catalog matches use
-// GradientAI.SearchModels; custom matches are ranked client-side by relevance.
+// AgentPlatform.SearchModels; custom matches are ranked client-side by relevance.
 func (cmt *CustomModelsTool) unifiedSearch(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	query, _ := req.GetArguments()["query"].(string)
 
@@ -84,17 +84,31 @@ func (cmt *CustomModelsTool) unifiedSearch(ctx context.Context, req mcp.CallTool
 		customModels = []CustomSearchRow{}
 	}
 
+	// The table sorts the custom rows as it renders them; sorting here keeps
+	// structuredContent in the same order the client is shown.
+	customModels = sortCustomSearchRows(customModels)
+
 	text := formatUnifiedSearchTables(query, catalogModels, customModels)
 	if len(errors) == 1 {
 		text = fmt.Sprintf("partial results (one source failed: %s)\n\n%s", errors[0], text)
 	}
 
-	return mcp.NewToolResultText(text), nil
+	return unifiedSearchOut.ResultWithText(text, UnifiedSearchResponse{
+		Query:         query,
+		CatalogModels: catalogModels,
+		CustomModels:  customModels,
+		Counts: UnifiedSearchCounts{
+			Catalog: len(catalogModels),
+			Custom:  len(customModels),
+			Total:   len(catalogModels) + len(customModels),
+		},
+		Errors: errors,
+	})
 }
 
 // fetchCatalogModels searches the catalog and returns one row per matching model UUID.
 func fetchCatalogModels(ctx context.Context, client *godo.Client, query string) ([]CatalogSearchRow, error) {
-	uuids, _, err := client.GradientAI.SearchModels(ctx, query)
+	uuids, _, err := client.AgentPlatform.SearchModels(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search catalog: %w", err)
 	}
@@ -116,7 +130,7 @@ func fetchCatalogModels(ctx context.Context, client *godo.Client, query string) 
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			model, _, getErr := client.GradientAI.GetModelByUUID(ctx, id)
+			model, _, getErr := client.AgentPlatform.GetModelByUUID(ctx, id)
 			if getErr != nil || model == nil {
 				return
 			}

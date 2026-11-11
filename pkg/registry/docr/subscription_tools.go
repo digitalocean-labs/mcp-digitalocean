@@ -2,7 +2,6 @@ package docr
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/digitalocean/godo"
@@ -36,12 +35,7 @@ func (s *SubscriptionTool) getSubscription(ctx context.Context, req mcp.CallTool
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonSubscription, err := json.MarshalIndent(subscription, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonSubscription)), nil
+	return subscriptionOut.Result(subscription)
 }
 
 // updateSubscription updates the subscription tier for the registry
@@ -63,12 +57,7 @@ func (s *SubscriptionTool) updateSubscription(ctx context.Context, req mcp.CallT
 		return mcp.NewToolResultErrorFromErr("api error", err), nil
 	}
 
-	jsonSubscription, err := json.MarshalIndent(subscription, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(jsonSubscription)), nil
+	return subscriptionOut.Result(subscription)
 }
 
 // Tools returns a list of tool functions for subscription management
@@ -79,6 +68,7 @@ func (s *SubscriptionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-subscription-get",
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
+				subscriptionOut.Schema(),
 				mcp.WithDescription("Get the current container registry subscription information"),
 			),
 		},
@@ -87,6 +77,7 @@ func (s *SubscriptionTool) Tools() []server.ServerTool {
 			Tool: mcp.NewTool("docr-subscription-update",
 				common.WithHints(common.HintsToggle),
 				common.WithRisk(common.RiskMedium),
+				subscriptionOut.Schema(),
 				mcp.WithDescription("Update the container registry subscription tier"),
 				mcp.WithString("TierSlug", mcp.Required(), mcp.Description("Subscription tier slug to update to (e.g., 'starter', 'basic', 'professional')")),
 			),
