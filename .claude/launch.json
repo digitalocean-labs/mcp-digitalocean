@@ -1,0 +1,30 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mcp-digitalocean (HTTP)",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/mcp-digitalocean", "--transport", "http", "--bind-addr", "127.0.0.1:8080"],
+      "port": 8080
+    },
+    {
+      "name": "mcp-digitalocean (stdio)",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/mcp-digitalocean", "--transport", "stdio"],
+      "port": 0
+    },
+    {
+      "name": "docker-compose (all services)",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "--build"],
+      "port": 8080,
+      "autoPort": false
+    },
+    {
+      "name": "websocket-echo-server",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "websocket-server"],
+      "port": 8081
+    }
+  ]
+}
