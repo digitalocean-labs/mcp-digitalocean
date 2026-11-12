@@ -160,10 +160,10 @@ type modelEvalWorkflowResult struct {
 
 // --- simulation (simulation_tools.go) ---------------------------------------
 
-// scenarioSetList, scenarioList, scenarioLibraryList, simulationRunList and
-// simulationEpisodeList are the {items, count} shapes the simulation list
-// tools have always returned. Each was an anonymous struct declared inside its
-// handler. scenarioList is shared by genai-simulation-list-scenarios and
+// scenarioSetList, scenarioList, scenarioLibraryList and simulationEpisodeList
+// are the {items, count} shapes the simulation list tools have always returned.
+// Each was an anonymous struct declared inside its handler. scenarioList is
+// shared by genai-simulation-list-scenarios and
 // genai-simulation-list-scenario-library-scenarios, which return the same
 // scenario shape from team-owned and platform-curated sets respectively.
 type scenarioSetList struct {
@@ -179,11 +179,6 @@ type scenarioList struct {
 type scenarioLibraryList struct {
 	Scenarios []*godo.ScenarioLibraryEntry `json:"scenarios"`
 	Count     int                          `json:"count"`
-}
-
-type simulationRunList struct {
-	SimulationRuns []*godo.SimulationRun `json:"simulation_runs"`
-	Count          int                   `json:"count"`
 }
 
 type simulationEpisodeList struct {
@@ -205,7 +200,7 @@ type simulationEpisodeList struct {
 // Shared vars mark tools that answer with the same shape: modelEvalCustomMetricOut
 // by custom-metric create and update, scenarioSetOut by scenario-set get,
 // generate, update and create-from-library, simulationRunOut by simulation run
-// create, update and cancel, and scenarioListOut by the two scenario list tools.
+// create, and scenarioListOut by the two scenario list tools.
 //
 // scenarioSetCreateOut covers a tool with two return shapes:
 // genai-simulation-create-scenario-set answers with a bare godo.ScenarioSet for
@@ -257,9 +252,6 @@ var (
 	scenarioListOut            = common.NewObjectOutput[scenarioList]()
 	scenarioLibraryListOut     = common.NewObjectOutput[scenarioLibraryList]()
 	simulationRunOut           = common.NewOutput[*godo.SimulationRun]("simulation_run")
-	simulationRunListOut       = common.NewObjectOutput[simulationRunList]()
-	simulationRunGetOut        = common.NewObjectOutput[*godo.SimulationRunGetResponse]()
-	simulationRunDeletedOut    = common.NewObjectOutput[*godo.SimulationRunDeleteResponse]()
 	simulationEpisodeListOut   = common.NewObjectOutput[simulationEpisodeList]()
 	simulationEpisodeOut       = common.NewOutput[*godo.SimulationEpisode]("episode")
 	simulationTrajectoryOut    = common.NewOutput[*godo.SimulationTrajectory]("trajectory")

@@ -16,13 +16,7 @@ import (
 const (
 	simulationDeleteScenarioSetConsentMsg = "confirm_deletion must be true. Before deleting a scenario set, present the scenario_set_uuid and that deletion is permanent, then obtain explicit consent (yes) in this conversation. Consent is required for every delete."
 
-	simulationDeleteRunConsentMsg = "confirm_deletion must be true. Before deleting a simulation run, present the run_uuid and that deletion is permanent (results cannot be recovered), then obtain explicit consent (yes) in this conversation. Consent is required for every delete."
-
-	simulationCancelRunConsentMsg = "confirm_cancel must be true. Before cancelling a simulation run, present the run_uuid and explain that any partial results may be lost, then obtain explicit consent (yes) in this conversation."
-
 	simulationDeleteConfirmDescription = "Must be true only after the end user has explicitly confirmed the deletion in conversation (yes/no in chat). Omitted or false is rejected."
-
-	simulationCancelConfirmDescription = "Must be true only after the end user has explicitly confirmed the cancellation in conversation (yes/no in chat). Omitted or false is rejected."
 )
 
 // SimulationTool provides Agent Platform simulation (scenario set + run) management tools.
@@ -399,7 +393,10 @@ func (st *SimulationTool) createScenarioSetFromLibrary(ctx context.Context, req 
 	return scenarioSetOut.Result(output)
 }
 
-// createRun creates a simulation run against a candidate agent.
+// createRun starts a simulation+evaluation run: a scenario set against a
+// candidate agent with required evaluation metrics. There is no simulation-only
+// run; metrics are mandatory. After create, run lifecycle (list/get/rename/
+// cancel/delete) uses ModelEvaluationRun tools with evaluation_run_uuid.
 func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := req.GetArguments()
 
@@ -411,6 +408,12 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultError("scenario_set_uuid and agent_uuid are required"), nil
 	}
 
+	metricUUIDs := parseStringSlice(args["metric_uuids"])
+	if len(metricUUIDs) == 0 {
+		return mcp.NewToolResultError("metric_uuids is required: simulation always runs with evaluation metrics (get UUIDs from genai-model-eval-list-metrics)"), nil
+	}
+	starMetric := parseStarMetricFromArgs(args["star_metric"])
+
 	createReq := &godo.CreateSimulationRunRequest{
 		ScenarioSetUUID:        scenarioSetUUID,
 		Name:                   strings.TrimSpace(stringArg(args, "name")),
@@ -420,6 +423,10 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 			AgentUUID:           agentUUID,
 			AgentDeploymentUUID: strings.TrimSpace(stringArg(args, "agent_deployment_uuid")),
 			Name:                strings.TrimSpace(stringArg(args, "agent_name")),
+		},
+		EvaluationConfig: &godo.SimulationEvaluationConfig{
+			MetricUUIDs: metricUUIDs,
+			StarMetric:  starMetric,
 		},
 	}
 	if cfg, ok := args["user_simulator_config"].(map[string]any); ok {
@@ -432,15 +439,6 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 		createReq.MaxTurns = uint32(v)
 	}
 
-	metricUUIDs := parseStringSlice(args["metric_uuids"])
-	starMetric := parseStarMetricFromArgs(args["star_metric"])
-	if len(metricUUIDs) > 0 || starMetric != nil {
-		createReq.EvaluationConfig = &godo.SimulationEvaluationConfig{
-			MetricUUIDs: metricUUIDs,
-			StarMetric:  starMetric,
-		}
-	}
-
 	client, err := st.getClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
@@ -451,141 +449,6 @@ func (st *SimulationTool) createRun(ctx context.Context, req mcp.CallToolRequest
 		return mcp.NewToolResultErrorFromErr("failed to create simulation run", err), nil
 	}
 	return simulationRunOut.Result(output)
-}
-
-// listRuns lists simulation runs for the team.
-func (st *SimulationTool) listRuns(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := req.GetArguments()
-
-	client, err := st.getClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	opt := &godo.SimulationRunListOptions{ListOptions: listOptionsFromArgs(args)}
-	if uuid, ok := args["scenario_set_uuid"].(string); ok {
-		opt.ScenarioSetUUID = strings.TrimSpace(uuid)
-	}
-	if search, ok := args["search"].(string); ok {
-		opt.Search = strings.TrimSpace(search)
-	}
-	for _, status := range parseStringSlice(args["statuses"]) {
-		opt.Statuses = append(opt.Statuses, godo.SimulationRunStatus(status))
-	}
-
-	output, _, err := client.AgentPlatform.ListSimulationRuns(ctx, opt)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to list simulation runs", err), nil
-	}
-
-	runs := []*godo.SimulationRun{}
-	if output != nil {
-		runs = output.SimulationRuns
-	}
-	return simulationRunListOut.Result(simulationRunList{SimulationRuns: runs, Count: len(runs)})
-}
-
-// getRun retrieves a simulation run including per-scenario result rollups.
-func (st *SimulationTool) getRun(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	uuid, _ := req.GetArguments()["run_uuid"].(string)
-	uuid = strings.TrimSpace(uuid)
-	if uuid == "" {
-		return mcp.NewToolResultError("run_uuid is required"), nil
-	}
-
-	client, err := st.getClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	output, _, err := client.AgentPlatform.GetSimulationRun(ctx, uuid)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to get simulation run", err), nil
-	}
-	return simulationRunGetOut.Result(output)
-}
-
-// updateRun renames a simulation run.
-func (st *SimulationTool) updateRun(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := req.GetArguments()
-
-	uuid, _ := args["run_uuid"].(string)
-	uuid = strings.TrimSpace(uuid)
-	name, _ := args["name"].(string)
-	name = strings.TrimSpace(name)
-	if uuid == "" || name == "" {
-		return mcp.NewToolResultError("run_uuid and name are required"), nil
-	}
-
-	client, err := st.getClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	output, _, err := client.AgentPlatform.UpdateSimulationRun(ctx, uuid, &godo.UpdateSimulationRunRequest{
-		RunUUID: uuid,
-		Name:    name,
-	})
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to update simulation run", err), nil
-	}
-	return simulationRunOut.Result(output)
-}
-
-// cancelRun cancels an in-progress simulation run.
-func (st *SimulationTool) cancelRun(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := req.GetArguments()
-
-	uuid, _ := args["run_uuid"].(string)
-	uuid = strings.TrimSpace(uuid)
-	if uuid == "" {
-		return mcp.NewToolResultError("run_uuid is required"), nil
-	}
-	if confirm, _ := args["confirm_cancel"].(bool); !confirm {
-		return mcp.NewToolResultError(simulationCancelRunConsentMsg), nil
-	}
-
-	client, err := st.getClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	output, resp, err := client.AgentPlatform.CancelSimulationRun(ctx, uuid)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to cancel simulation run", err), nil
-	}
-	if resp != nil && resp.StatusCode >= 400 {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to cancel simulation run: status %d", resp.StatusCode)), nil
-	}
-	return simulationRunOut.Result(output)
-}
-
-// deleteRun deletes a simulation run by UUID.
-func (st *SimulationTool) deleteRun(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := req.GetArguments()
-
-	uuid, _ := args["run_uuid"].(string)
-	uuid = strings.TrimSpace(uuid)
-	if uuid == "" {
-		return mcp.NewToolResultError("run_uuid is required"), nil
-	}
-	if confirm, _ := args["confirm_deletion"].(bool); !confirm {
-		return mcp.NewToolResultError(simulationDeleteRunConsentMsg), nil
-	}
-
-	client, err := st.getClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	output, resp, err := client.AgentPlatform.DeleteSimulationRun(ctx, uuid)
-	if err != nil {
-		return mcp.NewToolResultErrorFromErr("failed to delete simulation run", err), nil
-	}
-	if resp != nil && resp.StatusCode >= 400 {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to delete simulation run: status %d", resp.StatusCode)), nil
-	}
-	return simulationRunDeletedOut.Result(output)
 }
 
 // listEpisodes lists episodes for a simulation run.
@@ -711,7 +574,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				scenarioSetListOut.Schema(),
-				mcp.WithDescription("List team-owned simulation scenario sets. Use returned scenario_set_uuid with genai-simulation-create-run."),
+				mcp.WithDescription("List team-owned simulation scenario sets. Use returned scenario_set_uuid with genai-simulation-create-run (sim+eval; metrics required). Run lifecycle uses genai-model-eval-list-runs / get-run / update-run / cancel-run / delete-run with evaluation_run_uuid."),
 				mcp.WithString("search", mcp.Description("Optional search text filter")),
 				mcp.WithArray("statuses", mcp.Description("Optional status filters, e.g. SCENARIO_SET_STATUS_READY"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
@@ -855,10 +718,11 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				simulationRunOut.Schema(),
-				mcp.WithDescription("Create a simulation run that executes a scenario set against a candidate agent. Requires scenario_set_uuid and agent_uuid. Optional metric_uuids and star_metric attach metrics for post-run scoring."),
+				mcp.WithDescription("Start a simulation+evaluation run: execute a scenario set against a candidate agent with required evaluation metrics. There is no simulation-only run. Requires scenario_set_uuid, agent_uuid, and metric_uuids. The response includes evaluation_run_uuid — use that with genai-model-eval-get-run / update-run / cancel-run / delete-run (and genai-model-eval-list-runs) for run lifecycle. Solo dataset evaluation uses genai-model-eval-create-run instead."),
 				mcp.WithString("scenario_set_uuid", mcp.Required(), mcp.Description("UUID of the scenario set to run")),
 				mcp.WithString("agent_uuid", mcp.Required(), mcp.Description("UUID of the candidate agent under test")),
-				mcp.WithString("name", mcp.Description("Optional name for this simulation run")),
+				mcp.WithArray("metric_uuids", mcp.Required(), mcp.Description("Evaluation metric UUIDs (required). Simulation always runs with evaluation. Get UUIDs from genai-model-eval-list-metrics."), mcp.Items(map[string]any{"type": "string"})),
+				mcp.WithString("name", mcp.Description("Optional name for this run")),
 				mcp.WithString("agent_deployment_uuid", mcp.Description("Optional specific agent deployment UUID")),
 				mcp.WithString("agent_name", mcp.Description("Optional display name for the candidate agent")),
 				mcp.WithString("user_simulator_model_uuid", mcp.Description("Optional UUID of the user-simulator model")),
@@ -866,74 +730,7 @@ func (st *SimulationTool) Tools() []server.ServerTool {
 				mcp.WithObject("user_simulator_config", mcp.Description("Optional user-simulator configuration object")),
 				mcp.WithNumber("exploration_budget", mcp.Description("Optional exploration budget for episodes")),
 				mcp.WithNumber("max_turns", mcp.Description("Optional max turns per episode")),
-				mcp.WithArray("metric_uuids", mcp.Description("Optional evaluation metric UUIDs to attach"), mcp.Items(map[string]any{"type": "string"})),
 				mcp.WithObject("star_metric", mcp.Description("Optional primary success metric: metric_uuid and optional success_threshold")),
-			),
-		},
-		{
-			Handler: st.listRuns,
-			Tool: mcp.NewTool(
-				"genai-simulation-list-runs",
-				common.WithHints(common.HintsRead),
-				common.WithRisk(common.RiskLow),
-				simulationRunListOut.Schema(),
-				mcp.WithDescription("List simulation runs. Each run includes run_uuid, status, scenario_set_uuid, and result summary when available."),
-				mcp.WithString("scenario_set_uuid", mcp.Description("Filter by scenario set UUID")),
-				mcp.WithArray("statuses", mcp.Description("Optional status filters, e.g. SIMULATION_RUN_STATUS_SUCCEEDED"), mcp.Items(map[string]any{"type": "string"})),
-				mcp.WithString("search", mcp.Description("Optional search text filter")),
-				mcp.WithNumber("page", mcp.Description("Page number for pagination (default: 1)")),
-				mcp.WithNumber("per_page", mcp.Description("Results per page (default: 20)")),
-			),
-		},
-		{
-			Handler: st.getRun,
-			Tool: mcp.NewTool(
-				"genai-simulation-get-run",
-				common.WithHints(common.HintsRead),
-				common.WithRisk(common.RiskLow),
-				simulationRunGetOut.Schema(),
-				mcp.WithDescription("Get a simulation run by UUID, including per-scenario result rollups when available."),
-				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
-			),
-		},
-		{
-			Handler: st.updateRun,
-			Tool: mcp.NewTool(
-				"genai-simulation-update-run",
-				common.WithHints(common.HintsToggle),
-				common.WithRisk(common.RiskLow),
-				simulationRunOut.Schema(),
-				mcp.WithDescription("Update a simulation run. Currently only the run name can be changed."),
-				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run")),
-				mcp.WithString("name", mcp.Required(), mcp.Description("New name for the simulation run")),
-			),
-		},
-		{
-			Handler: st.cancelRun,
-			Tool: mcp.NewTool(
-				"genai-simulation-cancel-run",
-				common.WithHints(common.HintsToggle),
-				common.WithRisk(common.RiskMedium),
-				simulationRunOut.Schema(),
-				mcp.WithDescription("Cancel an in-progress simulation run. Any partial results may be lost.\n\n"+
-					"CONSENT REQUIRED (every cancel): Do not call with confirm_cancel: true until the user has explicitly agreed in chat. "+
-					"Present the run_uuid and that partial results may be lost; ask for yes/no."),
-				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run to cancel")),
-				mcp.WithBoolean("confirm_cancel", mcp.Required(), mcp.Description(simulationCancelConfirmDescription)),
-			),
-		},
-		{
-			Handler: st.deleteRun,
-			Tool: mcp.NewTool(
-				"genai-simulation-delete-run",
-				common.WithHints(common.HintsDelete),
-				common.WithRisk(common.RiskMedium),
-				simulationRunDeletedOut.Schema(),
-				mcp.WithDescription("Delete a simulation run by UUID. Deletion is permanent.\n\n"+
-					"CONSENT REQUIRED (every delete): Do not call with confirm_deletion: true until the user has explicitly agreed in chat. "+
-					"Present the run_uuid and that deletion is permanent; ask for yes/no."),
-				mcp.WithString("run_uuid", mcp.Required(), mcp.Description("UUID of the simulation run to delete")),
-				mcp.WithBoolean("confirm_deletion", mcp.Required(), mcp.Description(simulationDeleteConfirmDescription)),
 			),
 		},
 		{
