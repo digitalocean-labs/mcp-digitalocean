@@ -12,6 +12,18 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+func catalogListOpt(search string) *godo.ModelCatalogV2ListOptions {
+	return &godo.ModelCatalogV2ListOptions{Page: 1, PerPage: 200, Search: search}
+}
+
+func catalogList(ids []string) *godo.ModelCatalogV2List {
+	data := make([]*godo.ModelCatalogEntryV2, 0, len(ids))
+	for _, id := range ids {
+		data = append(data, &godo.ModelCatalogEntryV2{ID: id})
+	}
+	return &godo.ModelCatalogV2List{Data: data}
+}
+
 func setupModelToolWithMock(mockAgentPlatform godo.AgentPlatformService) *ModelTool {
 	client := func(ctx context.Context) (*godo.Client, error) {
 		return &godo.Client{
@@ -42,8 +54,7 @@ func TestModelTool_searchModels(t *testing.T) {
 			name: "missing SearchQuery returns all models",
 			args: map[string]any{},
 			mockSetup: func(m *MockAgentPlatformService) {
-				// Missing parameter defaults to empty string, which matches all models
-				m.EXPECT().SearchModels(gomock.Any(), "").Return(testUUIDs, nil, nil)
+				m.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(catalogList(testUUIDs), nil, nil)
 			},
 			checkUUIDs: true,
 		},
@@ -51,8 +62,7 @@ func TestModelTool_searchModels(t *testing.T) {
 			name: "empty SearchQuery returns all models",
 			args: map[string]any{"SearchQuery": ""},
 			mockSetup: func(m *MockAgentPlatformService) {
-				// Empty string matches all models
-				m.EXPECT().SearchModels(gomock.Any(), "").Return(testUUIDs, nil, nil)
+				m.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(catalogList(testUUIDs), nil, nil)
 			},
 			checkUUIDs: true,
 		},
@@ -60,7 +70,7 @@ func TestModelTool_searchModels(t *testing.T) {
 			name: "api error",
 			args: map[string]any{"SearchQuery": "llama"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().SearchModels(gomock.Any(), "llama").Return(nil, nil, errors.New("api error"))
+				m.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("llama")).Return(nil, nil, errors.New("api error"))
 			},
 			expectError: true,
 		},
@@ -68,7 +78,7 @@ func TestModelTool_searchModels(t *testing.T) {
 			name: "success with results",
 			args: map[string]any{"SearchQuery": "llama"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().SearchModels(gomock.Any(), "llama").Return(testUUIDs, nil, nil)
+				m.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("llama")).Return(catalogList(testUUIDs), nil, nil)
 			},
 			checkUUIDs: true,
 		},
@@ -76,7 +86,7 @@ func TestModelTool_searchModels(t *testing.T) {
 			name: "success with no results",
 			args: map[string]any{"SearchQuery": "nonexistent"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().SearchModels(gomock.Any(), "nonexistent").Return([]string{}, nil, nil)
+				m.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("nonexistent")).Return(catalogList(nil), nil, nil)
 			},
 		},
 	}
@@ -127,34 +137,23 @@ func TestModelTool_getModelCard(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	testModel := &godo.Model{
-		Uuid:              "12345678-1234-1234-1234-123456789012",
-		InferenceName:     "llama3.3-70b-instruct",
-		Name:              "Llama 3.3 Instruct (70B)",
-		Description:       "An advanced language model with greater capabilities due to its larger size.",
-		Provider:          "Meta",
-		Url:               "https://example.com/model",
-		Usecases:          []string{"chat", "completion"},
-		ModelAvailability: "serverless",
-		ContextWindow:     "131072",
-		Capabilities:      []string{"inference", "chat"},
-		Modalities: &godo.ModelModalities{
-			Input:  []string{"text"},
-			Output: []string{"text"},
-		},
-		ParameterCount: 70.0,
-		Type:           "chat",
-		Pricing: &godo.ModelPricing{
+	testModel := &godo.ModelCatalogEntryV2{
+		ID:                       "12345678-1234-1234-1234-123456789012",
+		ModelID:                  "llama3.3-70b-instruct",
+		Name:                     "Llama 3.3 Instruct (70B)",
+		Description:              "An advanced language model with greater capabilities due to its larger size.",
+		Provider:                 "MODEL_PROVIDER_DIGITALOCEAN",
+		Serving:                  []string{"MODEL_SERVING_SERVERLESS"},
+		ContextWindow:            "131072",
+		Capabilities:             []string{"inference", "chat"},
+		InputModality:            []string{"MODEL_MODALITY_TEXT"},
+		OutputModality:           []string{"MODEL_MODALITY_TEXT"},
+		ParameterCountInBillions: 70.0,
+		Type:                     "chat",
+		Pricing: &godo.ModelCatalogPricing{ModelPricing: godo.ModelPricing{
 			InputPricePerMillion:  3.0,
 			OutputPricePerMillion: 15.0,
-		},
-		BenchmarkScore: json.RawMessage(`{"mmlu": 0.85, "hellaswag": 0.79}`),
-		Agreement: &godo.Agreement{
-			Name:        "Meta Llama 3.3 License",
-			Description: "License for Llama 3.3",
-			Url:         "https://example.com/license",
-			Uuid:        "license-uuid",
-		},
+		}},
 	}
 
 	tests := []struct {
@@ -179,7 +178,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 			name: "api error",
 			args: map[string]any{"ModelUUID": "12345678-1234-1234-1234-123456789012"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().GetModelByUUID(gomock.Any(), "12345678-1234-1234-1234-123456789012").
+				m.EXPECT().GetModelCatalogCardV2(gomock.Any(), "12345678-1234-1234-1234-123456789012", "").
 					Return(nil, nil, errors.New("api error"))
 			},
 			expectError: true,
@@ -188,7 +187,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 			name: "model not found",
 			args: map[string]any{"ModelUUID": "99999999-9999-9999-9999-999999999999"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().GetModelByUUID(gomock.Any(), "99999999-9999-9999-9999-999999999999").
+				m.EXPECT().GetModelCatalogCardV2(gomock.Any(), "99999999-9999-9999-9999-999999999999", "").
 					Return(nil, nil, nil)
 			},
 			expectError: true,
@@ -197,7 +196,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 			name: "success",
 			args: map[string]any{"ModelUUID": "12345678-1234-1234-1234-123456789012"},
 			mockSetup: func(m *MockAgentPlatformService) {
-				m.EXPECT().GetModelByUUID(gomock.Any(), "12345678-1234-1234-1234-123456789012").
+				m.EXPECT().GetModelCatalogCardV2(gomock.Any(), "12345678-1234-1234-1234-123456789012", "").
 					Return(testModel, nil, nil)
 			},
 			checkModel: true,
@@ -229,7 +228,7 @@ func TestModelTool_getModelCard(t *testing.T) {
 			require.NotEmpty(t, resp.Content)
 			textContent, ok := resp.Content[0].(mcp.TextContent)
 			require.True(t, ok)
-			require.Contains(t, textContent.Text, testModel.Uuid)
+			require.Contains(t, textContent.Text, testModel.ID)
 			require.Contains(t, textContent.Text, testModel.Name)
 
 			if tc.checkModel {
@@ -250,35 +249,21 @@ func TestModelTool_getModelCard(t *testing.T) {
 				}
 				err := json.Unmarshal([]byte(textContent.Text), &result)
 				require.NoError(t, err)
-				require.Equal(t, testModel.Uuid, result.UUID, "should return exact UUID")
+				require.Equal(t, testModel.ID, result.UUID, "should return exact UUID")
 				require.Equal(t, testModel.Name, result.Name, "should return exact name")
 				require.Equal(t, testModel.Description, result.Description, "should return exact description")
 				require.Equal(t, testModel.Provider, result.Provider, "should return exact provider")
-				require.Equal(t, testModel.ModelAvailability, result.ModelAvailability, "should return exact model availability")
+				require.Equal(t, testModel.Serving[0], result.ModelAvailability, "should return the serving surface")
 				require.Equal(t, testModel.ContextWindow, result.ContextWindow, "should return exact context window")
 				require.Equal(t, testModel.Capabilities, result.Capabilities, "should return exact capabilities")
-				require.Equal(t, testModel.ParameterCount, result.ParameterCount, "should return exact parameter count")
+				require.Equal(t, testModel.ParameterCountInBillions, result.ParameterCount, "should return exact parameter count")
 				require.Equal(t, testModel.Type, result.Type, "should return exact type")
 				require.NotNil(t, result.Pricing, "should include pricing")
 				require.Equal(t, testModel.Pricing.InputPricePerMillion, result.Pricing.InputPricePerMillion, "should return exact input price")
 				require.Equal(t, testModel.Pricing.OutputPricePerMillion, result.Pricing.OutputPricePerMillion, "should return exact output price")
-
-				// Compare benchmark score as JSON (ignore formatting differences)
-				if len(testModel.BenchmarkScore) > 0 {
-					var expectedBenchmark, actualBenchmark map[string]interface{}
-					require.NoError(t, json.Unmarshal(testModel.BenchmarkScore, &expectedBenchmark), "should unmarshal expected benchmark")
-					require.NoError(t, json.Unmarshal(result.BenchmarkScore, &actualBenchmark), "should unmarshal actual benchmark")
-					require.Equal(t, expectedBenchmark, actualBenchmark, "should return same benchmark data")
-				}
-
-				require.NotNil(t, result.Agreement, "should include agreement")
-				require.Equal(t, testModel.Agreement.Name, result.Agreement.Name, "should return exact agreement name")
-				require.Equal(t, testModel.Agreement.Description, result.Agreement.Description, "should return exact agreement description")
-				require.Equal(t, testModel.Agreement.Url, result.Agreement.Url, "should return exact agreement URL")
-				require.Equal(t, testModel.Agreement.Uuid, result.Agreement.Uuid, "should return exact agreement UUID")
 				require.NotNil(t, result.Modalities, "should include modalities")
-				require.Equal(t, testModel.Modalities.Input, result.Modalities.Input, "should return exact modalities input")
-				require.Equal(t, testModel.Modalities.Output, result.Modalities.Output, "should return exact modalities output")
+				require.Equal(t, testModel.InputModality, result.Modalities.Input, "should return exact modalities input")
+				require.Equal(t, testModel.OutputModality, result.Modalities.Output, "should return exact modalities output")
 			}
 		})
 	}
