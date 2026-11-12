@@ -29,7 +29,7 @@ type Workspace struct {
 	Name              string     `json:"name,omitempty"`
 	State             string     `json:"state"`
 	AttachedSessionID string     `json:"attached_session_id,omitempty"`
-	SizeGibibytes     int32      `json:"size_gibibytes"`
+	SizeLimitGiB      int32      `json:"size_limit_gib"`
 	BytesUsed         int64      `json:"bytes_used"`
 	LastSavedAt       *time.Time `json:"last_saved_at,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
@@ -128,13 +128,13 @@ func (t *Tool) createWorkspace(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 
 	args := req.GetArguments()
-	sizeRaw, ok := args["SizeGibibytes"].(float64)
+	sizeRaw, ok := args["SizeLimitGiB"].(float64)
 	if !ok || sizeRaw != math.Trunc(sizeRaw) || sizeRaw < 1 || sizeRaw > 100 {
-		return mcp.NewToolResultError("SizeGibibytes is required and must be an integer between 1 and 100"), nil
+		return mcp.NewToolResultError("SizeLimitGiB is required and must be an integer between 1 and 100"), nil
 	}
 
 	body := map[string]any{
-		"size_gibibytes": int32(sizeRaw),
+		"size_limit_gib": int32(sizeRaw),
 	}
 	if v, _ := args["Name"].(string); v != "" {
 		body["name"] = v
@@ -505,8 +505,8 @@ func (t *Tool) workspaceTools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				workspaceCreateOut.Schema(),
-				mcp.WithDescription("Provision a new persistent workspace volume. The workspace is an empty virtual disk that can be attached to a session at create time (via WorkspaceID on create-session). Size is fixed at creation and counts against the team's storage quota."),
-				mcp.WithNumber("SizeGibibytes", mcp.Required(), mcp.Description("Size in GiB (integer, 1-100). Fixed at creation.")),
+				mcp.WithDescription("Provision a new persistent workspace volume. The workspace is an empty virtual disk that can be attached to a session at create time (via WorkspaceID on create-session). The size limit is fixed at creation and counts against the team's storage quota."),
+				mcp.WithNumber("SizeLimitGiB", mcp.Required(), mcp.Description("Size limit in GiB (integer, 1-100): a quota, not a device size. Fixed at creation.")),
 				mcp.WithString("Name", mcp.Description("Optional human-readable label (not unique, not a substitute for the workspace_id)")),
 			),
 		},
@@ -516,7 +516,7 @@ func (t *Tool) workspaceTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				workspaceListOut.Schema(),
-				mcp.WithDescription("List the team's persistent workspaces. Returns workspace id, name, state, attached session, size, bytes used, and timestamps. Keyset-paginated: pass next_page_token back as PageToken for the next page."),
+				mcp.WithDescription("List the team's persistent workspaces. Returns workspace id, name, state, attached session, size limit, bytes used, and timestamps. Keyset-paginated: pass next_page_token back as PageToken for the next page."),
 				mcp.WithNumber("PageSize", mcp.Description("Page size (1-200, default 50)")),
 				mcp.WithString("PageToken", mcp.Description("Opaque cursor from the previous response's next_page_token")),
 				mcp.WithString("State", mcp.Description("Optional state filter: AVAILABLE, ATTACHING, ATTACHED, RELEASING, FAILED, DELETING")),
@@ -528,7 +528,7 @@ func (t *Tool) workspaceTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				workspaceOut.Schema(),
-				mcp.WithDescription("Get a single persistent workspace by UUID, including its state, attached session, size, bytes used, and timestamps."),
+				mcp.WithDescription("Get a single persistent workspace by UUID, including its state, attached session, size limit, bytes used, and timestamps."),
 				mcp.WithString("WorkspaceID", mcp.Required(), mcp.Description("The workspace UUID")),
 			),
 		},
