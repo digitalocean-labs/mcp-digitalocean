@@ -12,6 +12,7 @@ func TestHandler_ConfiguredResource(t *testing.T) {
 		Resource:               "https://droplets-mcp-hswwk.ondigitalocean.app",
 		AuthorizationServers:   []string{"https://cloud.digitalocean.com"},
 		BearerMethodsSupported: []string{"header"},
+		ScopesSupported:        []string{"droplet:read", "droplet:create"},
 	})
 
 	req := httptest.NewRequest(http.MethodGet, WellKnownPath, nil)
@@ -30,6 +31,7 @@ func TestHandler_ConfiguredResource(t *testing.T) {
 		ResourceName           string   `json:"resource_name"`
 		AuthorizationServers   []string `json:"authorization_servers"`
 		BearerMethodsSupported []string `json:"bearer_methods_supported"`
+		ScopesSupported        []string `json:"scopes_supported"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("response is not valid JSON: %v", err)
@@ -45,6 +47,9 @@ func TestHandler_ConfiguredResource(t *testing.T) {
 	}
 	if len(got.BearerMethodsSupported) != 1 || got.BearerMethodsSupported[0] != "header" {
 		t.Fatalf("bearer_methods_supported = %v", got.BearerMethodsSupported)
+	}
+	if len(got.ScopesSupported) != 2 || got.ScopesSupported[0] != "droplet:read" || got.ScopesSupported[1] != "droplet:create" {
+		t.Fatalf("scopes_supported = %v", got.ScopesSupported)
 	}
 }
 
@@ -116,6 +121,9 @@ func TestHandler_OmitsOptionalFields(t *testing.T) {
 	}
 	if _, ok := raw["bearer_methods_supported"]; ok {
 		t.Fatalf("bearer_methods_supported should be omitted when empty")
+	}
+	if _, ok := raw["scopes_supported"]; ok {
+		t.Fatalf("scopes_supported should be omitted when empty")
 	}
 }
 

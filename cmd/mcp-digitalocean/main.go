@@ -30,7 +30,7 @@ import (
 
 const (
 	mcpName                 = "mcp-digitalocean"
-	mcpVersion              = "1.6.6"
+	mcpVersion              = "1.6.7"
 	wsLoggingContextTimeout = 15 * time.Second
 	// mcpEndpointPath is the path the streamable HTTP server serves the MCP
 	// protocol on. It matches mcp-go's default so existing clients are unaffected.
@@ -149,6 +149,7 @@ func main() {
 	openaiAppsVerificationTokenFlag := flag.String("openai-apps-verification-token", getEnv("OPENAI_APPS_VERIFICATION_TOKEN", ""), "Plain-text token served at /.well-known/openai-apps-challenge for OpenAI ChatGPT app domain verification (remote transport only, optional)")
 	userAgent := flag.String("user-agent", getEnv("USER_AGENT", ""), "Indicate this server is running as a remote MCP ")
 	resourceEncryptionKey := flag.String("encrypted-resource-key", getEnv("ENCRYPTED_RESOURCE_KEY", ""), "32-byte AES-256 key used to encrypt --mcp-resource-url for the X-Encrypted-Resource-Identifier header (remote MCP only, optional)")
+	scopes := flag.String("scopes", getEnv("SCOPES", "read,write"), "Comma-separated list of scopes to request from the DigitalOcean API")
 	allowAnonymous := flag.Bool("allow-anonymous", getEnvBool("ALLOW_ANONYMOUS", false), "Serve the MCP endpoint without the bearer-token guard or OAuth metadata. Requires --services to list only public-content services (docs); the server refuses to start otherwise (remote transport only)")
 	docsSearchAPI := flag.Bool("docs-search-api", getEnvBool("DOCS_SEARCH_API", false), "Serve the plain-HTTP docs search endpoint at "+docs.SearchAPIPath+". Requires --allow-anonymous (remote transport only)")
 	docsSearchRateMode := flag.String("docs-search-rate-limit-mode", getEnv("DOCS_SEARCH_RATE_LIMIT_MODE", string(docs.RateLimitShadow)), "Per-client rate limiting for the docs search endpoint: off, shadow (log only), or enforce")
@@ -301,21 +302,23 @@ func main() {
 			authServer := oauthmeta.ProdAuthorizationServer
 			serverURL := strings.TrimSpace(*serverURLFlag)
 
+			oauthScopes := parseScopes(*scopes)
 			wellKnownHandler = oauthmeta.Handler(oauthmeta.Config{
 				Resource:               serverURL,
 				AuthorizationServers:   []string{authServer},
 				BearerMethodsSupported: []string{"header"},
+				ScopesSupported:        oauthScopes,
 			})
 
 			challengeCfg := oauthmeta.ChallengeConfig{
 				Resource: serverURL,
-				Scopes:   []string{"read", "write"},
+				Scopes:   oauthScopes,
 			}
 			requireAuth = func(next http.Handler) http.Handler {
 				return oauthmeta.RequireBearer(next, challengeCfg)
 			}
 
-			logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer)
+			logger.Info("serving OAuth protected resource metadata", "path", oauthmeta.WellKnownPath, "authorization_server", authServer, "scopes", oauthScopes)
 		}
 
 		if token := strings.TrimSpace(*openaiAppsVerificationTokenFlag); token != "" && token != "OPENAI_APPS_VERIFICATION_TOKEN" {
@@ -444,6 +447,20 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	}
 
 	return godo.New(oauthClient, opts...)
+}
+
+// parseScopes splits a comma-separated SCOPES value into the list advertised
+// in both the RFC 9728 scopes_supported field and the 401 WWW-Authenticate
+// challenge.
+func parseScopes(raw string) []string {
+	var out []string
+	for _, s := range strings.Split(raw, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // registerRoutes mounts the MCP endpoint (behind requireAuth when set), the

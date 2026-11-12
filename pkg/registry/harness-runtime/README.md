@@ -63,9 +63,9 @@ Custom sandbox templates let you layer an OCI image on a base template for a cus
 
 Persistent workspaces are virtual disk volumes that survive across sessions.
 
-- **`harness-runtime-create-workspace`** — Provision a new persistent workspace. `SizeGibibytes` (1-100, integer) required. Optional `Name` label. Size is fixed at creation.
+- **`harness-runtime-create-workspace`** — Provision a new persistent workspace. `SizeLimitGiB` (1-100, integer) required: a size limit (a quota, not a device size). Optional `Name` label. The limit is fixed at creation.
 - **`harness-runtime-list-workspaces`** — List the team's workspaces. Supports `PageSize`, `PageToken`, and `State` filter (`AVAILABLE`, `ATTACHING`, `ATTACHED`, `RELEASING`, `FAILED`, `DELETING`).
-- **`harness-runtime-get-workspace`** — Get a single workspace by `WorkspaceID` (UUID), including state, attached session, size, bytes used, and timestamps.
+- **`harness-runtime-get-workspace`** — Get a single workspace by `WorkspaceID` (UUID), including state, attached session, size limit, bytes used, and timestamps.
 - **`harness-runtime-delete-workspace`** — Permanently delete a workspace by `WorkspaceID`. **Destructive.** Must not be attached (409 if attached). All data is lost.
 
 ### Workspace Transfers
