@@ -79,7 +79,7 @@ Unknown or repeated parameters return 400, so each distinct URL is a distinct se
 curl 'https://<host>/v1/search?q=deploy+from+container+image&limit=3'
 ```
 
-The response is `{"results": [...], "meta": {...}}`. Each result has `title`, `url`, `markdown_url`, `product`, `page_type`, `last_modified`, and `excerpt`; `meta` carries `query`, `product`, `total`, `pages_searched`, and `stability` (`preview`). Errors use the public API shape `{"id", "message"}` (`bad_request`, `method_not_allowed`, `too_many_requests`, `service_unavailable`) with `Cache-Control: no-store`. Successful responses send `Access-Control-Allow-Origin: *` (no credentials are involved) and `Cache-Control: public, max-age=300`. Query text is not logged; the request log records term count, result count, zero-result flag, and duration.
+The response is `{"results": [...], "meta": {...}}`. Each result has `title`, `url`, `markdown_url`, `product`, `page_type`, `last_modified`, and `excerpt`; `meta` carries `query`, `product`, `total`, `pages_searched`, and `stability` (`preview`). Errors use the public API shape `{"id", "message"}` (`bad_request`, `method_not_allowed`, `too_many_requests`, `service_unavailable`) with `Cache-Control: no-store`. Successful responses send `Access-Control-Allow-Origin: *` (no credentials are involved) and `Cache-Control: public, max-age=300`. Query text is not logged. Each `GET` writes one `docs search api` usage log with `status`, `client_type` (a User-Agent family such as `curl`, `python-requests`, `chatgpt-user`, or `other`), the User-Agent truncated to 128 characters, and `duration_ms`; successful searches add term count, result count, and the zero-result flag, and rejections add `error_id`.
 
 Rate limiting is a per-client token bucket (IPv6 grouped by /64), sharded so memory and eviction cost stay bounded:
 
@@ -95,6 +95,8 @@ Rate limiting is a per-client token bucket (IPv6 grouped by /64), sharded so mem
 - `RateLimit-Policy` is sent on every response while the limiter is on, because it is the same for all clients. Per-client values (`RateLimit-Remaining`, `RateLimit-Reset`, `Retry-After`) are sent only on 429, which is never cached, so a CDN cannot serve one client's budget to another.
 - The limiter is per instance, so the effective ceiling scales with instance count; it is abuse protection, not a quota. Bulk consumers should read `docs-corpus.jsonl` instead of paging through search, and the 429 body says so.
 - A client is logged once when it first goes over its limit, with its IP or /64, so abusive sources can be blocked at the edge.
+
+Usage logs carry a `client_id` when `DOCS_SEARCH_CLIENT_ID_SECRET` is set (environment only, at least 32 bytes, and it requires `--docs-search-client-ip-header`). The ID is an HMAC of the client IP or /64 under a key derived from the secret and the ISO week (UTC), so it is stable for a week, rotates every Monday, and cannot be reversed or joined across weeks without the secret. Counting distinct `client_id` values per week gives weekly distinct clients without logging IPs. Without the secret the field is left out and startup logs a warning. Responses cached at the edge never reach the server, so request counts from these logs are a lower bound.
 
 ---
 

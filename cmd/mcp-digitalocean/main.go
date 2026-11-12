@@ -261,7 +261,18 @@ func main() {
 			Burst:           *docsSearchBurst,
 			TrustedIPHeader: strings.TrimSpace(*docsSearchIPHeader),
 		}
-		searchHandler, err := docs.RateLimit(docs.NewSearchHandler(logger), rlCfg, logger)
+		// Env only, never a flag, so the secret stays out of the process list.
+		var clientTagger *docs.ClientTagger
+		if secret := os.Getenv("DOCS_SEARCH_CLIENT_ID_SECRET"); secret != "" {
+			clientTagger, err = docs.NewClientTagger([]byte(secret), rlCfg.TrustedIPHeader)
+			if err != nil {
+				logger.Error("invalid docs search client id configuration", "error", err)
+				os.Exit(1)
+			}
+		} else {
+			logger.Warn("docs search usage logs omit client_id; set DOCS_SEARCH_CLIENT_ID_SECRET to count distinct clients")
+		}
+		searchHandler, err := docs.RateLimit(docs.NewSearchHandler(logger, clientTagger), rlCfg, logger)
 		if err != nil {
 			logger.Error("invalid docs search rate limit configuration", "error", err)
 			os.Exit(1)
@@ -270,7 +281,7 @@ func main() {
 			logger.Warn("docs search rate limiting keys on the connection address; behind an edge every client looks the same. Set --docs-search-client-ip-header")
 		}
 		extraRoutes = map[string]http.Handler{docs.SearchAPIPath: searchHandler}
-		logger.Info("serving docs search api", "path", docs.SearchAPIPath, "rate_limit_mode", string(mode), "rps", rlCfg.RPS, "burst", rlCfg.Burst, "client_ip_header", rlCfg.TrustedIPHeader)
+		logger.Info("serving docs search api", "path", docs.SearchAPIPath, "rate_limit_mode", string(mode), "rps", rlCfg.RPS, "burst", rlCfg.Burst, "client_ip_header", rlCfg.TrustedIPHeader, "client_ids", clientTagger != nil)
 	}
 
 	var opts []server.ServerOption
