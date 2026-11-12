@@ -66,12 +66,18 @@ type apiError struct {
 type SearchHandler struct {
 	client DocsService
 	logger *slog.Logger
+	// clients tags usage logs with a weekly pseudonymous client ID; nil
+	// leaves the field out.
+	clients *ClientTagger
 }
 
 // NewSearchHandler returns a handler backed by the same DocsClient as the
 // MCP tools, so the two share one index, page cache, and corpus load budget.
-func NewSearchHandler(logger *slog.Logger) *SearchHandler {
-	return newSearchHandler(sharedDocsClient(), logger)
+// clients may be nil.
+func NewSearchHandler(logger *slog.Logger, clients *ClientTagger) *SearchHandler {
+	h := newSearchHandler(sharedDocsClient(), logger)
+	h.clients = clients
+	return h
 }
 
 func newSearchHandler(client DocsService, logger *slog.Logger) *SearchHandler {
@@ -87,6 +93,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
+	start := time.Now()
 	switch r.Method {
 	case http.MethodGet:
 	case http.MethodOptions:
@@ -96,14 +103,13 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		w.Header().Set("Allow", "GET, OPTIONS")
-		writeAPIError(w, http.StatusMethodNotAllowed, "method_not_allowed", "use GET")
+		h.reject(w, r, start, http.StatusMethodNotAllowed, "method_not_allowed", "use GET")
 		return
 	}
 
-	start := time.Now()
 	params, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "bad_request", "malformed query string")
+		h.reject(w, r, start, http.StatusBadRequest, "bad_request", "malformed query string")
 		return
 	}
 	// Unknown or repeated parameters are rejected so every distinct URL is a
@@ -111,28 +117,28 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// and turns each request into an origin hit.
 	for name, values := range params {
 		if _, ok := searchParams[name]; !ok {
-			writeAPIError(w, http.StatusBadRequest, "bad_request", "unknown parameter "+strconv.Quote(name)+"; supported: q, limit, product")
+			h.reject(w, r, start, http.StatusBadRequest, "bad_request", "unknown parameter "+strconv.Quote(name)+"; supported: q, limit, product")
 			return
 		}
 		if len(values) > 1 {
-			writeAPIError(w, http.StatusBadRequest, "bad_request", "parameter "+strconv.Quote(name)+" given more than once")
+			h.reject(w, r, start, http.StatusBadRequest, "bad_request", "parameter "+strconv.Quote(name)+" given more than once")
 			return
 		}
 	}
 
 	query := strings.TrimSpace(params.Get("q"))
 	if query == "" {
-		writeAPIError(w, http.StatusBadRequest, "bad_request", "q is required")
+		h.reject(w, r, start, http.StatusBadRequest, "bad_request", "q is required")
 		return
 	}
 	if len(query) > maxQueryBytes || !utf8.ValidString(query) {
-		writeAPIError(w, http.StatusBadRequest, "bad_request", "q must be valid UTF-8 of at most 256 bytes")
+		h.reject(w, r, start, http.StatusBadRequest, "bad_request", "q must be valid UTF-8 of at most 256 bytes")
 		return
 	}
 
 	product := strings.TrimSpace(params.Get("product"))
 	if len(product) > maxProductBytes || !utf8.ValidString(product) {
-		writeAPIError(w, http.StatusBadRequest, "bad_request", "product must be valid UTF-8 of at most 64 bytes")
+		h.reject(w, r, start, http.StatusBadRequest, "bad_request", "product must be valid UTF-8 of at most 64 bytes")
 		return
 	}
 
@@ -140,7 +146,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if raw := params.Get("limit"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 1 || n > maxResultLimit {
-			writeAPIError(w, http.StatusBadRequest, "bad_request", "limit must be an integer from 1 to 50")
+			h.reject(w, r, start, http.StatusBadRequest, "bad_request", "limit must be an integer from 1 to 50")
 			return
 		}
 		limit = n
@@ -149,7 +155,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	index, err := h.client.GetDocsIndex()
 	if err != nil {
 		h.logger.Error("docs search api: index unavailable", "error", err)
-		writeAPIError(w, http.StatusServiceUnavailable, "service_unavailable", "docs index is temporarily unavailable")
+		h.reject(w, r, start, http.StatusServiceUnavailable, "service_unavailable", "docs index is temporarily unavailable")
 		return
 	}
 	if product != "" {
@@ -177,13 +183,34 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Query text is not logged: people paste error output that can carry
 	// secrets. Term count and zero-result rate are enough to spot gaps.
-	h.logger.Info("docs search api",
+	h.logger.Info("docs search api", append(h.usageAttrs(r, start, http.StatusOK),
 		"terms", len(parseQueryTerms(query)),
 		"product_filter", product != "",
 		"results", len(results),
 		"zero_results", len(results) == 0,
+	)...)
+}
+
+// reject writes an API error and logs it as a usage event, so malformed
+// calls count toward traffic and show which clients get the shape wrong.
+func (h *SearchHandler) reject(w http.ResponseWriter, r *http.Request, start time.Time, status int, id, msg string) {
+	writeAPIError(w, status, id, msg)
+	h.logger.Info("docs search api", append(h.usageAttrs(r, start, status), "error_id", id)...)
+}
+
+// usageAttrs are the fields every search usage log carries.
+func (h *SearchHandler) usageAttrs(r *http.Request, start time.Time, status int) []any {
+	ua := r.Header.Get("User-Agent")
+	attrs := []any{
+		"status", status,
+		"client_type", userAgentFamily(ua),
+		"user_agent", cleanUserAgent(ua),
 		"duration_ms", time.Since(start).Milliseconds(),
-	)
+	}
+	if h.clients != nil {
+		attrs = append(attrs, "client_id", h.clients.ID(r))
+	}
+	return attrs
 }
 
 func (h *SearchHandler) toResults(ctx context.Context, entries []DocsEntry, query string) []SearchAPIResult {
