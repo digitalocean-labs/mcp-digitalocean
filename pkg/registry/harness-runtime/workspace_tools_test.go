@@ -16,7 +16,7 @@ const (
 )
 
 func workspaceJSON(workspaceID, name, state string) string {
-	return `{"workspace_id":"` + workspaceID + `","name":"` + name + `","state":"` + state + `","size_gibibytes":10,"bytes_used":1024,"created_at":"2026-08-01T12:00:00Z","updated_at":"2026-08-01T12:00:00Z","created_by":"user-1","updated_by":"user-1"}`
+	return `{"workspace_id":"` + workspaceID + `","name":"` + name + `","state":"` + state + `","size_limit_gib":10,"bytes_used":1024,"created_at":"2026-08-01T12:00:00Z","updated_at":"2026-08-01T12:00:00Z","created_by":"user-1","updated_by":"user-1"}`
 }
 
 // ---- CreateWorkspace ----
@@ -35,19 +35,21 @@ func TestCreateWorkspace(t *testing.T) {
 	})
 
 	res, err := tool.createWorkspace(context.Background(), request(map[string]any{
-		"SizeGibibytes": float64(10),
-		"Name":          "my-ws",
+		"SizeLimitGiB": float64(10),
+		"Name":         "my-ws",
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
 	require.Equal(t, "/v2/harness-runtime/workspaces", gotPath)
 	require.Equal(t, http.MethodPost, gotMethod)
-	require.Equal(t, float64(10), gotBody["size_gibibytes"])
+	require.Equal(t, float64(10), gotBody["size_limit_gib"])
+	require.NotContains(t, gotBody, "size_gibibytes")
 	require.Equal(t, "my-ws", gotBody["name"])
 
 	text := callText(t, res)
 	require.Contains(t, text, testWorkspaceID)
 	require.Contains(t, text, "AVAILABLE")
+	require.Contains(t, text, `"size_limit_gib": 10`)
 }
 
 func TestCreateWorkspaceNoName(t *testing.T) {
@@ -60,7 +62,7 @@ func TestCreateWorkspaceNoName(t *testing.T) {
 	})
 
 	res, err := tool.createWorkspace(context.Background(), request(map[string]any{
-		"SizeGibibytes": float64(5),
+		"SizeLimitGiB": float64(5),
 	}))
 	require.NoError(t, err)
 	require.False(t, res.IsError)
@@ -75,9 +77,10 @@ func TestCreateWorkspaceValidation(t *testing.T) {
 
 	for name, args := range map[string]map[string]any{
 		"missing size":  {},
-		"size zero":     {"SizeGibibytes": float64(0)},
-		"size too big":  {"SizeGibibytes": float64(101)},
-		"size fraction": {"SizeGibibytes": 5.5},
+		"size zero":     {"SizeLimitGiB": float64(0)},
+		"size too big":  {"SizeLimitGiB": float64(101)},
+		"size fraction": {"SizeLimitGiB": 5.5},
+		"old name only": {"SizeGibibytes": float64(10)},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.createWorkspace(context.Background(), request(args))
@@ -95,7 +98,7 @@ func TestCreateWorkspaceAPIError(t *testing.T) {
 	})
 
 	res, err := tool.createWorkspace(context.Background(), request(map[string]any{
-		"SizeGibibytes": float64(50),
+		"SizeLimitGiB": float64(50),
 	}))
 	require.NoError(t, err)
 	require.True(t, res.IsError)
