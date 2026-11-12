@@ -19,19 +19,20 @@ type ModelTool struct {
 
 // ModelMetadata represents model card metadata
 type ModelMetadata struct {
-	UUID              string                `json:"uuid"`
-	Name              string                `json:"name"`
-	Description       string                `json:"description,omitempty"`
-	Provider          string                `json:"provider,omitempty"`
-	Agreement         *godo.Agreement       `json:"agreement,omitempty"`
-	ModelAvailability string                `json:"model_availability,omitempty"`
-	ContextWindow     string                `json:"context_window,omitempty"`
-	Capabilities      []string              `json:"capabilities,omitempty"`
-	Modalities        *godo.ModelModalities `json:"modalities,omitempty"`
-	ParameterCount    float64               `json:"parameter_count,omitempty"`
-	Type              string                `json:"type,omitempty"`
-	Pricing           *godo.ModelPricing    `json:"pricing,omitempty"`
-	BenchmarkScore    json.RawMessage       `json:"benchmark_score,omitempty"`
+	UUID              string                        `json:"uuid"`
+	Name              string                        `json:"name"`
+	Description       string                        `json:"description,omitempty"`
+	Provider          string                        `json:"provider,omitempty"`
+	Agreement         *godo.Agreement               `json:"agreement,omitempty"`
+	ModelAvailability string                        `json:"model_availability,omitempty"`
+	ContextWindow     string                        `json:"context_window,omitempty"`
+	Capabilities      []string                      `json:"capabilities,omitempty"`
+	Modalities        *godo.ModelModalities         `json:"modalities,omitempty"`
+	ParameterCount    float64                       `json:"parameter_count,omitempty"`
+	Type              string                        `json:"type,omitempty"`
+	Pricing           *godo.ModelPricing            `json:"pricing,omitempty"`
+	Performance       *godo.ModelCatalogPerformance `json:"performance,omitempty"`
+	BenchmarkScore    json.RawMessage               `json:"benchmark_score,omitempty"`
 }
 
 // NewModelTool creates a new ModelTool instance
@@ -41,14 +42,14 @@ func NewModelTool(client func(ctx context.Context) (*godo.Client, error)) *Model
 	}
 }
 
-// getModelMetadata fetches model card data and returns it as ModelMetadata
+// getModelMetadata fetches a V2 catalog card and returns it as ModelMetadata.
 func (m *ModelTool) getModelMetadata(ctx context.Context, modelUUID string) (*ModelMetadata, error) {
 	client, err := m.client(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
 	}
 
-	model, _, err := client.AgentPlatform.GetModelByUUID(ctx, modelUUID)
+	model, _, err := client.AgentPlatform.GetModelCatalogCardV2(ctx, modelUUID, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get model: %w", err)
 	}
@@ -57,21 +58,43 @@ func (m *ModelTool) getModelMetadata(ctx context.Context, modelUUID string) (*Mo
 		return nil, fmt.Errorf("model with UUID '%s' not found", modelUUID)
 	}
 
+	return metadataFromCatalogEntry(model), nil
+}
+
+func metadataFromCatalogEntry(model *godo.ModelCatalogEntryV2) *ModelMetadata {
+	availability := ""
+	if len(model.Serving) > 0 {
+		availability = model.Serving[0]
+	}
+	var modalities *godo.ModelModalities
+	if len(model.InputModality) > 0 || len(model.OutputModality) > 0 {
+		modalities = &godo.ModelModalities{
+			Input:  model.InputModality,
+			Output: model.OutputModality,
+		}
+	}
 	return &ModelMetadata{
-		UUID:              model.Uuid,
+		UUID:              model.ID,
 		Name:              model.Name,
 		Description:       model.Description,
 		Provider:          model.Provider,
-		Agreement:         model.Agreement,
-		ModelAvailability: model.ModelAvailability,
+		ModelAvailability: availability,
 		ContextWindow:     model.ContextWindow,
 		Capabilities:      model.Capabilities,
-		Modalities:        model.Modalities,
-		ParameterCount:    model.ParameterCount,
+		Modalities:        modalities,
+		ParameterCount:    model.ParameterCountInBillions,
 		Type:              model.Type,
-		Pricing:           model.Pricing,
-		BenchmarkScore:    model.BenchmarkScore,
-	}, nil
+		Pricing:           catalogPricing(model.Pricing),
+		Performance:       model.Performance,
+	}
+}
+
+func catalogPricing(pricing *godo.ModelCatalogPricing) *godo.ModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	shared := pricing.ModelPricing
+	return &shared
 }
 
 // searchModels searches for models in the catalog using a search string
@@ -82,14 +105,17 @@ func (m *ModelTool) searchModels(ctx context.Context, req mcp.CallToolRequest) (
 		searchQuery = ""
 	}
 
-	client, err := m.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	uuids, _, err := client.AgentPlatform.SearchModels(ctx, searchQuery)
+	entries, err := m.listCatalog(ctx, searchQuery)
 	if err != nil {
 		return mcp.NewToolResultErrorFromErr("Failed to search models", err), nil
+	}
+
+	uuids := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry == nil || entry.ID == "" {
+			continue
+		}
+		uuids = append(uuids, entry.ID)
 	}
 
 	return searchOut.Result(modelSearchResult{
@@ -97,6 +123,33 @@ func (m *ModelTool) searchModels(ctx context.Context, req mcp.CallToolRequest) (
 		SearchQuery: searchQuery,
 		Count:       len(uuids),
 	})
+}
+
+// listCatalog pages through List Model Catalog V2 until the API reports no next page.
+func (m *ModelTool) listCatalog(ctx context.Context, searchQuery string) ([]*godo.ModelCatalogEntryV2, error) {
+	client, err := m.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	var entries []*godo.ModelCatalogEntryV2
+	for page := 1; page <= 1000; page++ {
+		list, resp, err := client.AgentPlatform.ListModelCatalogV2(ctx, &godo.ModelCatalogV2ListOptions{
+			Page:    page,
+			PerPage: 200,
+			Search:  searchQuery,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if list != nil {
+			entries = append(entries, list.Data...)
+		}
+		if resp == nil || resp.Links == nil || resp.Links.Pages == nil || resp.Links.Pages.Next == "" {
+			break
+		}
+	}
+	return entries, nil
 }
 
 // getModelCard retrieves metadata for a specific model
@@ -124,7 +177,7 @@ func (m *ModelTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				searchOut.Schema(),
-				mcp.WithDescription("Search for models in the catalog using a search query. Returns a list of model UUIDs that match the search criteria. An empty or missing search query returns all available models."),
+				mcp.WithDescription("Search the V2 model catalog. Returns catalog IDs for models that match the search query. An empty or missing search query returns every catalog model visible to the authenticated account."),
 				mcp.WithString("SearchQuery", mcp.Description("Search query string to find models (optional; empty or omitted returns all models)")),
 			),
 		},
@@ -135,8 +188,8 @@ func (m *ModelTool) Tools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				modelCardOut.Schema(),
-				mcp.WithDescription("Get the model metadata for a specific model UUID."),
-				mcp.WithString("ModelUUID", mcp.Required(), mcp.Description("The unique UUID identifier of the model")),
+				mcp.WithDescription("Get the V2 model catalog card for a catalog ID."),
+				mcp.WithString("ModelUUID", mcp.Required(), mcp.Description("Catalog ID of the model, as returned by inference-model-catalog-search")),
 			),
 		},
 	}

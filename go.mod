@@ -1,5 +1,7 @@
 module mcp-digitalocean
 
+replace github.com/digitalocean/godo => ../godo
+
 go 1.26.4
 
 require (

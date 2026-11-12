@@ -575,27 +575,27 @@ func TestHandleModelComparison_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	model1 := &godo.Model{
-		Uuid:              "uuid-1",
-		Name:              "llama-3.3-70b-instruct",
-		Provider:          "Meta",
-		Type:              "chat",
-		ContextWindow:     "128K tokens",
-		ModelAvailability: "Serverless",
+	model1 := &godo.ModelCatalogEntryV2{
+		ID:            "uuid-1",
+		Name:          "llama-3.3-70b-instruct",
+		Provider:      "Meta",
+		Type:          "chat",
+		ContextWindow: "128K tokens",
+		Serving:       []string{"Serverless"},
 	}
 
-	model2 := &godo.Model{
-		Uuid:              "uuid-2",
-		Name:              "gpt-4o",
-		Provider:          "OpenAI",
-		Type:              "chat",
-		ContextWindow:     "128K tokens",
-		ModelAvailability: "Dedicated",
+	model2 := &godo.ModelCatalogEntryV2{
+		ID:            "uuid-2",
+		Name:          "gpt-4o",
+		Provider:      "OpenAI",
+		Type:          "chat",
+		ContextWindow: "128K tokens",
+		Serving:       []string{"Dedicated"},
 	}
 
 	mock := NewMockAgentPlatformService(ctrl)
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(model1, nil, nil)
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-2").Return(model2, nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-1", "").Return(model1, nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-2", "").Return(model2, nil, nil)
 
 	tool := setupModelToolWithMock(mock)
 
@@ -674,31 +674,31 @@ func TestHandleSearchByTask_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mock := NewMockAgentPlatformService(ctrl)
-	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1", "uuid-2"}, nil, nil)
+	mock.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(catalogList([]string{"uuid-1", "uuid-2"}), nil, nil)
 
-	model1 := &godo.Model{
-		Uuid:     "uuid-1",
+	model1 := &godo.ModelCatalogEntryV2{
+		ID:       "uuid-1",
 		Name:     "llama-3.3-70b-instruct",
 		Provider: "Meta",
 		Type:     "chat",
-		Pricing: &godo.ModelPricing{
+		Pricing: &godo.ModelCatalogPricing{ModelPricing: godo.ModelPricing{
 			InputPricePerMillion:  3.0,
 			OutputPricePerMillion: 15.0,
-		},
+		}},
 	}
-	model2 := &godo.Model{
-		Uuid:     "uuid-2",
+	model2 := &godo.ModelCatalogEntryV2{
+		ID:       "uuid-2",
 		Name:     "gpt-4o",
 		Provider: "OpenAI",
 		Type:     "chat",
-		Pricing: &godo.ModelPricing{
+		Pricing: &godo.ModelCatalogPricing{ModelPricing: godo.ModelPricing{
 			InputPricePerMillion:  5.0,
 			OutputPricePerMillion: 15.0,
-		},
+		}},
 	}
 
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(model1, nil, nil)
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-2").Return(model2, nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-1", "").Return(model1, nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-2", "").Return(model2, nil, nil)
 
 	tool := setupModelToolWithMock(mock)
 
@@ -745,7 +745,7 @@ func TestHandleSearchByTask_SearchError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mock := NewMockAgentPlatformService(ctrl)
-	mock.EXPECT().SearchModels(gomock.Any(), "").Return(nil, nil, errors.New("API unavailable"))
+	mock.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(nil, nil, errors.New("API unavailable"))
 
 	tool := setupModelToolWithMock(mock)
 
@@ -768,11 +768,11 @@ func TestHandleSearchByTask_ModelFetchError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mock := NewMockAgentPlatformService(ctrl)
-	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1", "uuid-2"}, nil, nil)
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(nil, nil, errors.New("model not found"))
+	mock.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(catalogList([]string{"uuid-1", "uuid-2"}), nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-1", "").Return(nil, nil, errors.New("model not found"))
 	// Should continue with uuid-2
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-2").Return(&godo.Model{
-		Uuid:     "uuid-2",
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-2", "").Return(&godo.ModelCatalogEntryV2{
+		ID:       "uuid-2",
 		Name:     "gpt-4o",
 		Provider: "OpenAI",
 		Type:     "chat",
@@ -802,16 +802,16 @@ func TestHandleSearchByTask_WithInvalidPriceConstraints(t *testing.T) {
 	defer ctrl.Finish()
 
 	mock := NewMockAgentPlatformService(ctrl)
-	mock.EXPECT().SearchModels(gomock.Any(), "").Return([]string{"uuid-1"}, nil, nil)
-	mock.EXPECT().GetModelByUUID(gomock.Any(), "uuid-1").Return(&godo.Model{
-		Uuid:     "uuid-1",
+	mock.EXPECT().ListModelCatalogV2(gomock.Any(), catalogListOpt("")).Return(catalogList([]string{"uuid-1"}), nil, nil)
+	mock.EXPECT().GetModelCatalogCardV2(gomock.Any(), "uuid-1", "").Return(&godo.ModelCatalogEntryV2{
+		ID:       "uuid-1",
 		Name:     "test-model",
 		Provider: "OpenAI",
 		Type:     "chat",
-		Pricing: &godo.ModelPricing{
+		Pricing: &godo.ModelCatalogPricing{ModelPricing: godo.ModelPricing{
 			InputPricePerMillion:  5.0,
 			OutputPricePerMillion: 10.0,
-		},
+		}},
 	}, nil, nil)
 
 	tool := setupModelToolWithMock(mock)

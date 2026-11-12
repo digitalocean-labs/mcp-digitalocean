@@ -28,8 +28,8 @@ func TestStructuredOutputSatisfiesDeclaredSchema(t *testing.T) {
 
 	mockAgentPlatform := NewMockAgentPlatformService(ctrl)
 	mockAgentPlatform.EXPECT().
-		SearchModels(gomock.Any(), "llama").
-		Return(uuids, nil, nil).
+		ListModelCatalogV2(gomock.Any(), catalogListOpt("llama")).
+		Return(catalogList(uuids), nil, nil).
 		Times(1)
 
 	svr := server.NewMCPServer("test", "test", server.WithOutputSchemaValidation())
