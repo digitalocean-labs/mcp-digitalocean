@@ -3,10 +3,12 @@ package docs
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 	"unicode/utf8"
 
+	"mcp-digitalocean/internal/calltrace"
 	"mcp-digitalocean/pkg/registry/common"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -167,14 +169,17 @@ func (d *DocsTool) searchDocs(ctx context.Context, req mcp.CallToolRequest) (*mc
 	}
 
 	results := SearchIndex(index, query)
+	trace := calltrace.FromContext(ctx)
 
 	if len(results) == 0 {
+		trace.Add(slog.Int("result_count", 0))
 		return mcp.NewToolResultText(fmt.Sprintf("No results found for %q (searched %d %s). Try different search terms or a more general query.", query, len(index.Entries), scope)), nil
 	}
 
 	if len(results) > limit {
 		results = results[:limit]
 	}
+	trace.Add(slog.Int("result_count", len(results)), slog.String("top_url", canonicalDocURL(results[0].URL)))
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Found %d result(s) for %q (searched %d %s):\n\n", len(results), query, len(index.Entries), scope)
