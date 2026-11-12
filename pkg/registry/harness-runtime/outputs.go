@@ -7,6 +7,7 @@ var agentConfigOut = common.NewObjectOutput[AgentConfigResponse]()
 
 var sessionCreateOut = common.NewObjectOutput[CreateSessionResponse]()
 var sessionOut = common.NewObjectOutput[GetSessionResponse]()
+var sessionPatchOut = common.NewObjectOutput[PatchSessionResponse]()
 var sessionListOut = common.NewObjectOutput[ListSessionsResponse]()
 var sendInputOut = common.NewObjectOutput[SendInputResponse]()
 var forkSessionOut = common.NewObjectOutput[ForkSessionResponse]()

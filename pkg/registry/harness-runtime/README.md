@@ -27,7 +27,7 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 - **`harness-runtime-send-input`** — Deliver a user message into a READY or DETACHED session. Requires `SessionID` and at least one of `Text` (string) or `Inputs` (structured dict). Returns the `run_id`.
 - **`harness-runtime-pause-session`** — Freeze a READY/DETACHED session's microVM sandbox. microvm-substrate only.
 - **`harness-runtime-resume-session`** — Explicitly thaw a PAUSED session's sandbox. Returns synchronously once ready.
-- **`harness-runtime-patch-session`** — Update session-scoped settings. Currently supports `ResumeOnTopoff` (auto-resume consent toggle). Returns the updated session snapshot.
+- **`harness-runtime-patch-session`** — Update an existing session. Provide exactly one of `ResumeOnTopoff` (auto-resume consent toggle) or `Manifest` (live config update of `tools`, `env` and `secrets`, as a JSON object or YAML string; `env`/`secrets` are full sets). Returns `outcome` (`ACCEPTED` or `UNCHANGED`) and the session. On `ACCEPTED` the session is `SESSION_STATUS_UPDATING`: poll `harness-runtime-get-session` until it leaves that status, then read `update`. The tool does not wait.
 - **`harness-runtime-resolve-hitl`** — Record the user's decision on a pending HITL request. `Outcome` must be one of `HITL_OUTCOME_APPROVE`, `HITL_OUTCOME_REJECT`, or `HITL_OUTCOME_DEFER`. Optional: `Reason` (audit trail text), `Content` (structured form answer).
 - **`harness-runtime-fork-session`** — Create 1-4 child sessions from a checkpoint of an existing session. `SessionID` required; `FromCheckpointID` (READY checkpoint UUID to fork from — omit to capture an implicit checkpoint of "now") and `Count` (1-4, default 1) are optional. Returns the created child sessions with `parent_session_id` and `fork_id` set.
 - **`harness-runtime-exec-in-sandbox`** — Run a one-shot command inside a session's sandbox. `SessionID` and `Argv` (non-empty string array) required. Optional: `Workdir` (default `/workspace`), `Stdin` (base64-encoded), `TimeoutSeconds` (max 240, server-enforced). Returns `exit_code`, `stdout`, `stderr`, and `duration_ms`. A non-zero exit code is still a successful HTTP response — check the field.
@@ -63,9 +63,9 @@ Custom sandbox templates let you layer an OCI image on a base template for a cus
 
 Persistent workspaces are virtual disk volumes that survive across sessions.
 
-- **`harness-runtime-create-workspace`** — Provision a new persistent workspace. `SizeGibibytes` (1-100, integer) required. Optional `Name` label. Size is fixed at creation.
+- **`harness-runtime-create-workspace`** — Provision a new persistent workspace. `SizeLimitGiB` (1-100, integer) required: a size limit (a quota, not a device size). Optional `Name` label. The limit is fixed at creation.
 - **`harness-runtime-list-workspaces`** — List the team's workspaces. Supports `PageSize`, `PageToken`, and `State` filter (`AVAILABLE`, `ATTACHING`, `ATTACHED`, `RELEASING`, `FAILED`, `DELETING`).
-- **`harness-runtime-get-workspace`** — Get a single workspace by `WorkspaceID` (UUID), including state, attached session, size, bytes used, and timestamps.
+- **`harness-runtime-get-workspace`** — Get a single workspace by `WorkspaceID` (UUID), including state, attached session, size limit, bytes used, and timestamps.
 - **`harness-runtime-delete-workspace`** — Permanently delete a workspace by `WorkspaceID`. **Destructive.** Must not be attached (409 if attached). All data is lost.
 
 ### Workspace Transfers
