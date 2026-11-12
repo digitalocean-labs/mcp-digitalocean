@@ -1,11 +1,9 @@
 module mcp-digitalocean
 
-replace github.com/digitalocean/godo => ../godo
-
 go 1.26.4
 
 require (
-	github.com/digitalocean/godo v1.236.0
+	github.com/digitalocean/godo v1.237.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/invopop/jsonschema v0.13.0
