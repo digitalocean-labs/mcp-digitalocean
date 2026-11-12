@@ -161,26 +161,9 @@ func (t *Tool) createAgentConfig(ctx context.Context, req mcp.CallToolRequest) (
 		return mcp.NewToolResultError("Name is required"), nil
 	}
 
-	// The API expects manifest_yaml as a YAML string. Accept either a
-	// pre-formatted YAML string or a JSON object that we convert to YAML.
-	var manifestYAML string
-	switch v := args["Manifest"].(type) {
-	case string:
-		if v == "" {
-			return mcp.NewToolResultError("Manifest must not be empty"), nil
-		}
-		manifestYAML = v
-	case map[string]any:
-		if len(v) == 0 {
-			return mcp.NewToolResultError("Manifest must not be empty"), nil
-		}
-		yamlBytes, err := yaml.Marshal(v)
-		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Failed to convert manifest to YAML", err), nil
-		}
-		manifestYAML = string(yamlBytes)
-	default:
-		return mcp.NewToolResultError("Manifest is required (provide a YAML string or a JSON object)"), nil
+	manifestYAML, errMsg := manifestArgToYAML(args["Manifest"])
+	if errMsg != "" {
+		return mcp.NewToolResultError(errMsg), nil
 	}
 
 	body := map[string]any{
@@ -353,4 +336,29 @@ func (t *Tool) Tools() []server.ServerTool {
 	tools = append(tools, t.triggerTools()...)
 	tools = append(tools, t.connectionTools()...)
 	return tools
+}
+
+// manifestArgToYAML converts a "Manifest" tool argument into the YAML string
+// the API expects as manifest_yaml. The argument is either a pre-formatted YAML
+// string or a JSON object that is converted to YAML. On failure it returns a
+// non-empty message suitable for mcp.NewToolResultError.
+func manifestArgToYAML(v any) (string, string) {
+	switch m := v.(type) {
+	case string:
+		if m == "" {
+			return "", "Manifest must not be empty"
+		}
+		return m, ""
+	case map[string]any:
+		if len(m) == 0 {
+			return "", "Manifest must not be empty"
+		}
+		yamlBytes, err := yaml.Marshal(m)
+		if err != nil {
+			return "", "Failed to convert manifest to YAML: " + err.Error()
+		}
+		return string(yamlBytes), ""
+	default:
+		return "", "Manifest is required (provide a YAML string or a JSON object)"
+	}
 }

@@ -498,6 +498,60 @@ func TestPatchSession(t *testing.T) {
 	require.Contains(t, text, testSessionID)
 }
 
+func TestPatchSessionManifest(t *testing.T) {
+	for name, manifest := range map[string]any{
+		"yaml string": "tools:\n  - do.actions:\n      tools: [toolbelt:read-only@1]\n",
+		"object": map[string]any{
+			"tools": []any{map[string]any{"do.actions": map[string]any{"tools": []any{"toolbelt:read-only@1"}}}},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var gotBody map[string]any
+			tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, http.MethodPatch, r.Method)
+				_ = json.NewDecoder(r.Body).Decode(&gotBody)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte(`{"session":` + sessionJSON(testSessionID, "my-agent", "SESSION_STATUS_UPDATING") + `,"outcome":"ACCEPTED","warnings":["w1"]}`))
+			})
+
+			res, err := tool.patchSession(context.Background(), request(map[string]any{
+				"SessionID": testSessionID,
+				"Manifest":  manifest,
+			}))
+			require.NoError(t, err)
+			require.False(t, res.IsError, callText(t, res))
+			require.Len(t, gotBody, 1)
+			require.NotContains(t, gotBody, "resume_on_topoff")
+			require.Contains(t, gotBody["manifest_yaml"], "toolbelt:read-only@1")
+
+			text := callText(t, res)
+			require.Contains(t, text, "ACCEPTED")
+			require.Contains(t, text, "SESSION_STATUS_UPDATING")
+			require.Contains(t, text, "w1")
+		})
+	}
+}
+
+func TestPatchSessionManifestResponseFields(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"session":{"session_id":"` + testSessionID + `","status":"SESSION_STATUS_READY",
+			"config_drifted":true,"config_diff":{"env":{"changed":["FOO"]}},"manifest":{"tools":[]},
+			"update":{"update_id":"u1","state":"FAILED","reverted":true,"detail":"boom"}},"outcome":"UNCHANGED"}`))
+	})
+	res, err := tool.patchSession(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Manifest":  "env: {}\n",
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	text := callText(t, res)
+	for _, want := range []string{"UNCHANGED", "config_drifted", "FOO", "u1", "FAILED", "boom"} {
+		require.Contains(t, text, want)
+	}
+}
+
 func TestPatchSessionValidation(t *testing.T) {
 	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
 		t.Fatal("API must not be called for invalid input")
@@ -507,6 +561,10 @@ func TestPatchSessionValidation(t *testing.T) {
 		"missing session id":       {"ResumeOnTopoff": true},
 		"invalid session id":       {"SessionID": "not-uuid", "ResumeOnTopoff": true},
 		"missing patchable fields": {"SessionID": testSessionID},
+		"both fields":              {"SessionID": testSessionID, "ResumeOnTopoff": true, "Manifest": "tools: []\n"},
+		"empty manifest string":    {"SessionID": testSessionID, "Manifest": ""},
+		"empty manifest object":    {"SessionID": testSessionID, "Manifest": map[string]any{}},
+		"manifest wrong type":      {"SessionID": testSessionID, "Manifest": 42},
 	} {
 		t.Run(name, func(t *testing.T) {
 			res, err := tool.patchSession(context.Background(), request(args))
