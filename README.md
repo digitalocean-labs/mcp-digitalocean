@@ -246,8 +246,6 @@ Once connected, ask your assistant things like:
 - "Create a 3-node Kubernetes cluster in `sfo3` and give me the kubeconfig."
 - "Show the configuration of my managed Postgres cluster and list its recent backups."
 
-> The Knowledge Bases server (`https://kbaas.do-ai.run/v1/mcp`) is not behind the router; connect to it directly.
-
 #### Available Services
 
 | Service                | Remote MCP URL                                          | Description                                                                                                         |
