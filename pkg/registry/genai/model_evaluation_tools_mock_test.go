@@ -52,7 +52,7 @@ func TestModelEvaluationTool_listMetrics_success(t *testing.T) {
 	defer ctrl.Finish()
 
 	m := NewMockAgentPlatformService(ctrl)
-	m.EXPECT().ListModelEvaluationMetrics(gomock.Any()).Return(&godo.ModelEvaluationMetricListResponse{
+	m.EXPECT().ListModelEvaluationMetricsWithOptions(gomock.Any(), nil).Return(&godo.ModelEvaluationMetricListResponse{
 		Metrics: []*godo.EvaluationMetric{
 			{MetricUUID: "metric-1", MetricName: "accuracy"},
 			{MetricUUID: "metric-2", MetricName: "faithfulness"},
@@ -68,12 +68,35 @@ func TestModelEvaluationTool_listMetrics_success(t *testing.T) {
 	require.Contains(t, text, `"count": 2`)
 }
 
+func TestModelEvaluationTool_listMetrics_turnTypeFilter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockAgentPlatformService(ctrl)
+	m.EXPECT().ListModelEvaluationMetricsWithOptions(gomock.Any(), &godo.ModelEvaluationMetricListOptions{
+		TurnType: godo.EvaluationMetricTurnTypeMultiTurn,
+	}).Return(&godo.ModelEvaluationMetricListResponse{
+		Metrics: []*godo.EvaluationMetric{
+			{MetricUUID: "metric-mt", MetricName: "User goal completion", TurnType: godo.EvaluationMetricTurnTypeMultiTurn},
+		},
+	}, okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listMetrics, map[string]any{
+		"turn_type": "multi_turn",
+	})
+
+	require.False(t, resp.IsError)
+	text := resultText(t, resp)
+	require.Contains(t, text, "User goal completion")
+	require.Contains(t, text, "EVALUATION_METRIC_TURN_TYPE_MULTI_TURN")
+}
+
 func TestModelEvaluationTool_listMetrics_apiError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	m := NewMockAgentPlatformService(ctrl)
-	m.EXPECT().ListModelEvaluationMetrics(gomock.Any()).Return(nil, nil, errors.New("boom"))
+	m.EXPECT().ListModelEvaluationMetricsWithOptions(gomock.Any(), nil).Return(nil, nil, errors.New("boom"))
 
 	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).listMetrics, map[string]any{})
 	require.True(t, resp.IsError)
@@ -365,6 +388,40 @@ func TestModelEvaluationTool_createCustomMetric_success(t *testing.T) {
 	text := resultText(t, resp)
 	require.Contains(t, text, "metric-1")
 	require.Contains(t, text, "helpfulness")
+}
+
+func TestModelEvaluationTool_createCustomMetric_turnType(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := NewMockAgentPlatformService(ctrl)
+	m.EXPECT().CreateCustomEvaluationMetric(gomock.Any(), &godo.CreateCustomEvaluationMetricRequest{
+		MetricName: "coherence-mt",
+		Config: &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt: "Score coherence 0-1 across the conversation.",
+			TurnType:      godo.EvaluationMetricTurnTypeMultiTurn,
+		},
+	}).Return(&godo.EvaluationMetric{
+		MetricUUID: "metric-mt",
+		MetricName: "coherence-mt",
+		TurnType:   godo.EvaluationMetricTurnTypeMultiTurn,
+		Source:     godo.EvaluationMetricSourceCustom,
+		CustomEvalConfig: &godo.CustomEvaluationMetricConfig{
+			ScoringPrompt: "Score coherence 0-1 across the conversation.",
+			TurnType:      godo.EvaluationMetricTurnTypeMultiTurn,
+		},
+	}, okResponse(http.StatusOK), nil)
+
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(m).createCustomMetric, map[string]any{
+		"metric_name":    "coherence-mt",
+		"scoring_prompt": "Score coherence 0-1 across the conversation.",
+		"turn_type":      "multi_turn",
+	})
+
+	require.False(t, resp.IsError)
+	text := resultText(t, resp)
+	require.Contains(t, text, "metric-mt")
+	require.Contains(t, text, "EVALUATION_METRIC_TURN_TYPE_MULTI_TURN")
 }
 
 func TestModelEvaluationTool_createCustomMetric_apiNon2xx(t *testing.T) {
