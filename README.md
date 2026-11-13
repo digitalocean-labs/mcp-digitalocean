@@ -4,6 +4,8 @@ MCP DigitalOcean Integration is an open-source project that provides a comprehen
 
 > **DISCLAIMER:** "Use of MCP technology to interact with your DigitalOcean account [can come with risks](https://www.wiz.io/blog/mcp-security-research-briefing)"
 
+**Quick start:** connect your MCP client to the [DigitalOcean MCP Router](#mcp-router-single-endpoint) at `https://mcp.digitalocean.com/mcp` and sign in with your DigitalOcean account. One endpoint gives you tools for Droplets, App Platform, Kubernetes, managed databases, networking, Spaces, GenAI, and more.
+
 ---
 
 ## Authentication
@@ -183,9 +185,68 @@ $env:DIGITALOCEAN_API_TOKEN = "your_actual_token_here"
 
 ### Remote MCP (Recommended)
 
-The easiest way to get started is to use DigitalOcean's hosted MCP services. Each service is deployed as a standalone MCP server accessible via HTTPS, allowing you to connect without running any local server. You can connect to multiple endpoints simultaneously by adding multiple entries to your configuration.
+The easiest way to get started is to use DigitalOcean's hosted MCP services, so you don't need to run a local server. You can connect in two ways:
+
+- **The MCP Router (recommended)** — a single endpoint that fronts all of DigitalOcean's first-party MCP services.
+- **Individual service endpoints** — one per service, added only for the services you need. See [Available Services](#available-services).
 
 These servers support **OAuth 2.0 (recommended)** and API-token auth — see [Authentication](#authentication). Each client section below shows both options.
+
+#### MCP Router (single endpoint)
+
+Connect once to `https://mcp.digitalocean.com/mcp` and your MCP client can discover and run tools across every service in the [Available Services](#available-services) table. The router forwards your credentials to the service that owns each tool, so you authenticate only once.
+
+The router exposes three tools that work together:
+
+| Tool              | What it does                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `find_tools`      | Takes a natural-language query and returns a ranked shortlist of matching tools, each with a qualified name in `server/tool` form. Optional `limit` (default 5, max 25). |
+| `retrieve_schema` | Returns the input schema, and output schema when available, for one tool by its qualified name.                                               |
+| `invoke_tool`     | Runs a tool by its qualified name with arguments matching its input schema. Optional `projection` (dot-notation paths such as `droplet.id`) returns only selected fields of the structured result. |
+
+**Option A — OAuth (recommended).** Add just the URL; your client opens a browser to sign in to DigitalOcean on first use:
+
+```json
+{
+  "mcpServers": {
+    "digitalocean": {
+      "url": "https://mcp.digitalocean.com/mcp"
+    }
+  }
+}
+```
+
+**Option B — API token.** Send a DigitalOcean [personal access token](https://cloud.digitalocean.com/account/api/tokens) as a Bearer header. Use your client's variable substitution to keep the token out of the file (see [Security](#security-never-hardcode-your-api-token)):
+
+```json
+{
+  "mcpServers": {
+    "digitalocean": {
+      "url": "https://mcp.digitalocean.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${DIGITALOCEAN_API_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+In Claude Code:
+
+```bash
+claude mcp add --transport http digitalocean --scope user https://mcp.digitalocean.com/mcp
+```
+
+Then run `/mcp`, select `digitalocean`, and sign in.
+
+Once connected, ask your assistant things like:
+
+- "List my Droplets in `nyc3` and show which ones are powered off."
+- "Deploy this repo to App Platform and tell me when the deployment is live."
+- "Create a 3-node Kubernetes cluster in `sfo3` and give me the kubeconfig."
+- "Show the configuration of my managed Postgres cluster and list its recent backups."
+
+> The Knowledge Bases server (`https://kbaas.do-ai.run/v1/mcp`) is not behind the router; connect to it directly.
 
 #### Available Services
 
