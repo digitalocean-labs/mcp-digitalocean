@@ -63,7 +63,7 @@ Read-only tools for querying DigitalOcean's public documentation. No authenticat
 
 `TestLiveRegressionSet` (build tag `integration`, not run in standard CI) runs the set against the live index and requires Recall@5 >= 0.9, MRR >= 0.75, and under 50 ms per query of ranking time; measured 28/28, 0.875, 11 ms. `TestLiveContentExcerpts` reports excerpt coverage and shard-fetch latency with a fresh corpus cache per query; measured 136/140 results and 28/28 top-1 results with a body excerpt, cold avg 267 ms / max 535 ms, warm 3 ms. Add a judged row before changing ranking.
 
-### HTTP search endpoint (preview)
+### HTTP search endpoint
 
 For clients that do not speak MCP, a remote deployment started with `--allow-anonymous --services docs --docs-search-api` also serves `GET /v1/search`. It uses the same client, index, ranker, and excerpt layer as `docs-search`, so the two return the same pages and share caches and the corpus load budget. The server refuses to start with `--docs-search-api` unless anonymous access is enabled, which already requires the docs-only service set.
 
@@ -79,7 +79,7 @@ Unknown or repeated parameters return 400, so each distinct URL is a distinct se
 curl 'https://<host>/v1/search?q=deploy+from+container+image&limit=3'
 ```
 
-The response is `{"results": [...], "meta": {...}}`. Each result has `title`, `url`, `markdown_url`, `product`, `page_type`, `last_modified`, and `excerpt`; `meta` carries `query`, `product`, `total`, `pages_searched`, and `stability` (`preview`). Errors use the public API shape `{"id", "message"}` (`bad_request`, `method_not_allowed`, `too_many_requests`, `service_unavailable`) with `Cache-Control: no-store`. Successful responses send `Access-Control-Allow-Origin: *` (no credentials are involved) and `Cache-Control: public, max-age=300`. Query text is not logged; the request log records term count, result count, zero-result flag, and duration.
+The response is `{"results": [...], "meta": {...}}`. Each result has `title`, `url`, `markdown_url`, `product`, `page_type`, `last_modified`, and `excerpt`; `meta` carries `query`, `product`, `total`, `pages_searched`, and `stability` (`stable`). Errors use the public API shape `{"id", "message"}` (`bad_request`, `method_not_allowed`, `too_many_requests`, `service_unavailable`) with `Cache-Control: no-store`. Successful responses send `Access-Control-Allow-Origin: *` (no credentials are involved) and `Cache-Control: public, max-age=300`. Query text is not logged; the request log records term count, result count, zero-result flag, and duration.
 
 Rate limiting is a per-client token bucket (IPv6 grouped by /64), sharded so memory and eviction cost stay bounded:
 

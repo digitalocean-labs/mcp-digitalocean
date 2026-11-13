@@ -73,7 +73,7 @@ func TestDocsSearchAPI(t *testing.T) {
 		require.LessOrEqual(t, len(body.Results), 3)
 		require.Contains(t, body.Results[0].URL, "https://docs.digitalocean.com/")
 		require.Greater(t, body.Meta.PagesSearched, 1000)
-		require.Equal(t, "preview", body.Meta.Stability)
+		require.Equal(t, "stable", body.Meta.Stability)
 	})
 
 	t.Run("rejects unknown parameters", func(t *testing.T) {
