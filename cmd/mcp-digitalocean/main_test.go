@@ -1,11 +1,42 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	middleware "mcp-digitalocean/internal"
 )
+
+func TestClientFromContextUserAgent(t *testing.T) {
+	remote := "do-remote-mcp/" + mcpVersion
+
+	tests := []struct {
+		name       string
+		callerUA   string
+		wantPrefix string
+	}{
+		{name: "no caller user agent", wantPrefix: remote + " godo/"},
+		{name: "router chain forwarded first", callerUA: "Cursor/0.48.2 mcp-router/1db28da",
+			wantPrefix: "Cursor/0.48.2 mcp-router/1db28da " + remote + " godo/"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := middleware.WithAuthKey(context.Background(), "Bearer dop_v1_token")
+			ctx = middleware.WithCallerUserAgent(ctx, tt.callerUA)
+
+			client, err := clientFromContext(ctx, "https://api.digitalocean.com", "do-remote-mcp", "")
+			if err != nil {
+				t.Fatalf("clientFromContext: %v", err)
+			}
+			if !strings.HasPrefix(client.UserAgent, tt.wantPrefix) {
+				t.Fatalf("user agent = %q, want prefix %q", client.UserAgent, tt.wantPrefix)
+			}
+		})
+	}
+}
 
 func TestCheckAnonymousServices(t *testing.T) {
 	tests := []struct {

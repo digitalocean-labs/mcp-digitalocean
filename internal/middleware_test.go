@@ -34,32 +34,36 @@ func TestAuthFromRequestWithoutRouterHeader(t *testing.T) {
 	}
 }
 
-func TestAuthFromRequestExtractsUserAgent(t *testing.T) {
+func TestAuthFromRequestExtractsCallerUserAgent(t *testing.T) {
 	r := httptest.NewRequest("POST", "/mcp", nil)
-	r.Header.Set("User-Agent", "mcp-router/1db28da")
+	r.Header.Set("User-Agent", " Cursor/0.48.2 mcp-router/1db28da ")
 
 	ctx := AuthFromRequest(context.Background(), r)
 
-	if got := UserAgentFromContext(ctx); got != "mcp-router/1db28da" {
-		t.Fatalf("user agent = %q, want %q", got, "mcp-router/1db28da")
+	if got := CallerUserAgentFromContext(ctx); got != "Cursor/0.48.2 mcp-router/1db28da" {
+		t.Fatalf("caller user agent = %q, want %q", got, "Cursor/0.48.2 mcp-router/1db28da")
 	}
 }
 
-func TestUserAgentFromContextAbsent(t *testing.T) {
-	if got := UserAgentFromContext(context.Background()); got != "" {
-		t.Fatalf("user agent = %q, want empty", got)
+func TestWithCallerUserAgentIgnoresEmpty(t *testing.T) {
+	ctx := context.Background()
+	if got := WithCallerUserAgent(ctx, "   "); got != ctx {
+		t.Fatalf("empty user agent should leave ctx unchanged")
+	}
+	if got := CallerUserAgentFromContext(ctx); got != "" {
+		t.Fatalf("caller user agent = %q, want empty", got)
 	}
 }
 
-func TestWithUserAgentSanitizes(t *testing.T) {
-	ctx := WithUserAgent(context.Background(), "  Cursor/0.48\r\n injected  ")
-	if got := UserAgentFromContext(ctx); got != "Cursor/0.48 injected" {
-		t.Fatalf("user agent = %q, want %q", got, "Cursor/0.48 injected")
+func TestWithCallerUserAgentCapsOnRuneBoundary(t *testing.T) {
+	exact := strings.Repeat("a", maxCallerUserAgentLen)
+	if got := CallerUserAgentFromContext(WithCallerUserAgent(context.Background(), exact)); got != exact {
+		t.Fatalf("value at the cap should be kept whole, got len %d", len(got))
 	}
 
-	long := strings.Repeat("a", maxUserAgentLen-1) + "é"
-	got := UserAgentFromContext(WithUserAgent(context.Background(), long))
-	if len(got) > maxUserAgentLen || !utf8.ValidString(got) {
+	long := strings.Repeat("a", maxCallerUserAgentLen-1) + "é" + strings.Repeat("b", 1000)
+	got := CallerUserAgentFromContext(WithCallerUserAgent(context.Background(), long))
+	if want := strings.Repeat("a", maxCallerUserAgentLen-1); got != want || !utf8.ValidString(got) {
 		t.Fatalf("user agent not capped on a rune boundary: len=%d valid=%v", len(got), utf8.ValidString(got))
 	}
 }

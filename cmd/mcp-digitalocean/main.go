@@ -352,7 +352,7 @@ func main() {
 
 	// if using stdio, we can re-use the client.
 	if *transport == "stdio" {
-		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent, "")
+		godoClient, err := newGodoClientWithTokenAndEndpoint(context.Background(), token, *endpointFlag, *userAgent, "", "")
 		if err != nil {
 			logger.Error("Failed to create DigitalOcean client: " + err.Error())
 			os.Exit(1)
@@ -406,7 +406,7 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string, e
 		encryptedResourceHeader = routerResource
 	}
 
-	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent, encryptedResourceHeader)
+	client, err := newGodoClientWithTokenAndEndpoint(ctx, token, endpoint, userAgent, middleware.CallerUserAgentFromContext(ctx), encryptedResourceHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create godo client: %w", err)
 	}
@@ -415,7 +415,10 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string, e
 }
 
 // newGodoClientWithTokenAndEndpoint initializes a new godo client with a custom user agent and endpoint.
-func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string, encryptedResourceHeader string) (*godo.Client, error) {
+// callerUserAgent, when non-empty, is the incoming request's User-Agent and is
+// sent ahead of this server's own, e.g.
+// "Cursor/0.48.2 mcp-router/1db28da do-remote-mcp/1.6.7 godo/1.236.0".
+func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string, callerUserAgent string, encryptedResourceHeader string) (*godo.Client, error) {
 	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
 	oauthClient := oauth2.NewClient(ctx, ts)
@@ -429,6 +432,9 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	mcpUserAgent := fmt.Sprintf("%s/%s", mcpName, mcpVersion)
 	if userAgent != "" {
 		mcpUserAgent = fmt.Sprintf("%s/%s", userAgent, mcpVersion)
+	}
+	if callerUserAgent != "" {
+		mcpUserAgent = callerUserAgent + " " + mcpUserAgent
 	}
 
 	opts := []godo.ClientOpt{
