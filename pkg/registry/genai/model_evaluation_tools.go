@@ -708,6 +708,9 @@ func (met *ModelEvaluationTool) createCustomMetric(ctx context.Context, req mcp.
 	if rawTurnType := strings.TrimSpace(stringArg(args, "turn_type")); rawTurnType != "" {
 		config.TurnType = godo.EvaluationMetricTurnType(modelEvalEnumValue(evaluationMetricTurnTypePrefix, rawTurnType))
 	}
+	if config.TurnType == godo.EvaluationMetricTurnTypeMultiTurn && requiresGroundTruth {
+		return mcp.NewToolResultError("multi_turn cannot be combined with requires_ground_truth"), nil
+	}
 
 	client, err := met.client(ctx)
 	if err != nil {
@@ -993,7 +996,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				common.WithRisk(common.RiskLow),
 				modelEvalMetricListOut.Schema(),
 				mcp.WithDescription("List available model evaluation metrics. Each metric includes turn_type (SINGLE_TURN or MULTI_TURN). Optionally filter with turn_type; omit to return all."),
-				mcp.WithString("turn_type", mcp.Description("Optional filter by turn type. Accepts single_turn / multi_turn or the full enums EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Omit to return all metrics.")),
+				mcp.WithString("turn_type", mcp.Enum("single_turn", "multi_turn"), mcp.Description("Optional filter by turn type. Accepts single_turn / multi_turn or the full enums EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Omit to return all metrics.")),
 			),
 		},
 		{
@@ -1190,7 +1193,7 @@ func (met *ModelEvaluationTool) Tools() []server.ServerTool {
 				mcp.WithString("scoring_prompt", mcp.Required(), mcp.Description("LLM-as-judge scoring prompt describing how the judge model should score a response")),
 				mcp.WithString("description", mcp.Description("Human-readable description of what the metric measures")),
 				mcp.WithBoolean("requires_ground_truth", mcp.Description("Whether scoring this metric requires a ground_truth column in the evaluation dataset (default: false)")),
-				mcp.WithString("turn_type", mcp.Description("Whether the metric applies to single-turn or multi-turn inputs. Accepts single_turn / multi_turn or EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Defaults to single_turn when omitted. Immutable after create.")),
+				mcp.WithString("turn_type", mcp.Enum("single_turn", "multi_turn"), mcp.Description("Whether the metric applies to single-turn or multi-turn inputs. Accepts single_turn / multi_turn or EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN / EVALUATION_METRIC_TURN_TYPE_MULTI_TURN. Defaults to single_turn when omitted. Immutable after create. Cannot be combined with requires_ground_truth=true when multi_turn.")),
 			),
 		},
 		{

@@ -424,6 +424,18 @@ func TestModelEvaluationTool_createCustomMetric_turnType(t *testing.T) {
 	require.Contains(t, text, "EVALUATION_METRIC_TURN_TYPE_MULTI_TURN")
 }
 
+func TestModelEvaluationTool_createCustomMetric_multiTurnRequiresGroundTruth(t *testing.T) {
+	resp := callTool(t, setupModelEvalToolWithAgentPlatformMock(NewMockAgentPlatformService(gomock.NewController(t))).createCustomMetric, map[string]any{
+		"metric_name":           "bad",
+		"scoring_prompt":        "Score something.",
+		"turn_type":             "multi_turn",
+		"requires_ground_truth": true,
+	})
+
+	require.True(t, resp.IsError)
+	require.Contains(t, resultText(t, resp), "multi_turn cannot be combined with requires_ground_truth")
+}
+
 func TestModelEvaluationTool_createCustomMetric_apiNon2xx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

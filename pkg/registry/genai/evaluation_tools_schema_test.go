@@ -101,9 +101,11 @@ func TestModelEvaluationToolListParamSchemas(t *testing.T) {
 
 	listMetricsProps := byName["genai-model-eval-list-metrics"]
 	require.Contains(t, listMetricsProps, "turn_type")
+	require.Equal(t, []any{"single_turn", "multi_turn"}, listMetricsProps["turn_type"].(map[string]any)["enum"])
 
 	createCustomMetricProps := byName["genai-model-eval-create-custom-metric"]
 	require.Contains(t, createCustomMetricProps, "turn_type")
+	require.Equal(t, []any{"single_turn", "multi_turn"}, createCustomMetricProps["turn_type"].(map[string]any)["enum"])
 
 	createDatasetProps := byName["genai-model-eval-create-dataset"]
 	require.Contains(t, createDatasetProps, "dataset_paradigm")

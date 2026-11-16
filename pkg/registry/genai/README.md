@@ -368,7 +368,7 @@ These tools evaluate raw models directly (not full agent deployments). They use 
 List available model evaluation metrics. Each metric includes `turn_type` (`EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` or `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`).
 
 **Arguments:**
-- `turn_type` (string, optional): Filter by turn type. Accepts `single_turn` / `multi_turn` or the full enums `EVALUATION_METRIC_TURN_TYPE_SINGLE_TURN` / `EVALUATION_METRIC_TURN_TYPE_MULTI_TURN`. Omit to return all metrics.
+- `turn_type` (string, optional): Filter by turn type. Enum: `single_turn` / `multi_turn` (full `EVALUATION_METRIC_TURN_TYPE_*` forms also accepted). Omit to return all metrics.
 
 **Returns:** JSON object with array of metrics and count
 
@@ -549,7 +549,7 @@ Create a custom (LLM-as-judge) model evaluation metric. The judge model scores e
 - `scoring_prompt` (string, required): LLM-as-judge scoring prompt describing how the judge model should score a response
 - `description` (string, optional): Human-readable description of what the metric measures
 - `requires_ground_truth` (boolean, optional): Whether scoring this metric requires a `ground_truth` column in the evaluation dataset (default: false)
-- `turn_type` (string, optional): `single_turn` / `multi_turn` (or full `EVALUATION_METRIC_TURN_TYPE_*` enums). Defaults to `single_turn` when omitted. Immutable after create.
+- `turn_type` (string, optional): Enum `single_turn` / `multi_turn` (full `EVALUATION_METRIC_TURN_TYPE_*` forms also accepted). Defaults to `single_turn` when omitted. Immutable after create. Rejected with `requires_ground_truth=true` when `multi_turn`.
 
 **Returns:** JSON object with the created metric, including its `metric_uuid`.
 
