@@ -4,7 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -23,11 +26,50 @@ type RouterResourceKey struct{}
 // (the resource the client actually authenticated to) instead of this server.
 const RouterResourceHeader = "X-Router-Encrypted-Resource-Identifier"
 
-// AuthFromRequest extracts the auth token and any router-supplied encrypted
-// resource identifier from the request headers.
+// UserAgentKey is the context key under which the caller's User-Agent is stored.
+type UserAgentKey struct{}
+
+// maxUserAgentLen caps the caller-controlled User-Agent before it is logged.
+const maxUserAgentLen = 256
+
+// AuthFromRequest extracts the auth token, any router-supplied encrypted
+// resource identifier, and the caller's User-Agent from the request headers.
 func AuthFromRequest(ctx context.Context, r *http.Request) context.Context {
 	ctx = WithAuthKey(ctx, r.Header.Get("Authorization"))
+	ctx = WithUserAgent(ctx, r.UserAgent())
 	return WithRouterResource(ctx, r.Header.Get(RouterResourceHeader))
+}
+
+// WithUserAgent adds the caller's User-Agent to the context, trimmed, stripped
+// of control characters, and capped at maxUserAgentLen bytes.
+func WithUserAgent(ctx context.Context, userAgent string) context.Context {
+	return context.WithValue(ctx, UserAgentKey{}, sanitizeUserAgent(userAgent))
+}
+
+// UserAgentFromContext returns the caller's User-Agent stored in ctx, or ""
+// when absent.
+func UserAgentFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(UserAgentKey{}).(string); ok {
+		return v
+	}
+	return ""
+}
+
+func sanitizeUserAgent(s string) string {
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, strings.TrimSpace(s))
+	if len(s) <= maxUserAgentLen {
+		return s
+	}
+	s = s[:maxUserAgentLen]
+	for len(s) > 0 && !utf8.ValidString(s) {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // WithAuthKey adds an auth key to the context.
@@ -71,10 +113,12 @@ func (m *ToolLoggingMiddleware) ToolMiddleware(next server.ToolHandlerFunc) serv
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		start := time.Now()
 		result, err := next(ctx, req)
+		userAgent := UserAgentFromContext(ctx)
 		if err != nil {
 			m.Logger.Error("tool call result",
 				"tool", req.Params.Name,
 				"duration_seconds", time.Since(start).Seconds(),
+				"request.user_agent", userAgent,
 				"error", err,
 				"tool_call_outcome", ToolCallError,
 			)
@@ -92,6 +136,7 @@ func (m *ToolLoggingMiddleware) ToolMiddleware(next server.ToolHandlerFunc) serv
 			m.Logger.Error("tool call result",
 				"tool", req.Params.Name,
 				"duration_seconds", time.Since(start).Seconds(),
+				"request.user_agent", userAgent,
 				"content", payload,
 				"tool_call_outcome", ToolCallResultError,
 			)
@@ -101,6 +146,7 @@ func (m *ToolLoggingMiddleware) ToolMiddleware(next server.ToolHandlerFunc) serv
 		m.Logger.Info("tool call result",
 			"tool", req.Params.Name,
 			"duration_seconds", time.Since(start).Seconds(),
+			"request.user_agent", userAgent,
 			"tool_call_outcome", ToolCallSuccess,
 		)
 
