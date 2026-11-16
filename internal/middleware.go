@@ -4,7 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -23,11 +25,47 @@ type RouterResourceKey struct{}
 // (the resource the client actually authenticated to) instead of this server.
 const RouterResourceHeader = "X-Router-Encrypted-Resource-Identifier"
 
-// AuthFromRequest extracts the auth token and any router-supplied encrypted
-// resource identifier from the request headers.
+// CallerUserAgentKey is the context key under which the incoming request's
+// User-Agent is stored.
+type CallerUserAgentKey struct{}
+
+// maxCallerUserAgentLen caps the caller-controlled User-Agent forwarded to the
+// DigitalOcean API, so an oversized client header cannot push API requests past
+// the API's header size limit. It leaves room for a router-forwarded chain such
+// as "Cursor/0.48.2 mcp-router/1db28da".
+const maxCallerUserAgentLen = 512
+
+// AuthFromRequest extracts the auth token, any router-supplied encrypted
+// resource identifier, and the caller's User-Agent from the request headers.
 func AuthFromRequest(ctx context.Context, r *http.Request) context.Context {
 	ctx = WithAuthKey(ctx, r.Header.Get("Authorization"))
+	ctx = WithCallerUserAgent(ctx, r.UserAgent())
 	return WithRouterResource(ctx, r.Header.Get(RouterResourceHeader))
+}
+
+// WithCallerUserAgent adds the caller's User-Agent to the context, trimmed and
+// capped at maxCallerUserAgentLen bytes on a rune boundary. An empty value
+// leaves ctx unchanged.
+func WithCallerUserAgent(ctx context.Context, userAgent string) context.Context {
+	userAgent = strings.TrimSpace(userAgent)
+	if len(userAgent) > maxCallerUserAgentLen {
+		cut := maxCallerUserAgentLen
+		for cut > 0 && !utf8.RuneStart(userAgent[cut]) {
+			cut--
+		}
+		userAgent = strings.TrimSpace(userAgent[:cut])
+	}
+	if userAgent == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, CallerUserAgentKey{}, userAgent)
+}
+
+// CallerUserAgentFromContext returns the caller's User-Agent stored in ctx, or
+// "" when absent.
+func CallerUserAgentFromContext(ctx context.Context) string {
+	v, _ := ctx.Value(CallerUserAgentKey{}).(string)
+	return v
 }
 
 // WithAuthKey adds an auth key to the context.
