@@ -104,6 +104,11 @@ func formatModelComparison(model1, model2 *ModelMetadata) string {
 	if model1.ModelAvailability != "" || model2.ModelAvailability != "" {
 		sb.WriteString(fmt.Sprintf("| **Availability** | %s | %s |\n", formatOptionalString(model1.ModelAvailability), formatOptionalString(model2.ModelAvailability)))
 	}
+	if model1.Performance != nil || model2.Performance != nil {
+		sb.WriteString(fmt.Sprintf("| **E2E Latency p50** | %s | %s |\n", formatCatalogPerformance(model1.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.E2ELatencyP50Seconds }), formatCatalogPerformance(model2.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.E2ELatencyP50Seconds })))
+		sb.WriteString(fmt.Sprintf("| **Throughput p50** | %s | %s |\n", formatCatalogPerformance(model1.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.ThroughputP50TokPerS }), formatCatalogPerformance(model2.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.ThroughputP50TokPerS })))
+		sb.WriteString(fmt.Sprintf("| **TTFT p50** | %s | %s |\n", formatCatalogPerformance(model1.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.TTFTP50Seconds }), formatCatalogPerformance(model2.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.TTFTP50Seconds })))
+	}
 
 	// Add descriptions if available
 	if model1.Description != "" || model2.Description != "" {
@@ -150,14 +155,15 @@ func (m *ModelTool) handleSearchByTask(ctx context.Context, req mcp.GetPromptReq
 		constraints.maxOutputPrice = &maxOutputPrice
 	}
 
-	client, err := m.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
-	}
-
-	uuids, _, err := client.AgentPlatform.SearchModels(ctx, "")
+	entries, err := m.listCatalog(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to search models: %w", err)
+	}
+	uuids := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry != nil && entry.ID != "" {
+			uuids = append(uuids, entry.ID)
+		}
 	}
 
 	// Create a cancellable context to stop fetching once we have enough matches
@@ -404,6 +410,11 @@ func formatSearchResults(task string, models []*ModelMetadata, constraints taskC
 		if model.ModelAvailability != "" {
 			sb.WriteString(fmt.Sprintf("- **Availability**: %s\n", model.ModelAvailability))
 		}
+		if model.Performance != nil {
+			sb.WriteString(fmt.Sprintf("- **E2E Latency p50**: %s s\n", formatCatalogPerformance(model.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.E2ELatencyP50Seconds })))
+			sb.WriteString(fmt.Sprintf("- **Throughput p50**: %s tok/s\n", formatCatalogPerformance(model.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.ThroughputP50TokPerS })))
+			sb.WriteString(fmt.Sprintf("- **TTFT p50**: %s s\n", formatCatalogPerformance(model.Performance, func(p *godo.ModelCatalogPerformance) float64 { return p.TTFTP50Seconds })))
+		}
 		if len(model.Capabilities) > 0 {
 			sb.WriteString(fmt.Sprintf("- **Capabilities**: %s\n", strings.Join(model.Capabilities, ", ")))
 		}
@@ -484,6 +495,13 @@ func formatOptionalString(s string) string {
 		return "—"
 	}
 	return s
+}
+
+func formatCatalogPerformance(p *godo.ModelCatalogPerformance, value func(*godo.ModelCatalogPerformance) float64) string {
+	if p == nil {
+		return "—"
+	}
+	return strconv.FormatFloat(value(p), 'g', -1, 64)
 }
 
 func formatParameterCount(count float64) string {
