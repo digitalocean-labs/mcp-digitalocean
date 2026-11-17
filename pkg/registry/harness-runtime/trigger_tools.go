@@ -92,7 +92,10 @@ type TriggerExecution struct {
 	ExecutionID   string     `json:"execution_id"`
 	TriggerID     string     `json:"trigger_id,omitempty"`
 	SessionID     string     `json:"session_id,omitempty"`
+	RunID         string     `json:"run_id,omitempty"`
 	Status        string     `json:"status,omitempty"`
+	StatusReason  string     `json:"status_reason,omitempty"`
+	StatusMessage string     `json:"status_message,omitempty"`
 	FailureReason string     `json:"failure_reason,omitempty"`
 	CreatedAt     *time.Time `json:"created_at,omitempty"`
 	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
@@ -731,13 +734,13 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsCreate),
 				common.WithRisk(common.RiskMedium),
 				createTriggerOut.Schema(),
-				mcp.WithDescription("Create a new trigger that automates agent session launches. A trigger fires on a schedule (cron) or via webhook. For webhook triggers, returns the webhook URL and signing secret. SessionMode controls whether each execution gets a fresh session (requires SessionTemplate with an agentspec YAML manifest including permissions.default set to allow or deny) or reuses an existing session (requires BoundSessionID)."),
+				mcp.WithDescription("Create a new trigger that automates agent session launches. A trigger fires on a schedule (cron) or via webhook. For webhook triggers, returns the webhook URL and signing secret. SessionMode controls whether each execution gets a fresh session (requires SessionTemplate with an agentspec YAML manifest including permissions.default set to allow or deny) or reuses an existing paused session (requires BoundSessionID). A reuse trigger resumes that session on each firing and pauses it afterward. Several triggers may bind one session; prompting, resuming, or cancelling that session can interrupt a firing that is waiting for it to pause."),
 				mcp.WithString("Name", mcp.Required(), mcp.Description("Trigger name (must be unique among the team's triggers)")),
 				mcp.WithString("Kind", mcp.Required(), mcp.Description("Trigger kind: 'webhook' or 'cron'")),
 				mcp.WithString("SessionMode", mcp.Required(), mcp.Description("Session lifecycle: 'fresh' (new session per execution, requires SessionTemplate) or 'reuse' (reuses existing session, requires BoundSessionID)")),
 				mcp.WithString("PromptTemplate", mcp.Required(), mcp.Description("Prompt text sent to the agent when the trigger fires")),
 				mcp.WithString("SessionTemplate", mcp.Description("YAML agentspec manifest for fresh sessions. Must include permissions.default set to 'allow' or 'deny'. Example: 'size: mars-2vcpu-4gb\\nagent: codex\\npermissions:\\n  default: allow\\n'")),
-				mcp.WithString("BoundSessionID", mcp.Description("UUID of the session to reuse when SessionMode is 'reuse'")),
+				mcp.WithString("BoundSessionID", mcp.Description("UUID of an existing paused session to bind when SessionMode is 'reuse'. The trigger resumes that session on each firing and pauses it after. Several triggers may bind one session.")),
 				mcp.WithString("CronExpr", mcp.Description("Cron expression for cron triggers (e.g. '0 0 * * *' for daily at midnight). Required when Kind is 'cron'.")),
 				mcp.WithString("Timezone", mcp.Description("Timezone for cron triggers (e.g. 'UTC', 'America/New_York'). Defaults to 'UTC'. Only used when Kind is 'cron'.")),
 				mcp.WithString("OutputMode", mcp.Description("Output delivery mode: 'none' (default), 'email', or 'slack'. When 'email', Email is required. When 'slack', SlackWebhookURL is required.")),
@@ -821,7 +824,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				triggerExecutionListOut.Schema(),
-				mcp.WithDescription("List executions for a specific trigger. An execution represents a single invocation of the trigger. Results are keyset-paginated; pass next_page_token back as PageToken for the next page."),
+				mcp.WithDescription("List executions for a specific trigger. An execution represents a single invocation of the trigger. A reuse firing waiting for its bound session to pause stays status=running and sets status_reason=waiting_for_bound_session. Results are keyset-paginated; pass next_page_token back as PageToken for the next page."),
 				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID whose executions to list")),
 				mcp.WithNumber("PageSize", mcp.Description("Page size (1-200, default 50)")),
 				mcp.WithString("PageToken", mcp.Description("Opaque cursor from the previous response's next_page_token")),
@@ -833,7 +836,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsRead),
 				common.WithRisk(common.RiskLow),
 				triggerExecutionOut.Schema(),
-				mcp.WithDescription("Get a single trigger execution by its UUID, including its status, associated session, timing, and any error details."),
+				mcp.WithDescription("Get a single trigger execution by its UUID, including its status, status_reason, status_message, associated session, run_id, timing, and any error details. A reuse firing waiting for its bound session to pause stays status=running with status_reason=waiting_for_bound_session."),
 				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID that owns this execution")),
 				mcp.WithString("ExecutionID", mcp.Required(), mcp.Description("The execution UUID")),
 			),
@@ -844,7 +847,7 @@ func (t *Tool) triggerTools() []server.ServerTool {
 				common.WithHints(common.HintsAction),
 				common.WithRisk(common.RiskMedium),
 				cancelExecutionOut.Schema(),
-				mcp.WithDescription("Cancel a running trigger execution. The associated session may be destroyed or returned to the reusable pool depending on the trigger's session mode. Returns the updated execution."),
+				mcp.WithDescription("Cancel a running trigger execution. A fresh-mode session is destroyed. A reuse-mode session is paused and the turn it was running is stopped. Returns the updated execution."),
 				mcp.WithString("TriggerID", mcp.Required(), mcp.Description("The trigger UUID that owns this execution")),
 				mcp.WithString("ExecutionID", mcp.Required(), mcp.Description("The execution UUID to cancel")),
 			),
