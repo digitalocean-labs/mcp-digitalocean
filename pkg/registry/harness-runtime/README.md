@@ -1,6 +1,6 @@
 ## Harness Runtime MCP Tools
 
-Tools for discovering and managing Hosted Agents (Harness Runtime), backed by the public `/v2/harness-runtime/*` API.
+Tools for running AI agents in isolated cloud sandboxes with DigitalOcean Harness Runtime (part of Managed Agents), backed by the public `/v2/harness-runtime/*` API.
 
 Enable these tools with service name **`harness-runtime`**. Hosted URL: `https://harness-runtime.mcp.digitalocean.com/mcp`.
 
@@ -122,7 +122,7 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 
 ## Example queries
 
-- List my hosted agent configs.
+- List my agent configs.
 - Show me the manifest of agent config 019fb39c-14d9-7080-933e-b9b90e25acda.
 - Find the agent config named "support" so I can run a simulation against it.
 - Create a new agent config from this manifest JSON.
