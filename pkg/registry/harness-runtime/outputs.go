@@ -18,6 +18,11 @@ var cancelTurnOut = common.NewObjectOutput[CancelTurnResponse]()
 var sandboxSizesOut = common.NewObjectOutput[ListSandboxSizesResponse]()
 var validatePolicyOut = common.NewObjectOutput[ValidatePolicyResponse]()
 
+var regionListOut = common.NewObjectOutput[ListRegionsResponse]()
+
+var imageMessageListOut = common.NewObjectOutput[ListImageMessagesResponse]()
+var imageMessageOut = common.NewObjectOutput[GetImageMessagesResponse]()
+
 var checkpointCreateOut = common.NewObjectOutput[CreateCheckpointResponse]()
 var checkpointOut = common.NewObjectOutput[GetCheckpointResponse]()
 var checkpointListOut = common.NewObjectOutput[ListCheckpointsResponse]()
