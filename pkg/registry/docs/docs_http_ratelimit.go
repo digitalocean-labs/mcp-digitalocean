@@ -84,6 +84,12 @@ func (c RateLimitConfig) Validate() error {
 	return nil
 }
 
+// rejectionLogger is implemented by handlers that log every request, so the
+// limiter can log the requests it rejects before they reach the handler.
+type rejectionLogger interface {
+	logRejected(r *http.Request, start time.Time, status int, id string)
+}
+
 type clientBucket struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
@@ -151,7 +157,10 @@ func (rl *rateLimiter) wrap(next http.Handler) http.Handler {
 	// cached, so one client's budget is not served to another.
 	policy := fmt.Sprintf("%s;w=1;burst=%d", strconv.FormatFloat(rl.cfg.RPS, 'f', -1, 64), rl.cfg.Burst)
 
+	usage, _ := next.(rejectionLogger)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		if r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
@@ -177,6 +186,9 @@ func (rl *rateLimiter) wrap(next http.Handler) http.Handler {
 			h.Set("RateLimit-Remaining", "0")
 			h.Set("RateLimit-Reset", strconv.Itoa(retryAfter))
 			writeAPIError(w, http.StatusTooManyRequests, "too_many_requests", "rate limit exceeded; retry after the Retry-After interval, or use https://docs.digitalocean.com/docs-corpus.jsonl for bulk access")
+			if usage != nil {
+				usage.logRejected(r, start, http.StatusTooManyRequests, "too_many_requests")
+			}
 			return
 		}
 		next.ServeHTTP(w, r)

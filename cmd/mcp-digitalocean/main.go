@@ -270,7 +270,7 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-			logger.Warn("docs search usage logs omit client_id; set DOCS_SEARCH_CLIENT_ID_SECRET to count distinct clients")
+			logger.Warn("docs search usage logs omit search_client_id; set DOCS_SEARCH_CLIENT_ID_SECRET to count distinct clients")
 		}
 		searchHandler, err := docs.RateLimit(docs.NewSearchHandler(logger, clientTagger), rlCfg, logger)
 		if err != nil {
@@ -281,7 +281,7 @@ func main() {
 			logger.Warn("docs search rate limiting keys on the connection address; behind an edge every client looks the same. Set --docs-search-client-ip-header")
 		}
 		extraRoutes = map[string]http.Handler{docs.SearchAPIPath: searchHandler}
-		logger.Info("serving docs search api", "path", docs.SearchAPIPath, "rate_limit_mode", string(mode), "rps", rlCfg.RPS, "burst", rlCfg.Burst, "client_ip_header", rlCfg.TrustedIPHeader, "client_ids", clientTagger != nil)
+		logger.Info("serving docs search api", "path", docs.SearchAPIPath, "rate_limit_mode", string(mode), "rate_limit_rps", rlCfg.RPS, "rate_limit_burst", rlCfg.Burst, "client_ip_header", rlCfg.TrustedIPHeader, "client_ids", clientTagger != nil)
 	}
 
 	var opts []server.ServerOption

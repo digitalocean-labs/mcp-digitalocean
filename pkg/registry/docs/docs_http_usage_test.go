@@ -123,10 +123,10 @@ func TestSearchHandler_UsageLogCarriesClientFields(t *testing.T) {
 	logs := usageLogs(t, &buf)
 	require.Len(t, logs, 1)
 	l := logs[0]
-	require.EqualValues(t, http.StatusOK, l["status"])
-	require.Equal(t, "curl", l["client_type"])
-	require.Equal(t, "curl/8.7.1", l["user_agent"])
-	require.Len(t, l["client_id"], clientIDHexLen)
+	require.EqualValues(t, http.StatusOK, l["search_status"])
+	require.Equal(t, "curl", l["search_client_type"])
+	require.Equal(t, "curl/8.7.1", l["search_user_agent"])
+	require.Len(t, l["search_client_id"], clientIDHexLen)
 	require.Equal(t, false, l["zero_results"])
 	require.NotContains(t, buf.String(), "203.0.113.7", "raw IPs stay out of usage logs")
 	require.NotContains(t, buf.String(), "sk-secret", "query text stays out of logs")
@@ -151,8 +151,34 @@ func TestSearchHandler_UsageLogCoversRejections(t *testing.T) {
 
 	logs := usageLogs(t, &buf)
 	require.Len(t, logs, 3, "preflights are not usage")
-	require.EqualValues(t, http.StatusBadRequest, logs[0]["status"])
-	require.Equal(t, "bad_request", logs[0]["error_id"])
-	require.EqualValues(t, http.StatusMethodNotAllowed, logs[2]["status"])
-	require.NotContains(t, logs[0], "client_id", "no tagger, no client_id")
+	require.EqualValues(t, http.StatusBadRequest, logs[0]["search_status"])
+	require.Equal(t, "bad_request", logs[0]["search_error_id"])
+	require.EqualValues(t, http.StatusMethodNotAllowed, logs[2]["search_status"])
+	require.NotContains(t, logs[0], "search_client_id", "no tagger, no client_id")
+}
+
+func TestRateLimit_EnforceLogsRejectedRequests(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	m := NewMockDocsService(ctrl)
+	m.EXPECT().GetDocsIndex().Return(searchTestIndex(), nil).AnyTimes()
+	m.EXPECT().ContentExcerpts(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string]string{}).AnyTimes()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	h, err := RateLimit(newSearchHandler(m, logger), RateLimitConfig{Mode: RateLimitEnforce, RPS: 1, Burst: 1, TrustedIPHeader: cfIP}, logger)
+	require.NoError(t, err)
+
+	for range 3 {
+		req := httptest.NewRequest(http.MethodGet, "/v1/search?q=droplet", nil)
+		req.Header.Set(cfIP, "203.0.113.7")
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	logs := usageLogs(t, &buf)
+	require.Len(t, logs, 3, "every GET writes a usage line, including 429s")
+	require.EqualValues(t, http.StatusOK, logs[0]["search_status"])
+	for _, l := range logs[1:] {
+		require.EqualValues(t, http.StatusTooManyRequests, l["search_status"])
+		require.Equal(t, "too_many_requests", l["search_error_id"])
+	}
 }

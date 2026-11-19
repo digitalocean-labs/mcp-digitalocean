@@ -195,20 +195,29 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // calls count toward traffic and show which clients get the shape wrong.
 func (h *SearchHandler) reject(w http.ResponseWriter, r *http.Request, start time.Time, status int, id, msg string) {
 	writeAPIError(w, status, id, msg)
-	h.logger.Info("docs search api", append(h.usageAttrs(r, start, status), "error_id", id)...)
+	h.logRejected(r, start, status, id)
 }
 
-// usageAttrs are the fields every search usage log carries.
+// logRejected logs a rejected request as usage. The rate limiter calls it
+// for the 429s it answers before ServeHTTP runs.
+func (h *SearchHandler) logRejected(r *http.Request, start time.Time, status int, id string) {
+	h.logger.Info("docs search api", append(h.usageAttrs(r, start, status), "search_error_id", id)...)
+}
+
+// usageAttrs are the fields every search usage log carries. The new keys
+// are prefixed because these lines share an OpenSearch index with every
+// edge service, and a key another service maps with a different type (or
+// meaning, as with client_id) makes the index drop the whole line.
 func (h *SearchHandler) usageAttrs(r *http.Request, start time.Time, status int) []any {
 	ua := r.Header.Get("User-Agent")
 	attrs := []any{
-		"status", status,
-		"client_type", userAgentFamily(ua),
-		"user_agent", cleanUserAgent(ua),
+		"search_status", status,
+		"search_client_type", userAgentFamily(ua),
+		"search_user_agent", cleanUserAgent(ua),
 		"duration_ms", time.Since(start).Milliseconds(),
 	}
 	if h.clients != nil {
-		attrs = append(attrs, "client_id", h.clients.ID(r))
+		attrs = append(attrs, "search_client_id", h.clients.ID(r))
 	}
 	return attrs
 }
