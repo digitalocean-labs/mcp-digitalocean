@@ -89,11 +89,25 @@ func profileQuery(query string) queryProfile {
 		if _, ok := pricingWords[tok]; ok {
 			p.pricing = true
 		}
-		if len(tok) == 3 && tok[0] >= '0' && tok[0] <= '9' {
-			p.trouble = true // status codes such as 520
+		if isStatusCode(tok) {
+			p.trouble = true
 		}
 	}
 	return p
+}
+
+// isStatusCode matches three-digit tokens such as 520, but not sizes or
+// abbreviations like 8gb or 2fa.
+func isStatusCode(tok string) bool {
+	if len(tok) != 3 {
+		return false
+	}
+	for i := 0; i < len(tok); i++ {
+		if tok[i] < '0' || tok[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func isHubPath(path string) bool {

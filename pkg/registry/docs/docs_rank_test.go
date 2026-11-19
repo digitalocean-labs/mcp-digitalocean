@@ -14,6 +14,8 @@ func TestProfileQuery(t *testing.T) {
 		{"create a VPC network", queryProfile{action: true}},
 		{"doctl compute droplet create flags", queryProfile{interfaces: true, action: true}},
 		{"520 status code app platform", queryProfile{trouble: true}},
+		{"8gb droplet pricing", queryProfile{pricing: true}},
+		{"2fa setup", queryProfile{action: true}},
 		{"how much does Spaces cost", queryProfile{pricing: true}},
 	}
 	for _, tc := range tests {
