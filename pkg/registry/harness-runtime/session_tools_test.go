@@ -536,10 +536,10 @@ func TestPatchSessionManifest(t *testing.T) {
 
 func TestPatchSessionManifestPermissions(t *testing.T) {
 	for name, manifest := range map[string]any{
-		"yaml string": "permissions:\n  defaultAction: ask\n  rules:\n    - tool: bash\n      match: {command: npm test}\n      action: allow\n    - tool: web.fetch\n      action: deny\n",
+		"yaml string": "permissions:\n  default: ask\n  rules:\n    - tool: bash\n      match: {command: npm test}\n      action: allow\n    - tool: web.fetch\n      action: deny\n",
 		"object": map[string]any{
 			"permissions": map[string]any{
-				"defaultAction": "ask",
+				"default": "ask",
 				"rules": []any{
 					map[string]any{"tool": "bash", "match": map[string]any{"command": "npm test"}, "action": "allow"},
 					map[string]any{"tool": "web.fetch", "action": "deny"},
@@ -570,7 +570,7 @@ func TestPatchSessionManifestPermissions(t *testing.T) {
 			require.NoError(t, yaml.Unmarshal([]byte(manifestYAML), &sent))
 			require.Equal(t, map[string]any{
 				"permissions": map[string]any{
-					"defaultAction": "ask",
+					"default": "ask",
 					"rules": []any{
 						map[string]any{"tool": "bash", "match": map[string]any{"command": "npm test"}, "action": "allow"},
 						map[string]any{"tool": "web.fetch", "action": "deny"},
