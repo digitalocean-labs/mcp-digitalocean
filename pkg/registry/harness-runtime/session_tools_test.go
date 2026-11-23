@@ -538,7 +538,8 @@ func TestPatchSessionManifestResponseFields(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"session":{"session_id":"` + testSessionID + `","status":"SESSION_STATUS_READY",
 			"config_drifted":true,"config_diff":{"env":{"changed":["FOO"]}},"manifest":{"tools":[]},
-			"update":{"update_id":"u1","state":"FAILED","reverted":true,"detail":"boom"}},"outcome":"UNCHANGED"}`))
+			"update":{"update_id":"u1","state":"FAILED","reverted":true,"detail":"boom",
+				"changes":{"egress":{"mode":"allowlist","added":["example.atlassian.net"],"removed":["203.0.113.10"]}}}},"outcome":"UNCHANGED"}`))
 	})
 	res, err := tool.patchSession(context.Background(), request(map[string]any{
 		"SessionID": testSessionID,
@@ -550,6 +551,22 @@ func TestPatchSessionManifestResponseFields(t *testing.T) {
 	for _, want := range []string{"UNCHANGED", "config_drifted", "FOO", "u1", "FAILED", "boom"} {
 		require.Contains(t, text, want)
 	}
+
+	var got struct {
+		Session struct {
+			Update struct {
+				Changes struct {
+					Egress SessionConfigEgressChanges `json:"egress"`
+				} `json:"changes"`
+			} `json:"update"`
+		} `json:"session"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(text), &got))
+	require.Equal(t, SessionConfigEgressChanges{
+		Mode:    "allowlist",
+		Added:   []string{"example.atlassian.net"},
+		Removed: []string{"203.0.113.10"},
+	}, got.Session.Update.Changes.Egress)
 }
 
 func TestPatchSessionValidation(t *testing.T) {
