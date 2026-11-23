@@ -195,13 +195,18 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // calls count toward traffic and show which clients get the shape wrong.
 func (h *SearchHandler) reject(w http.ResponseWriter, r *http.Request, start time.Time, status int, id, msg string) {
 	writeAPIError(w, status, id, msg)
-	h.logRejected(r, start, status, id)
+	h.logRejected(r, start, status, id, 1)
 }
 
 // logRejected logs a rejected request as usage. The rate limiter calls it
-// for the 429s it answers before ServeHTTP runs.
-func (h *SearchHandler) logRejected(r *http.Request, start time.Time, status int, id string) {
-	h.logger.Info("docs search api", append(h.usageAttrs(r, start, status), "search_error_id", id)...)
+// for the 429s it answers before ServeHTTP runs; count is how many 429s the
+// line stands for.
+func (h *SearchHandler) logRejected(r *http.Request, start time.Time, status int, id string, count int) {
+	attrs := append(h.usageAttrs(r, start, status), "search_error_id", id)
+	if count > 1 {
+		attrs = append(attrs, "search_rejected_count", count)
+	}
+	h.logger.Info("docs search api", attrs...)
 }
 
 // usageAttrs are the fields every search usage log carries. The new keys

@@ -3,6 +3,7 @@ package docs
 import (
 	"encoding/json"
 	"errors"
+	"hash/maphash"
 	"io"
 	"log/slog"
 	"math"
@@ -337,15 +338,71 @@ func TestRateLimit_MemoryBoundedUnderChurn(t *testing.T) {
 	require.Less(t, time.Since(start), 2*time.Second, "eviction must stay O(shard), not O(total)")
 }
 
-func TestRateLimit_LogsOncePerLimitingEpisode(t *testing.T) {
-	rl := newRateLimiter(RateLimitConfig{Mode: RateLimitEnforce, RPS: 1, Burst: 1, TrustedIPHeader: cfIP}, quietLogger)
-	allowed, _, started := rl.take("a")
-	require.True(t, allowed)
-	require.False(t, started)
-	_, _, started = rl.take("a")
-	require.True(t, started, "first denial starts an episode")
-	_, _, started = rl.take("a")
-	require.False(t, started, "later denials in the same episode stay quiet")
+// A client held just over the limit alternates between allowed and denied
+// requests. Flood volume of 429s and warnings must stay bounded by the
+// cooldowns, not by the request rate.
+func TestRateLimit_LogsAreBoundedUnderFlood(t *testing.T) {
+	rl := newRateLimiter(RateLimitConfig{Mode: RateLimitEnforce, RPS: 100, Burst: 1, TrustedIPHeader: cfIP}, quietLogger)
+	now := time.Unix(1_700_000_000, 0)
+	rl.now = func() time.Time { return now }
+
+	var denied, warns, rejectLines, counted int
+	for i := 0; i < 10_000; i++ { // 1,000 rps for 10 seconds
+		now = now.Add(time.Millisecond)
+		v := rl.take("a")
+		if v.allowed {
+			continue
+		}
+		denied++
+		if v.warn {
+			warns++
+		}
+		if v.logReject {
+			rejectLines++
+			counted += v.rejected
+		}
+	}
+	require.Greater(t, denied, 8_000)
+	require.LessOrEqual(t, warns, 1, "one warning per warnInterval")
+	require.LessOrEqual(t, rejectLines, 2, "one usage line per rejectLogInterval")
+	require.Equal(t, denied, counted+rejectLinesPending(rl, "a"), "every rejection is in a written count or still pending")
+}
+
+func rejectLinesPending(rl *rateLimiter, key string) int {
+	s := &rl.shards[maphash.String(rl.seed, key)%limiterShards]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.clients[key].pending
+}
+
+func TestRateLimit_LogsAgainAfterCooldown(t *testing.T) {
+	// RPS this low keeps the client denied for the whole test.
+	rl := newRateLimiter(RateLimitConfig{Mode: RateLimitEnforce, RPS: 0.0001, Burst: 1, TrustedIPHeader: cfIP}, quietLogger)
+	now := time.Unix(1_700_000_000, 0)
+	rl.now = func() time.Time { return now }
+
+	require.True(t, rl.take("a").allowed)
+	v := rl.take("a")
+	require.False(t, v.allowed)
+	require.True(t, v.warn)
+	require.True(t, v.logReject)
+	require.Equal(t, 1, v.rejected)
+
+	now = now.Add(time.Second / 2)
+	v = rl.take("a")
+	require.False(t, v.warn, "inside the cooldown")
+	require.False(t, v.logReject)
+
+	now = now.Add(rejectLogInterval)
+	v = rl.take("a")
+	require.False(t, v.allowed)
+	require.True(t, v.logReject, "usage line resumes after the interval")
+	require.Equal(t, 2, v.rejected, "carries the count since the last line")
+	require.False(t, v.warn, "warning cooldown is longer")
+
+	now = now.Add(warnInterval)
+	v = rl.take("a")
+	require.True(t, v.warn, "warning resumes after warnInterval")
 }
 
 func TestParseRateLimitMode(t *testing.T) {

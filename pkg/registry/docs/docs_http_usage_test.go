@@ -175,10 +175,8 @@ func TestRateLimit_EnforceLogsRejectedRequests(t *testing.T) {
 	}
 
 	logs := usageLogs(t, &buf)
-	require.Len(t, logs, 3, "every GET writes a usage line, including 429s")
+	require.Len(t, logs, 2, "the 200 and the first 429; later 429s inside rejectLogInterval are folded into a count")
 	require.EqualValues(t, http.StatusOK, logs[0]["search_status"])
-	for _, l := range logs[1:] {
-		require.EqualValues(t, http.StatusTooManyRequests, l["search_status"])
-		require.Equal(t, "too_many_requests", l["search_error_id"])
-	}
+	require.EqualValues(t, http.StatusTooManyRequests, logs[1]["search_status"])
+	require.Equal(t, "too_many_requests", logs[1]["search_error_id"])
 }
