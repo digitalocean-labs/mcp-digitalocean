@@ -585,7 +585,7 @@ func TestPatchSessionPermissionsRefused(t *testing.T) {
 	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
-		_, _ = w.Write([]byte(`{"id":"conflict","message":"permissions can't change live on hermes for: bash rule \"rm -rf *\" (only do.actions allow/deny rules can change on this agent). Remove these changes and send the update again (update_unsupported)"}`))
+		_, _ = w.Write([]byte(`{"id":"conflict","message":"permissions can't change live on hermes for: bash rule \"rm -rf *\" (only do.actions allow/deny rules and an allow or deny default action can change on this agent). Remove these changes and send the update again (update_unsupported)"}`))
 	})
 	res, err := tool.patchSession(context.Background(), request(map[string]any{
 		"SessionID": testSessionID,
