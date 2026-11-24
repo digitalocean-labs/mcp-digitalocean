@@ -14,13 +14,19 @@ func TestClientFromContextUserAgent(t *testing.T) {
 	remote := "do-remote-mcp/" + mcpVersion
 
 	tests := []struct {
-		name       string
-		callerUA   string
+		name     string
+		callerUA string
+		// wantPrefix and wantSuffix surround godo's own "godo/<ver>" token.
 		wantPrefix string
+		wantSuffix string
 	}{
 		{name: "no caller user agent", wantPrefix: remote + " godo/"},
-		{name: "router chain forwarded first", callerUA: "Cursor/0.48.2 mcp-router/1db28da",
-			wantPrefix: "Cursor/0.48.2 mcp-router/1db28da " + remote + " godo/"},
+		{name: "direct client goes last", callerUA: "Cursor/0.48.2",
+			wantPrefix: remote + " godo/", wantSuffix: " Cursor/0.48.2"},
+		{name: "router first, client last", callerUA: "Cursor/0.48.2 mcp-router/1db28da",
+			wantPrefix: "mcp-router/1db28da " + remote + " godo/", wantSuffix: " Cursor/0.48.2"},
+		{name: "router without client user agent", callerUA: "mcp-router/1db28da",
+			wantPrefix: "mcp-router/1db28da " + remote + " godo/"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -31,10 +37,30 @@ func TestClientFromContextUserAgent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("clientFromContext: %v", err)
 			}
-			if !strings.HasPrefix(client.UserAgent, tt.wantPrefix) {
-				t.Fatalf("user agent = %q, want prefix %q", client.UserAgent, tt.wantPrefix)
+			ua := client.UserAgent
+			if !strings.HasPrefix(ua, tt.wantPrefix) || !strings.HasSuffix(ua, tt.wantSuffix) {
+				t.Fatalf("user agent = %q, want %q...%q", ua, tt.wantPrefix, tt.wantSuffix)
+			}
+			if godoTok := strings.Fields(strings.TrimSuffix(strings.TrimPrefix(ua, tt.wantPrefix), tt.wantSuffix)); len(godoTok) != 1 {
+				t.Fatalf("user agent = %q, want exactly one godo version between %q and %q", ua, tt.wantPrefix, tt.wantSuffix)
 			}
 		})
+	}
+}
+
+func TestSplitCallerUserAgent(t *testing.T) {
+	tests := []struct{ in, client, router string }{
+		{"", "", ""},
+		{"Cursor/1.2", "Cursor/1.2", ""},
+		{"Cursor/1.2 (macOS) mcp-router/abc", "Cursor/1.2 (macOS)", "mcp-router/abc"},
+		{"mcp-router/abc", "", "mcp-router/abc"},
+		{"mcp-router/abc Cursor/1.2", "mcp-router/abc Cursor/1.2", ""},
+	}
+	for _, tt := range tests {
+		client, router := splitCallerUserAgent(tt.in)
+		if client != tt.client || router != tt.router {
+			t.Errorf("splitCallerUserAgent(%q) = (%q, %q), want (%q, %q)", tt.in, client, router, tt.client, tt.router)
+		}
 	}
 }
 
