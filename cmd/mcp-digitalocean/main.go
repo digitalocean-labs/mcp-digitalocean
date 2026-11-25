@@ -43,6 +43,9 @@ const (
 	// tokens carry an audience the backend can validate, so personal access
 	// tokens must not be sent with the resource identifier header.
 	oauthTokenPrefix = "doo_"
+	// routerUserAgentPrefix starts the product token the MCP router appends
+	// to the client's User-Agent.
+	routerUserAgentPrefix = "mcp-router/"
 )
 
 // publicContentServices may run with --allow-anonymous: their tools read
@@ -414,10 +417,22 @@ func clientFromContext(ctx context.Context, endpoint string, userAgent string, e
 	return client, nil
 }
 
+// splitCallerUserAgent separates a trailing router product token, which the
+// MCP router appends to the client's User-Agent, from the client's own value.
+func splitCallerUserAgent(ua string) (client, router string) {
+	ua = strings.TrimSpace(ua)
+	i := strings.LastIndexByte(ua, ' ')
+	if last := ua[i+1:]; strings.HasPrefix(last, routerUserAgentPrefix) {
+		return strings.TrimSpace(ua[:i+1]), last
+	}
+	return ua, ""
+}
+
 // newGodoClientWithTokenAndEndpoint initializes a new godo client with a custom user agent and endpoint.
-// callerUserAgent, when non-empty, is the incoming request's User-Agent and is
-// sent ahead of this server's own, e.g.
-// "Cursor/0.48.2 mcp-router/1db28da do-remote-mcp/1.6.7 godo/1.236.0".
+// callerUserAgent, when non-empty, is the incoming request's User-Agent. Its
+// router token goes ahead of this server's own and the client's value goes
+// last, e.g.
+// "mcp-router/1db28da do-remote-mcp/1.6.8 godo/1.236.0 Cursor/0.48.2".
 func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoint string, userAgent string, callerUserAgent string, encryptedResourceHeader string) (*godo.Client, error) {
 	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
@@ -433,8 +448,9 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 	if userAgent != "" {
 		mcpUserAgent = fmt.Sprintf("%s/%s", userAgent, mcpVersion)
 	}
-	if callerUserAgent != "" {
-		mcpUserAgent = callerUserAgent + " " + mcpUserAgent
+	clientUserAgent, routerUserAgent := splitCallerUserAgent(callerUserAgent)
+	if routerUserAgent != "" {
+		mcpUserAgent = routerUserAgent + " " + mcpUserAgent
 	}
 
 	opts := []godo.ClientOpt{
@@ -452,7 +468,15 @@ func newGodoClientWithTokenAndEndpoint(ctx context.Context, token string, endpoi
 		}))
 	}
 
-	return godo.New(oauthClient, opts...)
+	client, err := godo.New(oauthClient, opts...)
+	if err != nil {
+		return nil, err
+	}
+	// godo.SetUserAgent can only prepend; godo reads UserAgent per request.
+	if clientUserAgent != "" {
+		client.UserAgent += " " + clientUserAgent
+	}
+	return client, nil
 }
 
 // parseScopes splits a comma-separated SCOPES value into the list advertised
