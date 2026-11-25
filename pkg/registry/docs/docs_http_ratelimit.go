@@ -84,12 +84,41 @@ func (c RateLimitConfig) Validate() error {
 	return nil
 }
 
+// rejectionLogger is implemented by handlers that log every request, so the
+// limiter can log the requests it rejects before they reach the handler.
+type rejectionLogger interface {
+	logRejected(r *http.Request, start time.Time, status int, id string, count int)
+}
+
+// A client held over the limit is rejected on most requests. Logging each
+// one writes a line per request into the shared edge index, and a flood can
+// fill the log buffer and drop the app's other lines. So a client's 429s are
+// logged at most once per rejectLogInterval, carrying the count since the
+// last line, and the warning that names the client at most once per
+// warnInterval. Both are per client, so total volume is bounded by the
+// number of distinct clients, not requests.
+const (
+	rejectLogInterval = 10 * time.Second
+	warnInterval      = time.Minute
+)
+
 type clientBucket struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-	// limited records whether the client's last request was over budget, so
-	// a flood logs once when it starts rather than once per request.
-	limited bool
+	limiter       *rate.Limiter
+	lastSeen      time.Time
+	lastWarn      time.Time
+	lastRejectLog time.Time
+	// pending counts rejections not yet written to a usage line.
+	pending int
+}
+
+// verdict is the outcome of spending one token, including which log lines
+// this request is responsible for.
+type verdict struct {
+	allowed    bool
+	retryAfter int
+	warn       bool
+	logReject  bool
+	rejected   int
 }
 
 type limiterShard struct {
@@ -151,7 +180,10 @@ func (rl *rateLimiter) wrap(next http.Handler) http.Handler {
 	// cached, so one client's budget is not served to another.
 	policy := fmt.Sprintf("%s;w=1;burst=%d", strconv.FormatFloat(rl.cfg.RPS, 'f', -1, 64), rl.cfg.Burst)
 
+	usage, _ := next.(rejectionLogger)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 		if r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
@@ -166,41 +198,54 @@ func (rl *rateLimiter) wrap(next http.Handler) http.Handler {
 			key = unidentifiedClient
 		}
 
-		allowed, retryAfter, startedLimiting := rl.take(key)
-		if startedLimiting {
+		v := rl.take(key)
+		if v.warn {
 			rl.logger.Warn("docs search api: client over rate limit", "mode", string(rl.cfg.Mode), "client", key)
 		}
-		if !allowed && rl.cfg.Mode == RateLimitEnforce {
+		if !v.allowed && rl.cfg.Mode == RateLimitEnforce {
 			h := w.Header()
 			h.Set("Access-Control-Allow-Origin", "*")
-			h.Set("Retry-After", strconv.Itoa(retryAfter))
+			h.Set("Retry-After", strconv.Itoa(v.retryAfter))
 			h.Set("RateLimit-Remaining", "0")
-			h.Set("RateLimit-Reset", strconv.Itoa(retryAfter))
+			h.Set("RateLimit-Reset", strconv.Itoa(v.retryAfter))
 			writeAPIError(w, http.StatusTooManyRequests, "too_many_requests", "rate limit exceeded; retry after the Retry-After interval, or use https://docs.digitalocean.com/docs-corpus.jsonl for bulk access")
+			if usage != nil && v.logReject {
+				usage.logRejected(r, start, http.StatusTooManyRequests, "too_many_requests", v.rejected)
+			}
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-// take spends one token for key. It reports whether the request is within
-// budget, the whole seconds until the next token, and whether this request
-// is the first over budget since the client was last allowed.
-func (rl *rateLimiter) take(key string) (allowed bool, retryAfter int, startedLimiting bool) {
+// take spends one token for key and reports whether the request is within
+// budget, the whole seconds until the next token, and which rate-limit log
+// lines this request should write (see rejectLogInterval).
+func (rl *rateLimiter) take(key string) verdict {
 	s := &rl.shards[maphash.String(rl.seed, key)%limiterShards]
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	now := rl.now()
 	b := rl.bucketLocked(s, key, now)
-	allowed = b.limiter.AllowN(now, 1)
-	if !allowed {
-		deficit := 1 - b.limiter.TokensAt(now)
-		retryAfter = max(1, int(math.Ceil(deficit/rl.cfg.RPS)))
+	v := verdict{allowed: b.limiter.AllowN(now, 1)}
+	if v.allowed {
+		return v
 	}
-	startedLimiting = !allowed && !b.limited
-	b.limited = !allowed
-	return allowed, retryAfter, startedLimiting
+	deficit := 1 - b.limiter.TokensAt(now)
+	v.retryAfter = max(1, int(math.Ceil(deficit/rl.cfg.RPS)))
+	b.pending++
+	if b.lastWarn.IsZero() || now.Sub(b.lastWarn) >= warnInterval {
+		b.lastWarn = now
+		v.warn = true
+	}
+	if b.lastRejectLog.IsZero() || now.Sub(b.lastRejectLog) >= rejectLogInterval {
+		b.lastRejectLog = now
+		v.logReject = true
+		v.rejected = b.pending
+		b.pending = 0
+	}
+	return v
 }
 
 // bucketLocked returns the bucket for key, creating it if needed. A full
