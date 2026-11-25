@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -531,6 +532,71 @@ func TestPatchSessionManifest(t *testing.T) {
 			require.Contains(t, text, "w1")
 		})
 	}
+}
+
+func TestPatchSessionManifestPermissions(t *testing.T) {
+	for name, manifest := range map[string]any{
+		"yaml string": "permissions:\n  default: ask\n  rules:\n    - tool: bash\n      match: {command: npm test}\n      action: allow\n    - tool: web.fetch\n      action: deny\n",
+		"object": map[string]any{
+			"permissions": map[string]any{
+				"default": "ask",
+				"rules": []any{
+					map[string]any{"tool": "bash", "match": map[string]any{"command": "npm test"}, "action": "allow"},
+					map[string]any{"tool": "web.fetch", "action": "deny"},
+				},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var gotBody map[string]any
+			tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+				_ = json.NewDecoder(r.Body).Decode(&gotBody)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte(`{"session":` + sessionJSON(testSessionID, "my-agent", "SESSION_STATUS_UPDATING") + `,"outcome":"ACCEPTED"}`))
+			})
+
+			res, err := tool.patchSession(context.Background(), request(map[string]any{
+				"SessionID": testSessionID,
+				"Manifest":  manifest,
+			}))
+			require.NoError(t, err)
+			require.False(t, res.IsError, callText(t, res))
+			require.Len(t, gotBody, 1)
+
+			manifestYAML, ok := gotBody["manifest_yaml"].(string)
+			require.True(t, ok)
+			var sent map[string]any
+			require.NoError(t, yaml.Unmarshal([]byte(manifestYAML), &sent))
+			require.Equal(t, map[string]any{
+				"permissions": map[string]any{
+					"default": "ask",
+					"rules": []any{
+						map[string]any{"tool": "bash", "match": map[string]any{"command": "npm test"}, "action": "allow"},
+						map[string]any{"tool": "web.fetch", "action": "deny"},
+					},
+				},
+			}, sent)
+		})
+	}
+}
+
+func TestPatchSessionPermissionsRefused(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"id":"conflict","message":"permissions can't change live on hermes for: bash rule \"rm -rf *\" (only do.actions allow/deny rules and an allow or deny default action can change on this agent). Remove these changes and send the update again (update_unsupported)"}`))
+	})
+	res, err := tool.patchSession(context.Background(), request(map[string]any{
+		"SessionID": testSessionID,
+		"Manifest":  "permissions:\n  rules:\n    - tool: bash\n      match: {command: rm -rf *}\n      action: deny\n",
+	}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+	text := callText(t, res)
+	require.Contains(t, text, "409")
+	require.Contains(t, text, `bash rule "rm -rf *"`)
+	require.Contains(t, text, "(update_unsupported)")
 }
 
 func TestPatchSessionManifestResponseFields(t *testing.T) {
