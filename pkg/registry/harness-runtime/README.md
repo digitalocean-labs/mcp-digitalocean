@@ -42,10 +42,22 @@ Enable these tools with service name **`harness-runtime`**. Hosted URL: `https:/
 - **`harness-runtime-delete-checkpoint`** — Delete a checkpoint and its underlying machine-state capture. `SessionID` and `CheckpointID` required. **Destructive.** Idempotent: deleting an already-gone checkpoint still returns success.
 - **`harness-runtime-rollback-checkpoint`** — Rewind a session to a READY checkpoint. `SessionID` and `CheckpointID` required. **Destructive.** In-place restore — same `session_id`, new `sandbox_id`. The session must not have a workspace attached. The ingress URL is revoked — re-fetch after the session is READY.
 
+### Image Messages
+
+Notices on a sandbox image, such as a known vulnerability with a published fix. Each result has `vulnerable` and a `messages` list (`title`, `message`, `more_info_url`); `messages` is empty when the image has no notice. All three take an optional `Type` filter whose only value is `vulnerability`.
+
+- **`harness-runtime-list-image-messages`** — List the team's sessions and checkpoints whose sandbox image has a live notice. Set `SessionName` or `CheckpointName` (not both) to look up one resource by exact name; otherwise supports `PageSize` (1-200) and `PageToken` cursor. Triggers are not listed; check the session a trigger runs on.
+- **`harness-runtime-get-session-image-messages`** — Get the notices on one session's sandbox image. `SessionID` required.
+- **`harness-runtime-get-checkpoint-image-messages`** — Get the notices on one checkpoint's sandbox image. `SessionID` and `CheckpointID` required.
+
 ### Sandbox
 
 - **`harness-runtime-list-sandbox-sizes`** — List the available sandbox compute sizes (slug, vCPUs, memory, hourly and monthly pricing). The returned slugs are valid values for sandbox size fields in manifests.
 - **`harness-runtime-validate-policy`** — Stateless preflight: check a manifest's tool-permission policy against the agent's capabilities without creating a session. Takes `Manifest` (same JSON object as create-agent-config, must include a `permissions` block). Returns per-rule verdicts (`exact`, `degraded`, `unsupported`, `unverified`); `ok=false` means CreateSession would reject this policy.
+
+### Regions
+
+- **`harness-runtime-list-regions`** — List the regions the team may create sessions and agent configs in, sorted by slug. Exactly one has `is_default=true`: the region served by `https://api.digitalocean.com`. The region is chosen by the API host a request goes to (`ric1` means `https://api-ric1.digitalocean.com`), and this server sends every request to the one host it is configured with (`DIGITALOCEAN_API_ENDPOINT`, default `https://api.digitalocean.com`). No pagination.
 
 ### Templates
 
@@ -85,6 +97,7 @@ Connections link external provider accounts (GitHub, GitLab) to the team so agen
 - **`harness-runtime-list-connections`** — List the team's connections for an external provider. `Provider` (`github` or `gitlab`) required. Supports `ActorID`, `Status`, `Page`, and `PerPage` (1-100, default 20).
 - **`harness-runtime-create-connection`** — Create (or resume) a connection binding an actor to an external provider. `Provider` and `ActorID` required. A still-pending connection comes back with an Authorization the user must complete in a browser. Optional: `Scopes` (omit for the provider's full configured scope set).
 - **`harness-runtime-get-connection`** — Get one connection by `Provider` and `ConnectionID`, including its status and any pending authorization.
+- **`harness-runtime-reconnect-connection`** — Start a fresh login for an expired, revoked or pending connection by `Provider` and `ConnectionID`. The connection keeps its id, `user_id` and scopes, so agent configs that use it work again once it is active. While login is outstanding the response has an `authorization` with a `connect_url` to open in a browser. Only the member who owns the connection can reconnect it.
 - **`harness-runtime-delete-connection`** — Revoke and delete one connection by `Provider` and `ConnectionID`. **Destructive.** Connections with `deletion_protected=true` (referenced by an active environment) will be refused.
 
 ### Provider Auth
@@ -146,7 +159,10 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - Create a checkpoint of session 029ab39c-14d9-7080-933e-b9b90e25acda labeled "before-refactor".
 - Roll back session 029ab39c-14d9-7080-933e-b9b90e25acda to checkpoint cp_9f2c1a4b.
 - Delete checkpoint cp_9f2c1a4b from session 029ab39c-14d9-7080-933e-b9b90e25acda.
+- Do any of my sessions or checkpoints run on a sandbox image with a known vulnerability?
+- Is the sandbox image of session 029ab39c-14d9-7080-933e-b9b90e25acda affected by a vulnerability?
 - What sandbox sizes are available?
+- Which regions can I create sessions in?
 - Validate this policy against session 029ab39c-14d9-7080-933e-b9b90e25acda.
 - List my custom sandbox templates.
 - Show me template 049fb39c-14d9-7080-933e-b9b90e25acdc.
@@ -167,6 +183,7 @@ Requires the `agent_harness_session:read` scope (read tools) and `agent_harness_
 - List my GitHub connections.
 - Create a GitHub connection for actor user-123.
 - Show connection conn-abc123 for GitHub.
+- My GitHub connection expired; reconnect it.
 - Delete GitLab connection conn-abc123.
 - Connect my team to GitHub (start the OAuth device flow).
 - Check if the GitHub authorization is complete (poll the auth flow).

@@ -286,6 +286,43 @@ func (t *Tool) getConnection(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	return connectionOut.Result(out)
 }
 
+// reconnectConnection starts a fresh login for an existing connection, keeping its id.
+func (t *Tool) reconnectConnection(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	client, err := t.client(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DigitalOcean client: %w", err)
+	}
+
+	args := req.GetArguments()
+	provider, _ := args["Provider"].(string)
+	if provider == "" {
+		return mcp.NewToolResultError("Provider is required"), nil
+	}
+	if !validProvider(provider) {
+		return mcp.NewToolResultError("Provider must be one of: github, gitlab"), nil
+	}
+
+	connectionID, _ := args["ConnectionID"].(string)
+	if connectionID == "" {
+		return mcp.NewToolResultError("ConnectionID is required"), nil
+	}
+	if _, err := uuid.Parse(connectionID); err != nil {
+		return mcp.NewToolResultError("ConnectionID must be a UUID"), nil
+	}
+
+	path := providerAuthPath + "/" + provider + "/connections/" + connectionID + "/reconnect"
+	apiReq, err := client.NewRequest(ctx, http.MethodPost, path, nil)
+	if err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to create request", err), nil
+	}
+
+	var out ConnectionEnvelope
+	if _, err := client.Do(ctx, apiReq, &out); err != nil {
+		return mcp.NewToolResultErrorFromErr("Failed to reconnect connection", err), nil
+	}
+	return connectionOut.Result(out)
+}
+
 // deleteConnection revokes one connection by id.
 func (t *Tool) deleteConnection(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client, err := t.client(ctx)
@@ -451,6 +488,17 @@ func (t *Tool) connectionTools() []server.ServerTool {
 				mcp.WithDescription("Get one connection by id, including its status and any pending authorization. Useful for polling a pending connection to completion."),
 				mcp.WithString("Provider", mcp.Required(), mcp.Description("External provider slug: 'github' or 'gitlab'")),
 				mcp.WithString("ConnectionID", mcp.Required(), mcp.Description("The connection id")),
+			),
+		},
+		{
+			Handler: t.reconnectConnection,
+			Tool: mcp.NewTool("harness-runtime-reconnect-connection",
+				common.WithHints(common.HintsCreate),
+				common.WithRisk(common.RiskMedium),
+				connectionOut.Schema(),
+				mcp.WithDescription("Start a fresh login for an existing connection: resumes a pending connection's authorization, or starts a new one for an expired or revoked connection. The connection keeps its id, user_id and scopes, so agent configs that use it work again once it is active. An active connection is returned unchanged. While login is outstanding the response has an Authorization with a connect_url the user must open in a browser; call harness-runtime-get-connection until the status is active. Only the member who owns the connection can reconnect it; anyone else gets 404. No token is returned."),
+				mcp.WithString("Provider", mcp.Required(), mcp.Description("External provider slug: 'github' or 'gitlab'")),
+				mcp.WithString("ConnectionID", mcp.Required(), mcp.Description("The connection id to reconnect")),
 			),
 		},
 		{

@@ -250,6 +250,70 @@ func TestGetConnectionNotFound(t *testing.T) {
 	require.Contains(t, callText(t, res), "Failed to get connection")
 }
 
+// ---- ReconnectConnection ----
+
+func TestReconnectConnection(t *testing.T) {
+	var gotPath, gotMethod string
+	var gotBodyLen int64
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotMethod = r.Method
+		gotBodyLen = r.ContentLength
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"connection":` + connectionJSON(testConnectionID, testProvider, "pending") + `,"authorization":{"status":"pending","connect_url":"https://github.com/login/device","verification_code":"ABCD-1234","expires_at":"2026-08-01T12:15:00Z"}}`))
+	})
+
+	res, err := tool.reconnectConnection(context.Background(), request(map[string]any{
+		"Provider":     testProvider,
+		"ConnectionID": testConnectionID,
+	}))
+	require.NoError(t, err)
+	require.False(t, res.IsError)
+	require.Equal(t, "/v2/harness-runtime/auth/github/connections/"+testConnectionID+"/reconnect", gotPath)
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Zero(t, gotBodyLen)
+	text := callText(t, res)
+	require.Contains(t, text, testConnectionID)
+	require.Contains(t, text, "pending")
+	require.Contains(t, text, "https://github.com/login/device")
+	require.Contains(t, text, "ABCD-1234")
+}
+
+func TestReconnectConnectionValidation(t *testing.T) {
+	tool := newTestTool(t, func(http.ResponseWriter, *http.Request) {
+		t.Fatal("API must not be called for invalid input")
+	})
+
+	for name, args := range map[string]map[string]any{
+		"missing provider":        {},
+		"invalid provider":        {"Provider": "bitbucket", "ConnectionID": testConnectionID},
+		"missing connection id":   {"Provider": testProvider},
+		"invalid connection uuid": {"Provider": testProvider, "ConnectionID": "not-a-uuid"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := tool.reconnectConnection(context.Background(), request(args))
+			require.NoError(t, err)
+			require.True(t, res.IsError)
+		})
+	}
+}
+
+func TestReconnectConnectionNotFound(t *testing.T) {
+	tool := newTestTool(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"id":"not_found","message":"connection not found"}`))
+	})
+
+	res, err := tool.reconnectConnection(context.Background(), request(map[string]any{
+		"Provider":     testProvider,
+		"ConnectionID": testConnectionID,
+	}))
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+	require.Contains(t, callText(t, res), "Failed to reconnect connection")
+}
+
 // ---- DeleteConnection ----
 
 func TestDeleteConnection(t *testing.T) {
