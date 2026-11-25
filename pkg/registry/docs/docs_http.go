@@ -40,7 +40,7 @@ type SearchAPIResult struct {
 }
 
 // SearchAPIResponse follows the public API's list shape: a named collection
-// plus meta. The shape is preview and may change; meta.stability says so.
+// plus meta. meta.stability reports the endpoint's stability level.
 type SearchAPIResponse struct {
 	Results []SearchAPIResult `json:"results"`
 	Meta    SearchAPIMeta     `json:"meta"`
@@ -168,7 +168,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Product:       product,
 			Total:         len(results),
 			PagesSearched: len(index.Entries),
-			Stability:     "preview",
+			Stability:     "stable",
 		},
 	}
 

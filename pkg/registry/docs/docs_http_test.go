@@ -86,7 +86,7 @@ func TestSearchHandler_Results(t *testing.T) {
 
 	meta := body["meta"].(map[string]any)
 	require.Equal(t, "create droplet", meta["query"])
-	require.Equal(t, "preview", meta["stability"])
+	require.Equal(t, "stable", meta["stability"])
 	require.EqualValues(t, 3, meta["pages_searched"])
 	require.EqualValues(t, len(results), meta["total"])
 }
