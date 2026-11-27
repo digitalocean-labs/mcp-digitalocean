@@ -236,7 +236,8 @@ func buildSchema[T any](field string) (json.RawMessage, error) {
 		return nil, fmt.Errorf("output schema: %s did not reflect to an object schema", t)
 	}
 	// MCP requires an object root, which relaxedTree would otherwise widen to
-	// admit null as well.
+	// admit null as well. Drop the union that widening added at the root.
+	delete(root, "anyOf")
 	root["type"] = "object"
 
 	if len(defs) > 0 {
@@ -328,21 +329,32 @@ func relaxedTree(v any) (any, error) {
 	return allowNull(tree), nil
 }
 
-// allowNull rewrites "type": "X" → "type": ["X", "null"].
+// allowNull rewrites "type": "X" → "anyOf": [{"type": "X"}, {"type": "null"}].
+//
+// The union is spelled as anyOf rather than a type array ["X", "null"]. Type
+// arrays are legal JSON Schema, but some MCP clients map schemas onto a
+// single-type dialect and reject or drop them. Sibling keywords such as format,
+// properties, and items stay where they are; they only constrain the matching
+// kind, so they behave the same beside the anyOf.
 func allowNull(node any) any {
 	switch v := node.(type) {
 	case map[string]any:
 		for key, child := range v {
 			// Property named "type" is a nested schema, not a type keyword.
 			if key == "type" {
-				if name, ok := child.(string); ok {
-					if name != "null" {
-						v[key] = []any{name, "null"}
-					}
+				if _, ok := child.(string); ok {
 					continue
 				}
 			}
 			v[key] = allowNull(child)
+		}
+		// Rewrite after recursing so the anyOf branches are not walked again.
+		if name, ok := v["type"].(string); ok && name != "null" {
+			delete(v, "type")
+			v["anyOf"] = []any{
+				map[string]any{"type": name},
+				map[string]any{"type": "null"},
+			}
 		}
 		return v
 	case []any:

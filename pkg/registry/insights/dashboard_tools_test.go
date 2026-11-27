@@ -235,14 +235,32 @@ func TestDashboardUpdateAdvertisesDestructiveIdempotent(t *testing.T) {
 // behind json:"-" and a custom MarshalJSON. A client typing results off the
 // outputSchema would otherwise never see the one field that matters.
 func TestDashboardOutputSchemaDeclaresSpecAsString(t *testing.T) {
+	// Nullable properties are spelled as anyOf [{type: X}, {type: null}], so the
+	// string branch may sit in either "type" or an anyOf branch.
+	type typed struct {
+		Type  any `json:"type"`
+		AnyOf []struct {
+			Type any `json:"type"`
+		} `json:"anyOf"`
+	}
 	var schema struct {
 		Defs map[string]struct {
-			Properties map[string]struct {
-				Type any `json:"type"`
-			} `json:"properties"`
+			Properties map[string]typed `json:"properties"`
 		} `json:"$defs"`
 	}
 	require.NoError(t, json.Unmarshal(dashboardOut.RawSchema(), &schema))
+
+	declaresString := func(p typed) bool {
+		if s, ok := p.Type.(string); ok && s == "string" {
+			return true
+		}
+		for _, branch := range p.AnyOf {
+			if s, ok := branch.Type.(string); ok && s == "string" {
+				return true
+			}
+		}
+		return false
+	}
 
 	var found bool
 	for _, def := range schema.Defs {
@@ -251,7 +269,7 @@ func TestDashboardOutputSchemaDeclaresSpecAsString(t *testing.T) {
 			continue
 		}
 		found = true
-		require.Contains(t, spec.Type, "string", "spec must be declared as a string")
+		require.True(t, declaresString(spec), "spec must be declared as a string")
 	}
 	require.True(t, found, "no $def declares a spec property: %s", dashboardOut.RawSchema())
 
